@@ -174,34 +174,38 @@ export class Labyrinth {
       .fill(null)
       .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    // Carve out a path using a simple random walk
+    // Step 1: Carve a guaranteed path from start (0,0) to end (MAP_WIDTH-1, MAP_HEIGHT-1)
     let currentX = 0;
     let currentY = 0;
-    const path: Coordinate[] = [{ x: currentX, y: currentY }];
+    const mainPathCoords: Coordinate[] = [];
 
-    while (currentX !== this.MAP_WIDTH - 1 || currentY !== this.MAP_HEIGHT - 1) {
-      const possibleMoves: { dx: number; dy: number }[] = [];
-      if (currentX < this.MAP_WIDTH - 1) possibleMoves.push({ dx: 1, dy: 0 }); // East
-      if (currentY < this.MAP_HEIGHT - 1) possibleMoves.push({ dx: 0, dy: 1 }); // South
-      if (currentX > 0) possibleMoves.push({ dx: -1, dy: 0 }); // West
-      if (currentY > 0) possibleMoves.push({ dx: 0, dy: -1 }); // North
+    while (currentX < this.MAP_WIDTH - 1 || currentY < this.MAP_HEIGHT - 1) {
+      mainPathCoords.push({ x: currentX, y: currentY });
 
-      const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-      currentX += move.dx;
-      currentY += move.dy;
+      const canMoveRight = currentX < this.MAP_WIDTH - 1;
+      const canMoveDown = currentY < this.MAP_HEIGHT - 1;
 
-      // Ensure we don't go out of bounds (should be handled by possibleMoves, but as a safeguard)
-      currentX = Math.max(0, Math.min(currentX, this.MAP_WIDTH - 1));
-      currentY = Math.max(0, Math.min(currentY, this.MAP_HEIGHT - 1));
-
-      path.push({ x: currentX, y: currentY });
-
-      // Break if stuck (shouldn't happen with random walk to target, but for safety)
-      if (path.length > this.MAP_WIDTH * this.MAP_HEIGHT * 2) break;
+      if (canMoveRight && canMoveDown) {
+        // Randomly choose to move right or down
+        if (Math.random() < 0.5) {
+          currentX++;
+        } else {
+          currentY++;
+        }
+      } else if (canMoveRight) {
+        currentX++;
+      } else if (canMoveDown) {
+        currentY++;
+      } else {
+        // Should not happen if loop condition is correct
+        break;
+      }
     }
+    // Ensure the very last cell is added
+    mainPathCoords.push({ x: this.MAP_WIDTH - 1, y: this.MAP_HEIGHT - 1 });
 
-    // Convert path coordinates to LogicalRooms
-    path.forEach(coord => {
+    // Convert main path coordinates to LogicalRooms
+    mainPathCoords.forEach(coord => {
       const roomId = `room-${coord.x}-${coord.y}`;
       const roomName = `Chamber ${coord.x},${coord.y}`;
       let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
@@ -220,7 +224,33 @@ export class Labyrinth {
       this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
     });
 
-    // Add some items, enemies, and puzzles
+    // Step 2: Add "side rooms" by converting some adjacent walls to rooms
+    // This makes the maze more complex without blocking the main path
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+      for (let x = 0; x < this.MAP_WIDTH; x++) {
+        if (this.map[y][x] === 'wall') {
+          // Check if any adjacent cell is already a room
+          const neighbors = [
+            { nx: x + 1, ny: y }, { nx: x - 1, ny: y },
+            { nx: x, ny: y + 1 }, { nx: x, ny: y - 1 }
+          ];
+          const isAdjacentToRoom = neighbors.some(n =>
+            n.nx >= 0 && n.nx < this.MAP_WIDTH &&
+            n.ny >= 0 && n.ny < this.MAP_HEIGHT &&
+            this.map[n.ny][n.nx] !== 'wall'
+          );
+
+          if (isAdjacentToRoom && Math.random() < 0.1) { // 10% chance to create a side room
+            const roomId = `room-${x}-${y}`;
+            const roomName = `Hidden Passage ${x},${y}`;
+            const roomDescription = "A narrow, dusty passage, leading to an unknown fate.";
+            this.map[y][x] = new LogicalRoom(roomId, roomName, roomDescription);
+          }
+        }
+      }
+    }
+
+    // Add game elements after the map is fully generated
     this.addGameElements();
   }
 

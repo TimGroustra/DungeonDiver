@@ -1,6 +1,6 @@
 <svg width="1920" height="1080" viewBox="0 0 1920 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="1920" height="1080" fill="#1A1A1A"/>
-<g opacity="0.1">
+<g opacity="0.3">
 <path d="M100 0L0 100V0H100Z" fill="#333333"/>
 <path d="M200 0L100 100V0H200Z" fill="#333333"/>
 <path d="M300 0L200 100V0H300Z" fill="#333333"/>

@@ -174,93 +174,85 @@ export class Labyrinth {
       .fill(null)
       .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    // Helper to get valid neighbors of a certain type
-    const getNeighbors = (x: number, y: number, type: 'wall' | 'room') => {
+    // Helper to get valid neighbors
+    const getValidNeighbors = (x: number, y: number) => {
       const neighbors: Coordinate[] = [];
       const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
       for (const dir of directions) {
         const nx = x + dir.dx;
         const ny = y + dir.dy;
         if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
-          if (type === 'wall' && this.map[ny][nx] === 'wall') {
-            neighbors.push({ x: nx, y: ny });
-          } else if (type === 'room' && this.map[ny][nx] !== 'wall') { // This means it's a LogicalRoom
-            neighbors.push({ x: nx, y: ny });
-          }
+          neighbors.push({ x: nx, y: ny });
         }
       }
       return neighbors;
     };
 
-    // 2. Prim's Algorithm (to create a perfect maze)
-    const visitedCellsForMaze = new Set<string>(); // Use a separate set for maze generation
-    const frontier: Coordinate[] = [];
-
-    const startX = 0;
-    const startY = 0;
-
-    // Start cell
-    this.map[startY][startX] = new LogicalRoom(`room-${startX}-${startY}`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
-    visitedCellsForMaze.add(`${startX},${startY}`);
-
-    // Add initial wall neighbors to frontier
-    getNeighbors(startX, startY, 'wall').forEach(coord => {
-      if (!visitedCellsForMaze.has(`${coord.x},${coord.y}`)) { // Ensure not already visited
-        frontier.push(coord);
-      }
-    });
-
-    while (frontier.length > 0) {
-      // Pick a random cell from frontier
-      const randomIndex = Math.floor(Math.random() * frontier.length);
-      const { x, y } = frontier.splice(randomIndex, 1)[0]; // Remove from frontier
-
-      // If this cell is still a wall and hasn't been visited by another path
-      if (this.map[y][x] === 'wall' && !visitedCellsForMaze.has(`${x},${y}`)) {
-        // Find a random *existing room* neighbor to connect to
-        const roomNeighbors = getNeighbors(x, y, 'room').filter(coord => visitedCellsForMaze.has(`${coord.x},${coord.y}`));
-
-        if (roomNeighbors.length > 0) {
-          // Convert map[y][x] to a LogicalRoom
-          this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Winding Passage ${x},${y}`, this.getRandomRoomDescription());
-          visitedCellsForMaze.add(`${x},${y}`);
-
-          // Add its new 'wall' neighbors to frontier if not already visited or in frontier
-          getNeighbors(x, y, 'wall').forEach(coord => {
-            if (!visitedCellsForMaze.has(`${coord.x},${coord.y}`) && !frontier.some(f => f.x === coord.x && f.y === coord.y)) {
-              frontier.push(coord);
-            }
-          });
-        }
-      }
-    }
-
-    // 3. Ensure End Point is a Room (it should be connected by Prim's, but just in case)
+    // 2. Carve a guaranteed main path from start (0,0) to end (MAP_WIDTH-1, MAP_HEIGHT-1)
+    let currentX = 0;
+    let currentY = 0;
     const endX = this.MAP_WIDTH - 1;
     const endY = this.MAP_HEIGHT - 1;
-    if (this.map[endY][endX] === 'wall') {
-      this.map[endY][endX] = new LogicalRoom(`room-${endX}-${endY}`, `The Exit Portal Chamber`, "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!");
-    } else {
-      // If it's already a room, just update its description to be the exit
-      const exitRoom = this.map[endY][endX] as LogicalRoom;
-      exitRoom.name = `The Exit Portal Chamber`;
-      exitRoom.description = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+
+    while (currentX !== endX || currentY !== endY) {
+      this.map[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}`, `Winding Passage ${currentX},${currentY}`, this.getRandomRoomDescription());
+
+      const possibleMoves: { x: number, y: number }[] = [];
+
+      // Prioritize moves towards the end
+      if (currentX < endX) possibleMoves.push({ x: currentX + 1, y: currentY });
+      if (currentY < endY) possibleMoves.push({ x: currentX, y: currentY + 1 });
+      if (currentX > 0) possibleMoves.push({ x: currentX - 1, y: currentY }); // Allow backtracking for more winding paths
+      if (currentY > 0) possibleMoves.push({ x: currentX, y: currentY - 1 });
+
+      // Filter out moves that are out of bounds (already handled by getValidNeighbors implicitly)
+      // and ensure we don't go too far back if we have forward options
+      const validMoves = possibleMoves.filter(move =>
+        move.x >= 0 && move.x < this.MAP_WIDTH &&
+        move.y >= 0 && move.y < this.MAP_HEIGHT
+      );
+
+      let nextMove: Coordinate;
+      if (validMoves.length > 0) {
+        // Add a bias towards moving towards the end
+        const preferredMoves = validMoves.filter(move =>
+          (move.x > currentX && move.x <= endX) || (move.y > currentY && move.y <= endY)
+        );
+
+        if (preferredMoves.length > 0 && Math.random() < 0.8) { // 80% chance to take a preferred move
+          nextMove = preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+        } else { // 20% chance to take any valid move (including slight backtracking)
+          nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        }
+      } else {
+        // Should not happen if map is large enough and path is always possible
+        break;
+      }
+
+      currentX = nextMove.x;
+      currentY = nextMove.y;
     }
+    // Ensure the very last cell is a room
+    this.map[endY][endX] = new LogicalRoom(`room-${endX}-${endY}`, `The Exit Portal Chamber`, "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!");
 
-    // 4. Post-processing: Add Loops/Open Areas
-    for (let y = 0; y < this.MAP_HEIGHT; y++) {
-      for (let x = 0; x < this.MAP_WIDTH; x++) {
-        if (this.map[y][x] === 'wall') {
-          const roomNeighbors = getNeighbors(x, y, 'room');
-          const numRoomNeighbors = roomNeighbors.length;
+    // Set start room description
+    this.map[0][0] = new LogicalRoom(`room-0-0`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
 
-          // Create loops (wall between two rooms)
-          if (numRoomNeighbors >= 2 && Math.random() < 0.15) { // 15% chance to open a wall between two rooms
-            this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Interconnected Passage ${x},${y}`, this.getRandomRoomDescription());
-          }
-          // Create larger open areas (wall surrounded by more rooms)
-          else if (numRoomNeighbors >= 3 && Math.random() < 0.25) { // 25% chance to open a wall surrounded by 3+ rooms
-            this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Spacious Cavern ${x},${y}`, this.getRandomRoomDescription());
+
+    // 3. Add branching paths, loops, and open areas
+    // Iterate multiple times to allow paths to grow and connect
+    for (let i = 0; i < 5; i++) { // Run multiple passes for better connectivity
+      for (let y = 0; y < this.MAP_HEIGHT; y++) {
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+          if (this.map[y][x] === 'wall') {
+            const neighbors = getValidNeighbors(x, y);
+            const numOpenNeighbors = neighbors.filter(n => this.map[n.y][n.x] !== 'wall').length;
+
+            // If a wall is adjacent to at least one open room, there's a chance to open it
+            // Higher chance for more open neighbors to create larger areas
+            if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) { // Adjust probability as needed
+              this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Hidden Nook ${x},${y}`, this.getRandomRoomDescription());
+            }
           }
         }
       }

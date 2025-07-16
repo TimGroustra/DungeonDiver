@@ -144,7 +144,7 @@ const LabyrinthGame: React.FC = () => {
 
     return (
       <div
-        className="grid gap-0.5 p-1 border border-gray-300 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 overflow-hidden"
+        className="grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
           gridTemplateColumns: `repeat(${VIEWPORT_SIZE}, ${cellSize}px)`,
           gridTemplateRows: `repeat(${VIEWPORT_SIZE}, ${cellSize}px)`,
@@ -158,7 +158,7 @@ const LabyrinthGame: React.FC = () => {
               const cellCoord = `${cell.x},${cell.y}`;
               const isPlayerHere = playerLoc.x === cell.x && playerLoc.y === cell.y;
               const isVisited = visitedCells.has(cellCoord);
-              const isWall = cell.cellType === 'wall';
+              const isWall = cell.cellType === 'wall'; // Currently all 'open' in game.ts, but kept for future maze logic
 
               // Determine cell content for title/visuals
               const hasVisibleItem = labyrinth["itemLocations"].has(cellCoord);
@@ -168,42 +168,48 @@ const LabyrinthGame: React.FC = () => {
 
               let cellContentIndicator = "";
               let cellTitle = isPlayerHere ? "You are here" : isVisited ? "Explored" : "Unexplored";
+              let cellClasses = "";
 
               if (isPlayerHere) {
-                cellContentIndicator = "P";
+                cellContentIndicator = "P"; // Player
+                cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
               } else if (isWall) {
-                cellContentIndicator = "";
+                cellContentIndicator = "█"; // Wall character
+                cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
                 cellTitle = "Solid Wall";
               } else if (isVisited) {
-                if (hasEnemy) cellContentIndicator = "E";
-                else if (hasPuzzle) cellContentIndicator = "U"; // Unsolved puzzle
-                else if (hasVisibleItem) cellContentIndicator = "I";
-                else if (hasStaticItem) cellContentIndicator = "H"; // Hidden item
-                else cellContentIndicator = " ";
+                if (hasEnemy) {
+                  cellContentIndicator = "E"; // Enemy
+                  cellClasses = "bg-red-800 text-red-200";
+                  cellTitle += " (Enemy Lurks)";
+                } else if (hasPuzzle) {
+                  cellContentIndicator = "U"; // Unsolved Puzzle
+                  cellClasses = "bg-purple-800 text-purple-200";
+                  cellTitle += " (Ancient Puzzle)";
+                } else if (hasVisibleItem) {
+                  cellContentIndicator = "I"; // Item
+                  cellClasses = "bg-yellow-700 text-yellow-200";
+                  cellTitle += " (Glimmering Item)";
+                } else if (hasStaticItem) {
+                  cellContentIndicator = "H"; // Hidden/Static Item
+                  cellClasses = "bg-green-700 text-green-200";
+                  cellTitle += " (Hidden Feature)";
+                } else {
+                  cellContentIndicator = "·"; // Explored path
+                  cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
+                }
               } else {
-                cellContentIndicator = "?";
+                cellContentIndicator = "?"; // Unvisited, unknown
+                cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
               }
-
-              if (hasEnemy) cellTitle += " (Enemy)";
-              if (hasPuzzle) cellTitle += " (Puzzle)";
-              if (hasVisibleItem) cellTitle += " (Item)";
-              if (hasStaticItem) cellTitle += " (Hidden Item)";
-
 
               return (
                 <div
                   key={cellCoord}
                   className={cn(
-                    "w-full h-full flex items-center justify-center text-[10px] font-bold", // Adjusted font size
-                    "border border-gray-400 dark:border-gray-600",
-                    isWall
-                      ? "bg-gray-700 dark:bg-gray-900"
-                      : isPlayerHere
-                      ? "bg-blue-500 text-white"
-                      : isVisited
-                      ? "bg-gray-300 dark:bg-gray-600"
-                      : "bg-gray-500 dark:bg-gray-700", // Unvisited, unknown
-                    isPlayerHere && "ring-2 ring-blue-300 dark:ring-blue-700",
+                    "w-full h-full flex items-center justify-center text-[10px] font-bold",
+                    "border border-gray-800 dark:border-gray-500",
+                    cellClasses,
                   )}
                   title={cellTitle}
                 >
@@ -220,15 +226,15 @@ const LabyrinthGame: React.FC = () => {
   const renderInventory = () => {
     const inventoryItems = labyrinth.getInventoryItems();
     if (inventoryItems.length === 0) {
-      return <p>Your inventory is empty.</p>;
+      return <p className="text-gray-600 dark:text-gray-400">Your inventory is empty. Perhaps you'll find something useful...</p>;
     }
     return (
       <div className="mt-2">
-        <p className="font-semibold">Your Inventory:</p>
-        <ul className="list-disc list-inside text-sm">
+        <p className="font-semibold text-lg">Your Inventory:</p>
+        <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
           {inventoryItems.map((item) => (
             <li key={item.id}>
-              {item.name} - {item.description}
+              <span className="font-medium">{item.name}</span>: {item.description}
             </li>
           ))}
         </ul>
@@ -237,68 +243,68 @@ const LabyrinthGame: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-5xl shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-3xl font-bold text-center">The Labyrinth</CardTitle>
-          <CardDescription className="text-center">A text-based adventure</CardDescription>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-4">
+      <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-4">
+          <CardTitle className="text-4xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
+          <CardDescription className="text-center text-gray-300 dark:text-gray-700 text-lg italic">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Left Column: Map and Controls */}
             <div className="flex flex-col items-center">
-              <h3 className="text-xl font-semibold mb-2">Labyrinth Map</h3>
+              <h3 className="text-2xl font-bold mb-3 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
-              <div className="grid grid-cols-3 gap-2 mt-4 w-48">
+              <div className="grid grid-cols-3 gap-2 mt-6 w-64">
                 <div />
-                <Button onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
+                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
                 <div />
-                <Button onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
+                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
                 <div />
-                <Button onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
+                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
                 <div />
-                <Button onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
+                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
                 <div />
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
-                <Button onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
+              <div className="flex gap-4 mt-4">
+                <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
+                <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
               </div>
             </div>
 
             {/* Right Column: Game Info and Log */}
             <div className="flex flex-col">
               <div className="mb-4">
-                <h2 className="text-2xl font-semibold mb-2">{currentLogicalRoom?.name || "Unknown Area"}</h2>
-                <p className="text-gray-700 dark:text-gray-300">{currentLogicalRoom?.description || "You are in an unknown part of the labyrinth."}</p>
+                <h2 className="text-3xl font-bold mb-2 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+                <p className="text-gray-300 dark:text-gray-700 text-lg italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
               </div>
 
-              <Separator className="my-4" />
+              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
 
               <div className="mb-4">
-                <h3 className="text-xl font-semibold">Player Status:</h3>
-                <p>Health: {labyrinth.getPlayerHealth()}</p>
+                <h3 className="text-2xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
+                <p className="text-lg text-gray-300 dark:text-gray-700">Health: <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} HP</span></p>
                 {renderInventory()}
               </div>
 
-              <Separator className="my-4" />
+              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
 
               {showRPS && currentEnemy && (
-                <div className="mb-4 p-4 border rounded-md bg-red-50 dark:bg-red-900/20">
-                  <h3 className="text-xl font-semibold text-red-600 dark:text-red-400">Combat Encounter!</h3>
-                  <p className="text-lg mb-2">You face a {currentEnemy.name}: {currentEnemy.description}</p>
-                  <p className="mb-2">Choose your move:</p>
-                  <div className="flex gap-2">
-                    <Button variant="destructive" onClick={() => handleRPSChoice("rock")}>Rock</Button>
-                    <Button variant="destructive" onClick={() => handleRPSChoice("paper")}>Paper</Button>
-                    <Button variant="destructive" onClick={() => handleRPSChoice("scissors")}>Scissors</Button>
+                <div className="mb-4 p-4 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900">
+                  <h3 className="text-2xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
+                  <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
+                  <p className="mb-3">Choose your move wisely, adventurer:</p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("rock")}>Rock</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("paper")}>Paper</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("scissors")}>Scissors</Button>
                   </div>
                 </div>
               )}
 
               <div className="mb-4 flex-grow">
-                <h3 className="text-xl font-semibold">Game Log:</h3>
-                <ScrollArea className="h-64 w-full rounded-md border p-4 bg-gray-100 dark:bg-gray-800 text-sm" ref={logRef}>
+                <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600">Chronicles of the Labyrinth:</h3>
+                <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
                   {gameLog.map((message, index) => (
                     <p key={index} className="mb-1 last:mb-0">{message}</p>
                   ))}
@@ -307,10 +313,10 @@ const LabyrinthGame: React.FC = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-4">
           {labyrinth.isGameOver() && (
-            <Button onClick={handleRestart} className="mt-4">
-              Restart Game
+            <Button onClick={handleRestart} className="mt-4 bg-amber-500 hover:bg-amber-600 text-white text-lg px-6 py-3">
+              Restart Journey
             </Button>
           )}
         </CardFooter>

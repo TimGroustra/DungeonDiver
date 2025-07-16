@@ -136,7 +136,7 @@ export class Labyrinth {
     this.items = new Map();
 
     this.initializeLabyrinth();
-    this.addMessage("Welcome to the Labyrinth! Find the exit.");
+    this.addMessage("Welcome, brave adventurer, to the Labyrinth of Whispers! Find the ancient artifact and escape!");
     this.markVisited(this.playerLocation);
   }
 
@@ -151,18 +151,20 @@ export class Labyrinth {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const roomId = `room-${x}-${y}`;
-        const roomName = `Room ${x},${y}`;
-        let roomDescription = `You are in a dimly lit room at (${x},${y}).`;
+        const roomName = `Chamber ${x},${y}`;
+        let roomDescription = `You are in a dimly lit chamber at (${x},${y}). The air is heavy with the scent of damp earth and ancient magic.`;
 
         // Add some variety
         if (x === 0 && y === 0) {
-          roomDescription = "You are at the entrance of the Labyrinth. A cold draft blows from deeper within.";
+          roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
         } else if (x === width - 1 && y === height - 1) {
-          roomDescription = "You see a faint light in the distance. This must be the exit!";
+          roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
         } else if (Math.random() < 0.1) {
-          roomDescription = "The air here is thick with dust, and ancient carvings adorn the walls.";
+          roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
         } else if (Math.random() < 0.05) {
-          roomDescription = "A strange, echoing silence fills this chamber.";
+          roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+        } else if (Math.random() < 0.07) {
+          roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
         }
 
         this.map[y][x] = new LogicalRoom(roomId, roomName, roomDescription);
@@ -175,31 +177,35 @@ export class Labyrinth {
 
   private addGameElements(width: number, height: number) {
     // Add a key
-    const key = new Item("key-1", "Rusty Key", "A small, rusty key. It might open something.");
+    const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.");
     this.items.set(key.id, key);
     this.placeElementRandomly(key.id, this.itemLocations, width, height);
 
     // Add a potion
-    const potion = new Item("potion-1", "Healing Potion", "A glowing red liquid that restores health.");
+    const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.");
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, width, height);
 
     // Add a static item (e.g., a broken lever)
-    const lever = new Item("lever-1", "Broken Lever", "A lever, but it's broken. Perhaps it can be fixed?", true);
+    const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true);
     this.items.set(lever.id, lever);
     this.placeElementRandomly(lever.id, this.staticItemLocations, width, height);
 
     // Add some enemies
-    const goblin = new Enemy("goblin-1", "Goblin", "A small, green-skinned creature with sharp teeth.");
+    const goblin = new Enemy("goblin-1", "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", 2);
     this.enemies.set(goblin.id, goblin);
     this.placeElementRandomly(goblin.id, this.enemyLocations, width, height);
 
-    const skeleton = new Enemy("skeleton-1", "Skeleton Warrior", "An animated skeleton, wielding a rusty sword.");
+    const skeleton = new Enemy("skeleton-1", "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", 3);
     this.enemies.set(skeleton.id, skeleton);
     this.placeElementRandomly(skeleton.id, this.enemyLocations, width, height);
 
+    const shadowBeast = new Enemy("shadow-beast-1", "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", 4);
+    this.enemies.set(shadowBeast.id, shadowBeast);
+    this.placeElementRandomly(shadowBeast.id, this.enemyLocations, width, height);
+
     // Add a puzzle
-    const riddle = new Puzzle("riddle-1", "Ancient Riddle", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Shining Gem", "A beautiful, sparkling gem."));
+    const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!"));
     this.puzzles.set(riddle.id, riddle);
     this.placeElementRandomly(riddle.id, this.puzzleLocations, width, height);
   }
@@ -279,15 +285,9 @@ export class Labyrinth {
   }
 
   getMapGrid(): ('wall' | 'open')[][] {
-    // For simplicity, let's assume all generated rooms are 'open'
-    // and the 'wall' type is used for rendering boundaries or unvisited areas
-    // In a more complex game, this would reflect actual maze generation
     const grid: ('wall' | 'open')[][] = Array(this.map.length)
       .fill(null)
       .map(() => Array(this.map[0].length).fill('open'));
-
-    // You could add actual wall generation here if you had a maze algorithm
-    // For now, we'll just return a grid of 'open' cells
     return grid;
   }
 
@@ -322,12 +322,12 @@ export class Labyrinth {
       newY < this.map.length
     ) {
       this.playerLocation = { x: newX, y: newY };
-      this.addMessage(`You moved ${direction}.`);
+      this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
       this.markVisited(this.playerLocation);
 
       // Check for game over condition (e.g., reaching the exit)
       if (newX === this.map[0].length - 1 && newY === this.map.length - 1) {
-        this.addMessage("You found the exit! Congratulations, you escaped the Labyrinth!");
+        this.addMessage("A shimmering portal appears, bathed in ethereal light! You step through, escaping the Labyrinth's grasp! Congratulations, brave adventurer!");
         this.gameOver = true;
       }
 
@@ -336,11 +336,11 @@ export class Labyrinth {
       if (enemyId) {
         const enemy = this.enemies.get(enemyId);
         if (enemy && !enemy.defeated) {
-          this.addMessage(`A ${enemy.name} blocks your path! Prepare for combat!`);
+          this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
         }
       }
     } else {
-      this.addMessage("You cannot go that way. A solid wall blocks your path.");
+      this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
     }
   }
 
@@ -360,7 +360,7 @@ export class Labyrinth {
       if (item && !item.isStatic) {
         this.inventory.push(item);
         this.itemLocations.delete(currentCoord); // Remove from map once picked up
-        this.addMessage(`You found a ${item.name} and added it to your inventory: ${item.description}`);
+        this.addMessage(`Your fingers brush against something hidden in the rubble... you found a ${item.name}! It's a ${item.description}`);
         foundSomething = true;
       }
     }
@@ -370,7 +370,7 @@ export class Labyrinth {
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
-        this.addMessage(`You found a ${staticItem.name}: ${staticItem.description}`);
+        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
         foundSomething = true;
       }
     }
@@ -380,13 +380,13 @@ export class Labyrinth {
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        this.addMessage(`You discovered a puzzle: "${puzzle.name}". Description: "${puzzle.description}"`);
+        this.addMessage(`An ancient inscription glows faintly on the wall, revealing a puzzle: "${puzzle.name}". Description: "${puzzle.description}"`);
         foundSomething = true;
       }
     }
 
     if (!foundSomething) {
-      this.addMessage("You search the area but find nothing new.");
+      this.addMessage("You meticulously search the area, but find nothing but dust and cobwebs.");
     }
   }
 
@@ -404,26 +404,25 @@ export class Labyrinth {
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        // For simplicity, we'll auto-solve if the player has the "key" or a specific item
-        // In a real game, this would prompt for input
-        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") { // Example interaction
+        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
+        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
           if (puzzle.solve("echo")) {
-            this.addMessage(`You used the key and solved the puzzle: "${puzzle.name}"!`);
+            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
             if (puzzle.reward) {
               this.inventory.push(puzzle.reward);
-              this.addMessage(`You received a ${puzzle.reward.name} as a reward!`);
+              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
             }
             interacted = true;
           }
         } else {
-          this.addMessage(`You try to interact with the puzzle, but you don't know how to solve it.`);
+          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
           interacted = true;
         }
       }
     }
 
     if (!interacted) {
-      this.addMessage("There's nothing obvious to interact with here.");
+      this.addMessage("There's nothing here that responds to your touch.");
     }
   }
 
@@ -450,13 +449,13 @@ export class Labyrinth {
     const enemyChoices: ("rock" | "paper" | "scissors")[] = ["rock", "paper", "scissors"];
     const enemyChoice = enemyChoices[Math.floor(Math.random() * enemyChoices.length)];
 
-    this.addMessage(`You chose ${playerChoice}. The ${enemy.name} chose ${enemyChoice}.`);
+    this.addMessage(`You prepare for battle, choosing ${playerChoice}! The ${enemy.name} counters with ${enemyChoice}!`);
 
     let playerWins = false;
     let enemyWins = false;
 
     if (playerChoice === enemyChoice) {
-      this.addMessage("It's a tie!");
+      this.addMessage("Clash! Your moves mirror each other, a momentary stalemate.");
     } else if (
       (playerChoice === "rock" && enemyChoice === "scissors") ||
       (playerChoice === "paper" && enemyChoice === "rock") ||
@@ -469,17 +468,15 @@ export class Labyrinth {
 
     if (playerWins) {
       enemy.takeDamage(1); // Each win reduces enemy health by 1
-      this.addMessage(`You hit the ${enemy.name}! Its health is now ${enemy.health}.`);
+      this.addMessage(`A decisive blow! You hit the ${enemy.name}! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
-        this.addMessage(`You defeated the ${enemy.name}!`);
-        // Optionally remove enemy from map or mark as defeated
-        // this.enemyLocations.delete(currentCoord); // Or just rely on enemy.defeated flag
+        this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
       }
     } else if (enemyWins) {
       this.playerHealth -= 10; // Player takes damage
-      this.addMessage(`The ${enemy.name} hit you! Your health is now ${this.playerHealth}.`);
+      this.addMessage(`The ${enemy.name} strikes true! You wince as you take damage. Your health is now ${this.playerHealth}.`);
       if (this.playerHealth <= 0) {
-        this.addMessage("Your health dropped to zero. You have been defeated!");
+        this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
         this.gameOver = true;
       }
     }

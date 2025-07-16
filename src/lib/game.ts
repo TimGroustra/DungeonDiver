@@ -151,124 +151,53 @@ export class Labyrinth {
       .fill(null)
       .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    const start: Coordinate = { x: 0, y: 0 };
-    const end: Coordinate = { x: this.MAP_WIDTH - 1, y: this.MAP_HEIGHT - 1 };
+    // Carve out a path using a simple random walk
+    let currentX = 0;
+    let currentY = 0;
+    const path: Coordinate[] = [{ x: currentX, y: currentY }];
 
-    const stack: Coordinate[] = [start];
-    const visited = new Set<string>();
-    visited.add(`${start.x},${start.y}`);
+    while (currentX !== this.MAP_WIDTH - 1 || currentY !== this.MAP_HEIGHT - 1) {
+      const possibleMoves: { dx: number; dy: number }[] = [];
+      if (currentX < this.MAP_WIDTH - 1) possibleMoves.push({ dx: 1, dy: 0 }); // East
+      if (currentY < this.MAP_HEIGHT - 1) possibleMoves.push({ dx: 0, dy: 1 }); // South
+      if (currentX > 0) possibleMoves.push({ dx: -1, dy: 0 }); // West
+      if (currentY > 0) possibleMoves.push({ dx: 0, dy: -1 }); // North
 
-    // Carve a path using a modified DFS to ensure connectivity
-    while (stack.length > 0) {
-      const current = stack[stack.length - 1]; // Peek at the top of the stack
+      const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      currentX += move.dx;
+      currentY += move.dy;
 
-      // Mark current cell as open (LogicalRoom)
-      if (this.map[current.y][current.x] === 'wall') {
-        const roomId = `room-${current.x}-${current.y}`;
-        const roomName = `Chamber ${current.x},${current.y}`;
-        let roomDescription = `You are in a dimly lit chamber at (${current.x},${current.y}). The air is heavy with the scent of damp earth and ancient magic.`;
+      // Ensure we don't go out of bounds (should be handled by possibleMoves, but as a safeguard)
+      currentX = Math.max(0, Math.min(currentX, this.MAP_WIDTH - 1));
+      currentY = Math.max(0, Math.min(currentY, this.MAP_HEIGHT - 1));
 
-        if (current.x === start.x && current.y === start.y) {
-          roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
-        } else if (current.x === end.x && current.y === end.y) {
-          roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
-        } else {
-          // Add some variety to other room descriptions
-          if (Math.random() < 0.1) {
-            roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
-          } else if (Math.random() < 0.05) {
-            roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
-          } else if (Math.random() < 0.07) {
-            roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
-          }
-        }
-        this.map[current.y][current.x] = new LogicalRoom(roomId, roomName, roomDescription);
-      }
+      path.push({ x: currentX, y: currentY });
 
-      if (current.x === end.x && current.y === end.y) {
-        // Reached the end, path is guaranteed
-        break;
-      }
-
-      const neighbors: { dx: number; dy: number }[] = [];
-      // Prioritize moves towards the target to make it more likely to reach the end
-      if (current.x < end.x) neighbors.push({ dx: 1, dy: 0 });
-      if (current.y < end.y) neighbors.push({ dx: 0, dy: 1 });
-      if (current.x > end.x) neighbors.push({ dx: -1, dy: 0 });
-      if (current.y > end.y) neighbors.push({ dx: 0, dy: -1 });
-
-      // Add other directions to allow for branching and more labyrinthine paths
-      // Ensure no duplicates if already added by biased moves
-      if (current.x + 1 < this.MAP_WIDTH && !neighbors.some(n => n.dx === 1 && n.dy === 0)) neighbors.push({ dx: 1, dy: 0 });
-      if (current.y + 1 < this.MAP_HEIGHT && !neighbors.some(n => n.dx === 0 && n.dy === 1)) neighbors.push({ dx: 0, dy: 1 });
-      if (current.x - 1 >= 0 && !neighbors.some(n => n.dx === -1 && n.dy === 0)) neighbors.push({ dx: -1, dy: 0 });
-      if (current.y - 1 >= 0 && !neighbors.some(n => n.dx === 0 && n.dy === -1)) neighbors.push({ dx: 0, dy: -1 });
-
-      // Shuffle neighbors to ensure randomness
-      for (let i = neighbors.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
-      }
-
-      let foundNext = false;
-      for (const move of neighbors) {
-        const nextX = current.x + move.dx;
-        const nextY = current.y + move.dy;
-        const nextCoordStr = `${nextX},${nextY}`;
-
-        if (nextX >= 0 && nextX < this.MAP_WIDTH && nextY >= 0 && nextY < this.MAP_HEIGHT && !visited.has(nextCoordStr)) {
-          visited.add(nextCoordStr);
-          stack.push({ x: nextX, y: nextY });
-          foundNext = true;
-          break; // Move to the next cell
-        }
-      }
-
-      if (!foundNext) {
-        // Backtrack if no unvisited neighbors
-        stack.pop();
-      }
+      // Break if stuck (shouldn't happen with random walk to target, but for safety)
+      if (path.length > this.MAP_WIDTH * this.MAP_HEIGHT * 2) break;
     }
 
-    // After the main path is carved, fill in any remaining 'wall' cells that are adjacent to carved paths
-    // This creates more open areas and less "perfect" mazes, making it more like a labyrinth.
-    // Iterate multiple times to expand open areas
-    for (let k = 0; k < 5; k++) { // Run several iterations to expand
-      const cellsToOpen: Coordinate[] = [];
-      for (let y = 0; y < this.MAP_HEIGHT; y++) {
-        for (let x = 0; x < this.MAP_WIDTH; x++) {
-          if (this.map[y][x] === 'wall') {
-            // Check if this wall cell is adjacent to an open room
-            const neighbors = [
-              { dx: 0, dy: 1 }, { dx: 0, dy: -1 },
-              { dx: 1, dy: 0 }, { dx: -1, dy: 0 },
-              // Diagonals can also be considered for more open spaces
-              { dx: 1, dy: 1 }, { dx: 1, dy: -1 },
-              { dx: -1, dy: 1 }, { dx: -1, dy: -1 },
-            ];
-            let adjacentToOpen = false;
-            for (const move of neighbors) {
-              const nx = x + move.dx;
-              const ny = y + move.dy;
-              if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT && this.map[ny][nx] !== 'wall') {
-                adjacentToOpen = true;
-                break;
-              }
-            }
-            if (adjacentToOpen && Math.random() < 0.3) { // Randomly open some adjacent walls
-              cellsToOpen.push({ x, y });
-            }
-          }
-        }
-      }
-      cellsToOpen.forEach(coord => {
-        const roomId = `room-${coord.x}-${coord.y}`;
-        const roomName = `Chamber ${coord.x},${coord.y}`;
-        let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
-        this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
-      });
-    }
+    // Convert path coordinates to LogicalRooms
+    path.forEach(coord => {
+      const roomId = `room-${coord.x}-${coord.y}`;
+      const roomName = `Chamber ${coord.x},${coord.y}`;
+      let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
 
+      if (coord.x === 0 && coord.y === 0) {
+        roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
+      } else if (coord.x === this.MAP_WIDTH - 1 && coord.y === this.MAP_HEIGHT - 1) {
+        roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+      } else if (Math.random() < 0.1) {
+        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
+      } else if (Math.random() < 0.05) {
+        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+      } else if (Math.random() < 0.07) {
+        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+      }
+      this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
+    });
+
+    // Add some items, enemies, and puzzles
     this.addGameElements();
   }
 

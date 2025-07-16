@@ -192,7 +192,7 @@ export class Labyrinth {
         break;
       }
 
-      // Choose a move: 80% chance to pick a move that reduces Manhattan distance, 20% any valid move
+      // Choose a move: 60% chance to pick a move that reduces Manhattan distance, 40% any valid move
       let chosenMove: { dx: number; dy: number };
       const movesReducingDistance = validMoves.filter(move => {
         const newDist = Math.abs((currentX + move.dx) - targetX) + Math.abs((currentY + move.dy) - targetY);
@@ -200,14 +200,14 @@ export class Labyrinth {
         return newDist < currentDist;
       });
 
-      if (movesReducingDistance.length > 0 && Math.random() < 0.8) {
+      if (movesReducingDistance.length > 0 && Math.random() < 0.6) { // Changed from 0.8 to 0.6
         chosenMove = movesReducingDistance[Math.floor(Math.random() * movesReducingDistance.length)];
       } else {
         chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
       }
 
       currentX += chosenMove.dx;
-      currentY += chosenMove.dy; // Fixed: changed chosenY to chosenMove.dy
+      currentY += chosenMove.dy;
 
       const coordStr = `${currentX},${currentY}`;
       if (!pathSet.has(coordStr)) {

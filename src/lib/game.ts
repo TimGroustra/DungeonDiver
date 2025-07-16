@@ -380,7 +380,7 @@ export class Labyrinth {
 
       // Check for game over condition (e.g., reaching the exit)
       if (newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        this.addMessage("A shimmering portal appears, bathed in ethereal light! You step through, escaping the Labyrinth's grasp! Congratulations, brave adventurer!");
+        this.addMessage("A shimmering portal, bathed in ethereal light! You step through, escaping the Labyrinth's grasp! Congratulations, brave adventurer!");
         this.gameOver = true;
       }
 
@@ -433,8 +433,20 @@ export class Labyrinth {
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        this.addMessage(`An ancient inscription glows faintly on the wall, revealing a puzzle: "${puzzle.name}". Description: "${puzzle.description}"`);
-        foundSomething = true;
+        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
+        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+          if (puzzle.solve("echo")) {
+            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+            if (puzzle.reward) {
+              this.inventory.push(puzzle.reward);
+              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+            }
+            foundSomething = true; // Corrected from 'interacted'
+          }
+        } else {
+          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
+          foundSomething = true; // Corrected from 'interacted'
+        }
       }
     }
 
@@ -479,7 +491,7 @@ export class Labyrinth {
     }
   }
 
-  fight(playerChoice: "rock" | "paper" | "scissors") {
+  fight(playerChoice: "left" | "center" | "right") {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -499,21 +511,24 @@ export class Labyrinth {
       return;
     }
 
-    const enemyChoices: ("rock" | "paper" | "scissors")[] = ["rock", "paper", "scissors"];
+    const enemyChoices: ("left" | "center" | "right")[] = ["left", "center", "right"];
     const enemyChoice = enemyChoices[Math.floor(Math.random() * enemyChoices.length)];
 
-    this.addMessage(`You prepare for battle, choosing ${playerChoice}! The ${enemy.name} counters with ${enemyChoice}!`);
+    this.addMessage(`You prepare for battle, choosing to ${playerChoice}! The ${enemy.name} counters with ${enemyChoice}!`);
 
     let playerWins = false;
     let enemyWins = false;
 
+    // Define winning conditions for Attack Left/Center/Right
+    const winningMoves = {
+      "left": "right",
+      "center": "left",
+      "right": "center",
+    };
+
     if (playerChoice === enemyChoice) {
       this.addMessage("Clash! Your moves mirror each other, a momentary stalemate.");
-    } else if (
-      (playerChoice === "rock" && enemyChoice === "scissors") ||
-      (playerChoice === "paper" && enemyChoice === "rock") ||
-      (playerChoice === "scissors" && enemyChoice === "paper")
-    ) {
+    } else if (winningMoves[playerChoice] === enemyChoice) {
       playerWins = true;
     } else {
       enemyWins = true;

@@ -85,7 +85,7 @@ const LabyrinthGame: React.FC = () => {
     setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
-  const handleRPSChoice = (choice: "rock" | "paper" | "scissors") => {
+  const handleRPSChoice = (choice: "left" | "center" | "right") => {
     if (!currentEnemy) return;
     labyrinth.fight(choice);
     setGameVersion(prev => prev + 1); // Increment version to force re-render
@@ -273,9 +273,9 @@ const LabyrinthGame: React.FC = () => {
                   <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
                   <p className="mb-3">Choose your move wisely, adventurer:</p>
                   <div className="flex gap-3 justify-center">
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("rock")}>Rock</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("paper")}>Paper</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("scissors")}>Scissors</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
                   </div>
                 </div>
               )}

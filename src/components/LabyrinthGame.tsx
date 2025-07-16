@@ -147,7 +147,7 @@ const LabyrinthGame: React.FC = () => {
             cellContentIndicator = "█"; // Wall character
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
-          } else if (isVisited) {
+          } else { // This block now covers both visited and unvisited open cells
             const hasEnemy = labyrinth["enemyLocations"].has(cellCoord) && !labyrinth.getEnemy(labyrinth["enemyLocations"].get(cellCoord)!)?.defeated;
             const hasPuzzle = labyrinth["puzzleLocations"].has(cellCoord) && !labyrinth.getPuzzle(labyrinth["puzzleLocations"].get(cellCoord)!)?.solved;
             const hasVisibleItem = labyrinth["itemLocations"].has(cellCoord);
@@ -170,14 +170,12 @@ const LabyrinthGame: React.FC = () => {
               cellClasses = "bg-green-700 text-green-200";
               cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature)`;
             } else {
-              cellContentIndicator = "·"; // Explored path
-              cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
-              cellTitle = `Explored (${mapX},${mapY})`;
+              cellContentIndicator = "·"; // Explored path or unvisited open path
+              cellClasses = isVisited 
+                ? "bg-gray-700 dark:bg-gray-600 text-gray-500" // Visited path
+                : "bg-gray-900 dark:bg-gray-800 text-gray-700"; // Unvisited open path (revealed)
+              cellTitle = isVisited ? `Explored (${mapX},${mapY})` : `Unexplored (${mapX},${mapY})`;
             }
-          } else {
-            cellContentIndicator = "?"; // Unvisited, unknown
-            cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
-            cellTitle = `Unexplored (${mapX},${mapY})`;
           }
         } else {
           // Out of bounds - render as void

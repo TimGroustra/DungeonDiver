@@ -318,7 +318,7 @@ const LabyrinthGame: React.FC = () => {
           {inventoryItems.map((item) => (
             <li key={item.id} className="flex items-center justify-between mb-1">
               <div>
-                <span className="font-medium">{item.name}</span>: {item.description}
+                <span className="font-medium text-white dark:text-gray-950">{item.name}</span>: {item.description}
                 {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
                 {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
               </div>

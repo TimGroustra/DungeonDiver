@@ -1,157 +1,278 @@
-// src/lib/game.ts
+export type Coordinate = { x: number; y: number };
 
-export type Coordinates = { x: number; y: number; };
-
-export interface LogicalRoom {
+export class LogicalRoom {
   id: string;
   name: string;
   description: string;
+  items: Item[];
+  enemies: Enemy[];
+  puzzles: Puzzle[];
+  exits: { [key: string]: Coordinate }; // Stores coordinates of adjacent rooms
+
+  constructor(id: string, name: string, description: string) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.items = [];
+    this.enemies = [];
+    this.puzzles = [];
+    this.exits = {};
+  }
+
+  addItem(item: Item) {
+    this.items.push(item);
+  }
+
+  removeItem(itemId: string): Item | undefined {
+    const index = this.items.findIndex((item) => item.id === itemId);
+    if (index > -1) {
+      return this.items.splice(index, 1)[0];
+    }
+    return undefined;
+  }
+
+  addEnemy(enemy: Enemy) {
+    this.enemies.push(enemy);
+  }
+
+  addPuzzle(puzzle: Puzzle) {
+    this.puzzles.push(puzzle);
+  }
 }
 
-export interface Item {
+export class Item {
   id: string;
   name: string;
   description: string;
-  type: 'consumable' | 'key' | 'weapon' | 'treasure' | 'static';
-  effect?: string;
+  isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
+
+  constructor(id: string, name: string, description: string, isStatic: boolean = false) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.isStatic = isStatic;
+  }
 }
 
-export interface Enemy {
+export class Enemy {
   id: string;
   name: string;
   description: string;
   health: number;
-  maxHealth: number;
-  attack: number;
   defeated: boolean;
-  combatStrategy: 'rock' | 'paper' | 'scissors'; // Player choices: 'left', 'center', 'right'
+
+  constructor(id: string, name: string, description: string, health: number = 1) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.health = health;
+    this.defeated = false;
+  }
+
+  takeDamage(amount: number) {
+    this.health -= amount;
+    if (this.health <= 0) {
+      this.defeated = true;
+    }
+  }
 }
 
-export interface Puzzle {
+export class Puzzle {
   id: string;
   name: string;
   description: string;
+  solution: string;
   solved: boolean;
-  solution: string; // e.g., a keyword or action
   reward?: Item;
+
+  constructor(id: string, name: string, description: string, solution: string, reward?: Item) {
+    this.id = id;
+    this.name = name;
+    this.description = description;
+    this.solution = solution;
+    this.solved = false;
+    this.reward = reward;
+  }
+
+  solve(attempt: string): boolean {
+    if (attempt.toLowerCase() === this.solution.toLowerCase()) {
+      this.solved = true;
+      return true;
+    }
+    return false;
+  }
 }
 
-class Labyrinth { // Renamed from GameState to Labyrinth
-  playerLocation: Coordinates;
-  playerHealth: number;
-  inventory: Item[];
-  gameMessages: string[];
-  isGameOverFlag: boolean;
-  isGameWonFlag: boolean;
-  mapGrid: string[][]; // 'path' or 'wall'
-  visitedCells: Set<string>; // Stores "x,y" strings
-  enemyLocations: Map<string, string>; // "x,y" -> enemyId
-  enemies: Map<string, Enemy>; // enemyId -> Enemy object
-  puzzleLocations: Map<string, string>; // "x,y" -> puzzleId
-  puzzles: Map<string, Puzzle>; // puzzleId -> Puzzle object
-  itemLocations: Map<string, string>; // "x,y" -> itemId (for pickable items)
-  items: Map<string, Item>; // itemId -> Item object
-  staticItemLocations: Map<string, string>; // "x,y" -> staticItemId (e.g., a book)
-  staticItems: Map<string, Item>; // staticItemId -> Static Item object
-  revealedStaticItems: Set<string>; // Stores "x,y" strings of revealed static items
+export class Labyrinth {
+  private map: (LogicalRoom | 'wall')[][]; // Map can now contain walls
+  private playerLocation: Coordinate;
+  private playerHealth: number;
+  private inventory: Item[];
+  private messages: string[];
+  private gameOver: boolean;
+  private visitedCells: Set<string>; // Stores "x,y" strings of visited cells
+  private enemyLocations: Map<string, string>; // "x,y" -> enemyId
+  private puzzleLocations: Map<string, string>; // "x,y" -> puzzleId
+  private itemLocations: Map<string, string>; // "x,y" -> itemId (for visible items)
+  private staticItemLocations: Map<string, string>; // "x,y" -> itemId (for hidden/static items)
+  private revealedStaticItems: Set<string>; // New: Stores "x,y" strings of revealed static items
+  private enemies: Map<string, Enemy>;
+  private puzzles: Map<string, Puzzle>;
+  private items: Map<string, Item>;
+
+  private readonly MAP_WIDTH = 50;
+  private readonly MAP_HEIGHT = 50;
 
   constructor() {
+    this.map = [];
+    this.playerLocation = { x: 0, y: 0 };
     this.playerHealth = 100;
     this.inventory = [];
-    this.gameMessages = [];
-    this.isGameOverFlag = false;
-    this.isGameWonFlag = false;
-    this.visitedCells = new Set();
+    this.messages = [];
+    this.gameOver = false;
+    this.visitedCells = new Set<string>();
     this.enemyLocations = new Map();
-    this.enemies = new Map();
     this.puzzleLocations = new Map();
-    this.puzzles = new Map();
     this.itemLocations = new Map();
-    this.items = new Map();
     this.staticItemLocations = new Map();
-    this.staticItems = new Map();
-    this.revealedStaticItems = new Set();
+    this.revealedStaticItems = new Set<string>(); // Initialize new set
+    this.enemies = new Map();
+    this.puzzles = new Map();
+    this.items = new Map();
 
-    // Initialize a simple 10x10 map
-    this.mapGrid = Array(10).fill(null).map(() => Array(10).fill('path'));
+    this.initializeLabyrinth();
+    this.addMessage("Welcome, brave adventurer, to the Labyrinth of Whispers! Find the ancient artifact and escape!");
+    this.markVisited(this.playerLocation);
+  }
 
-    // Add some walls for complexity
-    for (let i = 0; i < 10; i++) {
-      this.mapGrid[0][i] = 'wall';
-      this.mapGrid[9][i] = 'wall';
-      this.mapGrid[i][0] = 'wall';
-      this.mapGrid[i][9] = 'wall';
+  private initializeLabyrinth() {
+    // Initialize map with all walls
+    this.map = Array(this.MAP_HEIGHT)
+      .fill(null)
+      .map(() => Array(this.MAP_WIDTH).fill('wall'));
+
+    // Carve out a path using a simple random walk
+    let currentX = 0;
+    let currentY = 0;
+    const path: Coordinate[] = [{ x: currentX, y: currentY }];
+
+    while (currentX !== this.MAP_WIDTH - 1 || currentY !== this.MAP_HEIGHT - 1) {
+      const possibleMoves: { dx: number; dy: number }[] = [];
+      if (currentX < this.MAP_WIDTH - 1) possibleMoves.push({ dx: 1, dy: 0 }); // East
+      if (currentY < this.MAP_HEIGHT - 1) possibleMoves.push({ dx: 0, dy: 1 }); // South
+      if (currentX > 0) possibleMoves.push({ dx: -1, dy: 0 }); // West
+      if (currentY > 0) possibleMoves.push({ dx: 0, dy: -1 }); // North
+
+      const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      currentX += move.dx;
+      currentY += move.dy;
+
+      // Ensure we don't go out of bounds (should be handled by possibleMoves, but as a safeguard)
+      currentX = Math.max(0, Math.min(currentX, this.MAP_WIDTH - 1));
+      currentY = Math.max(0, Math.min(currentY, this.MAP_HEIGHT - 1));
+
+      path.push({ x: currentX, y: currentY });
+
+      // Break if stuck (shouldn't happen with random walk to target, but for safety)
+      if (path.length > this.MAP_WIDTH * this.MAP_HEIGHT * 2) break;
     }
-    this.mapGrid[2][2] = 'wall';
-    this.mapGrid[2][3] = 'wall';
-    this.mapGrid[3][2] = 'wall';
-    this.mapGrid[5][5] = 'wall';
-    this.mapGrid[5][6] = 'wall';
-    this.mapGrid[6][5] = 'wall';
-    this.mapGrid[7][7] = 'wall';
 
-    // Set player starting location (ensure it's not a wall)
-    this.playerLocation = { x: 1, y: 1 };
-    this.visitedCells.add(`${this.playerLocation.x},${this.playerLocation.y}`);
+    // Convert path coordinates to LogicalRooms
+    path.forEach(coord => {
+      const roomId = `room-${coord.x}-${coord.y}`;
+      const roomName = `Chamber ${coord.x},${coord.y}`;
+      let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
 
-    this.addMessage("Welcome to the Labyrinth! Find the ancient artifact to escape.");
+      if (coord.x === 0 && coord.y === 0) {
+        roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
+      } else if (coord.x === this.MAP_WIDTH - 1 && coord.y === this.MAP_HEIGHT - 1) {
+        roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+      } else if (Math.random() < 0.1) {
+        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
+      } else if (Math.random() < 0.05) {
+        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+      } else if (Math.random() < 0.07) {
+        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+      }
+      this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
+    });
 
-    this.initializeGameElements();
+    // Add some items, enemies, and puzzles
+    this.addGameElements();
   }
 
-  private initializeGameElements() {
-    // Items
-    const sword: Item = { id: "sword1", name: "Rusty Sword", description: "A basic sword, better than nothing.", type: "weapon" };
-    const potion: Item = { id: "potion1", name: "Healing Potion", description: "Restores a small amount of health.", type: "consumable", effect: "heal" };
-    const artifact: Item = { id: "artifact1", name: "Ancient Artifact", description: "The key to escaping the labyrinth!", type: "treasure" };
-    this.items.set(sword.id, sword);
+  private addGameElements() {
+    // Add a key
+    const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.");
+    this.items.set(key.id, key);
+    this.placeElementRandomly(key.id, this.itemLocations);
+
+    // Add a potion
+    const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.");
     this.items.set(potion.id, potion);
-    this.items.set(artifact.id, artifact);
+    this.placeElementRandomly(potion.id, this.itemLocations);
 
-    this.itemLocations.set("1,2", sword.id);
-    this.itemLocations.set("3,1", potion.id);
-    this.itemLocations.set("8,8", artifact.id); // Win condition item
+    // Add a static item (e.g., a broken lever)
+    const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true);
+    this.items.set(lever.id, lever);
+    this.placeElementRandomly(lever.id, this.staticItemLocations);
 
-    // Enemies
-    const goblin: Enemy = { id: "goblin1", name: "Goblin", description: "A small, green-skinned creature.", health: 30, maxHealth: 30, attack: 10, defeated: false, combatStrategy: "rock" };
-    const orc: Enemy = { id: "orc1", name: "Orc", description: "A brutish, powerful warrior.", health: 50, maxHealth: 50, attack: 15, defeated: false, combatStrategy: "scissors" };
+    // Add some enemies
+    const goblin = new Enemy("goblin-1", "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", 2);
     this.enemies.set(goblin.id, goblin);
-    this.enemies.set(orc.id, orc);
+    this.placeElementRandomly(goblin.id, this.enemyLocations);
 
-    this.enemyLocations.set("4,4", goblin.id);
-    this.enemyLocations.set("7,2", orc.id);
+    const skeleton = new Enemy("skeleton-1", "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", 3);
+    this.enemies.set(skeleton.id, skeleton);
+    this.placeElementRandomly(skeleton.id, this.enemyLocations);
 
-    // Puzzles
-    const riddle: Puzzle = { id: "riddle1", name: "Ancient Riddle", description: "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", solved: false, solution: "echo" };
+    const shadowBeast = new Enemy("shadow-beast-1", "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", 4);
+    this.enemies.set(shadowBeast.id, shadowBeast);
+    this.placeElementRandomly(shadowBeast.id, this.enemyLocations);
+
+    // Add a puzzle
+    const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!"));
     this.puzzles.set(riddle.id, riddle);
-    this.puzzleLocations.set("2,5", riddle.id);
-
-    // Static Items (revealed by search)
-    const oldBook: Item = { id: "book1", name: "Dusty Tome", description: "An old book containing forgotten lore. (Revealed by searching)", type: "static" };
-    this.staticItems.set(oldBook.id, oldBook);
-    this.staticItemLocations.set("1,3", oldBook.id);
+    this.placeElementRandomly(riddle.id, this.puzzleLocations);
   }
 
-  addMessage(message: string) {
-    this.gameMessages.push(message);
+  private placeElementRandomly(id: string, locationMap: Map<string, string>) {
+    let placed = false;
+    while (!placed) {
+      const x = Math.floor(Math.random() * this.MAP_WIDTH);
+      const y = Math.floor(Math.random() * this.MAP_HEIGHT);
+      const coordStr = `${x},${y}`;
+      // Ensure not placed at player start, exit, or on an existing element, and only in an open room
+      if (
+        (x !== 0 || y !== 0) &&
+        (x !== this.MAP_WIDTH - 1 || y !== this.MAP_HEIGHT - 1) &&
+        this.map[y][x] !== 'wall' && // Must be an open room
+        !locationMap.has(coordStr) &&
+        !this.enemyLocations.has(coordStr) &&
+        !this.puzzleLocations.has(coordStr) &&
+        !this.itemLocations.has(coordStr) &&
+        !this.staticItemLocations.has(coordStr)
+      ) {
+        locationMap.set(coordStr, id);
+        placed = true;
+      }
+    }
   }
 
-  getMessages(): string[] {
-    const messages = [...this.gameMessages];
-    this.gameMessages = []; // Clear messages after retrieval
-    return messages;
+  private addMessage(message: string) {
+    this.messages.push(message);
   }
 
   clearMessages() {
-    this.gameMessages = [];
+    this.messages = [];
   }
 
-  isGameOver(): boolean {
-    return this.isGameOverFlag || this.isGameWonFlag;
+  getMessages(): string[] {
+    return this.messages;
   }
 
-  getPlayerLocation(): Coordinates {
-    return { ...this.playerLocation };
+  getPlayerLocation(): Coordinate {
+    return this.playerLocation;
   }
 
   getPlayerHealth(): number {
@@ -159,56 +280,20 @@ class Labyrinth { // Renamed from GameState to Labyrinth
   }
 
   getInventoryItems(): Item[] {
-    return [...this.inventory];
+    return this.inventory;
   }
 
-  getMapGrid(): string[][] {
-    return this.mapGrid;
-  }
-
-  getVisitedCells(): Set<string> {
-    return new Set(this.visitedCells);
-  }
-
-  getRevealedStaticItems(): Set<string> {
-    return new Set(this.revealedStaticItems);
-  }
-
-  getCurrentLogicalRoom(): LogicalRoom {
-    const { x, y } = this.playerLocation;
-    const coord = `${x},${y}`;
-
-    let roomName = `Chamber (${x},${y})`;
-    let roomDescription = "A dimly lit chamber within the labyrinth.";
-
-    if (this.itemLocations.has(coord)) {
-      const itemId = this.itemLocations.get(coord)!;
-      const item = this.items.get(itemId)!;
-      roomDescription += ` You see a ${item.name} here.`;
+  getCurrentLogicalRoom(): LogicalRoom | undefined {
+    if (
+      this.playerLocation.y >= 0 &&
+      this.playerLocation.y < this.map.length &&
+      this.playerLocation.x >= 0 &&
+      this.playerLocation.x < this.map[0].length
+    ) {
+      const cell = this.map[this.playerLocation.y][this.playerLocation.x];
+      return typeof cell !== 'string' ? cell : undefined; // Return LogicalRoom if not 'wall'
     }
-    if (this.enemyLocations.has(coord)) {
-      const enemyId = this.enemyLocations.get(coord)!;
-      const enemy = this.enemies.get(enemyId)!;
-      if (!enemy.defeated) {
-        roomDescription += ` A fearsome ${enemy.name} stands in your way!`;
-      }
-    }
-    if (this.puzzleLocations.has(coord)) {
-      const puzzleId = this.puzzleLocations.get(coord)!;
-      const puzzle = this.puzzles.get(puzzleId)!;
-      if (!puzzle.solved) {
-        roomDescription += ` An ancient puzzle awaits your intellect.`;
-      }
-    }
-    if (this.staticItemLocations.has(coord) && !this.revealedStaticItems.has(coord)) {
-      roomDescription += ` You sense something hidden here.`;
-    } else if (this.staticItemLocations.has(coord) && this.revealedStaticItems.has(coord)) {
-      const staticItemId = this.staticItemLocations.get(coord)!;
-      const staticItem = this.staticItems.get(staticItemId)!;
-      roomDescription += ` You found a ${staticItem.name} here.`;
-    }
-
-    return { id: coord, name: roomName, description: roomDescription };
+    return undefined;
   }
 
   getEnemy(id: string): Enemy | undefined {
@@ -219,218 +304,272 @@ class Labyrinth { // Renamed from GameState to Labyrinth
     return this.puzzles.get(id);
   }
 
-  move(direction: 'north' | 'south' | 'east' | 'west') {
-    if (this.isGameOverFlag) return;
+  getItem(id: string): Item | undefined {
+    return this.items.get(id);
+  }
+
+  getRevealedStaticItems(): Set<string> {
+    return this.revealedStaticItems;
+  }
+
+  isGameOver(): boolean {
+    return this.gameOver;
+  }
+
+  private markVisited(coord: Coordinate) {
+    this.visitedCells.add(`${coord.x},${coord.y}`);
+  }
+
+  getVisitedCells(): Set<string> {
+    return this.visitedCells;
+  }
+
+  getMapGrid(): ('wall' | 'open')[][] {
+    const grid: ('wall' | 'open')[][] = Array(this.MAP_HEIGHT)
+      .fill(null)
+      .map(() => Array(this.MAP_WIDTH).fill('open')); // Initialize with 'open'
+
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+      for (let x = 0; x < this.MAP_WIDTH; x++) {
+        grid[y][x] = this.map[y][x] === 'wall' ? 'wall' : 'open';
+      }
+    }
+    return grid;
+  }
+
+  move(direction: "north" | "south" | "east" | "west") {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
 
     let newX = this.playerLocation.x;
     let newY = this.playerLocation.y;
 
     switch (direction) {
-      case 'north': newY--; break;
-      case 'south': newY++; break;
-      case 'east': newX++; break;
-      case 'west': newX--; break;
+      case "north":
+        newY--;
+        break;
+      case "south":
+        newY++;
+        break;
+      case "east":
+        newX++;
+        break;
+      case "west":
+        newX--;
+        break;
     }
 
-    // Check boundaries and walls
-    if (newX < 0 || newX >= this.mapGrid[0].length || newY < 0 || newY >= this.mapGrid.length || this.mapGrid[newY][newX] === 'wall') {
-      this.addMessage("You hit a wall! Choose another direction.");
-      return;
-    }
-
-    this.playerLocation = { x: newX, y: newY };
-    this.visitedCells.add(`${newX},${newY}`);
-    this.addMessage(`You moved ${direction}.`);
-
-    this.checkEncounters();
-    this.checkWinCondition();
-  }
-
-  private checkEncounters() {
-    const coord = `${this.playerLocation.x},${this.playerLocation.y}`;
-
-    // Check for enemies
-    if (this.enemyLocations.has(coord)) {
-      const enemyId = this.enemyLocations.get(coord)!;
-      const enemy = this.enemies.get(enemyId)!;
-      if (!enemy.defeated) {
-        this.addMessage(`A ${enemy.name} attacks! Prepare for combat!`);
-        // The UI will pick up on this and show RPS
+    // Check if new coordinates are within bounds and not a wall
+    if (
+      newX >= 0 &&
+      newX < this.MAP_WIDTH &&
+      newY >= 0 &&
+      newY < this.MAP_HEIGHT
+    ) {
+      if (this.map[newY][newX] === 'wall') {
+        this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
+        return; // Prevent movement into a wall
       }
+
+      this.playerLocation = { x: newX, y: newY };
+      this.markVisited(this.playerLocation);
+
+      const currentRoom = this.getCurrentLogicalRoom();
+      if (currentRoom) {
+        this.addMessage(`You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}`);
+      } else {
+        // This case should ideally not be reached if map generation is correct
+        this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
+      }
+
+      // Check for game over condition (e.g., reaching the exit)
+      if (newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
+        const hasArtifact = this.inventory.some(item => item.id === "gem-1");
+        if (hasArtifact) {
+          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Heart of the Labyrinth pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
+          this.gameOver = true;
+        } else {
+          this.addMessage("The shimmering portal hums with energy, but it seems to require a powerful artifact to activate fully. You cannot escape yet!");
+        }
+      }
+
+      // Check for enemy encounter
+      const enemyId = this.enemyLocations.get(`${newX},${newY}`);
+      if (enemyId) {
+        const enemy = this.enemies.get(enemyId);
+        if (enemy && !enemy.defeated) {
+          this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
+        }
+      }
+    } else {
+      this.addMessage("You cannot go that way. You've reached the edge of the known labyrinth.");
     }
   }
 
   search() {
-    if (this.isGameOverFlag) return;
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
 
-    const { x, y } = this.playerLocation;
-    const coord = `${x},${y}`;
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
     let foundSomething = false;
 
-    // Check for pickable items
-    if (this.itemLocations.has(coord)) {
-      const itemId = this.itemLocations.get(coord)!;
-      const item = this.items.get(itemId)!;
-      this.addMessage(`You found a ${item.name}! It has been added to your inventory.`);
-      this.inventory.push(item);
-      this.itemLocations.delete(coord); // Item is picked up
-      foundSomething = true;
-    }
-
-    // Check for static items to reveal
-    if (this.staticItemLocations.has(coord) && !this.revealedStaticItems.has(coord)) {
-      const staticItemId = this.staticItemLocations.get(coord)!;
-      const staticItem = this.staticItems.get(staticItemId)!;
-      this.addMessage(`You searched thoroughly and found a hidden ${staticItem.name}!`);
-      this.revealedStaticItems.add(coord);
-      foundSomething = true;
-    }
-
-    // Check for puzzles
-    if (this.puzzleLocations.has(coord)) {
-      const puzzleId = this.puzzleLocations.get(coord)!;
-      const puzzle = this.puzzles.get(puzzleId)!;
-      if (!puzzle.solved) {
-        this.addMessage(`You found an unsolved puzzle: "${puzzle.name}".`);
+    // Check for visible items
+    const itemId = this.itemLocations.get(currentCoord);
+    if (itemId) {
+      const item = this.items.get(itemId);
+      if (item && !item.isStatic) {
+        this.inventory.push(item);
+        this.itemLocations.delete(currentCoord); // Remove from map once picked up
+        this.addMessage(`Your fingers brush against something hidden in the rubble... you found a ${item.name}! It's a ${item.description}`);
         foundSomething = true;
       }
     }
 
+    // Check for static/hidden items
+    const staticItemId = this.staticItemLocations.get(currentCoord);
+    if (staticItemId) {
+      const staticItem = this.items.get(staticItemId);
+      if (staticItem) {
+        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
+        this.revealedStaticItems.add(currentCoord); // Mark as revealed
+        foundSomething = true;
+      }
+    }
+
+    // Check for puzzles
+    const puzzleId = this.puzzleLocations.get(currentCoord);
+    if (puzzleId) {
+      const puzzle = this.puzzles.get(puzzleId);
+      if (puzzle && !puzzle.solved) {
+        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
+        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+          if (puzzle.solve("echo")) {
+            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+            if (puzzle.reward) {
+              this.inventory.push(puzzle.reward);
+              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+            }
+            foundSomething = true;
+          }
+        } else {
+          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
+          foundSomething = true;
+        }
+      }
+    }
+
     if (!foundSomething) {
-      this.addMessage("You searched the area but found nothing new.");
+      this.addMessage("You meticulously search the area, but find nothing but dust and cobwebs.");
     }
   }
 
   interact() {
-    if (this.isGameOverFlag) return;
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
 
-    const { x, y } = this.playerLocation;
-    const coord = `${x},${y}`;
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
     let interacted = false;
 
-    // Try to solve a puzzle
-    if (this.puzzleLocations.has(coord)) {
-      const puzzleId = this.puzzleLocations.get(coord)!;
-      const puzzle = this.puzzles.get(puzzleId)!;
-      if (!puzzle.solved) {
-        // For simplicity, let's assume 'interact' solves the puzzle if it's the correct room
-        // In a real game, this would involve inputting the solution.
-        if (puzzle.solution === "echo") { // Example solution
-          puzzle.solved = true;
-          this.addMessage(`You solved the "${puzzle.name}"! The path ahead seems clearer.`);
-          if (puzzle.reward) {
-            this.inventory.push(puzzle.reward);
-            this.addMessage(`You received a ${puzzle.reward.name} as a reward!`);
+    // Check for puzzles to interact with
+    const puzzleId = this.puzzleLocations.get(currentCoord);
+    if (puzzleId) {
+      const puzzle = this.puzzles.get(puzzleId);
+      if (puzzle && !puzzle.solved) {
+        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
+        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+          if (puzzle.solve("echo")) {
+            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+            if (puzzle.reward) {
+              this.inventory.push(puzzle.reward);
+              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+            }
+            interacted = true;
           }
-          interacted = true;
         } else {
-          this.addMessage(`You tried to interact with the puzzle, but nothing happened. Perhaps you need a specific item or knowledge.`);
+          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
           interacted = true;
         }
-      } else {
-        this.addMessage(`You've already solved this puzzle.`);
+      }
+    }
+
+    // Also check for static items to interact with
+    const staticItemId = this.staticItemLocations.get(currentCoord);
+    if (staticItemId) {
+      const staticItem = this.items.get(staticItemId);
+      if (staticItem && !this.revealedStaticItems.has(currentCoord)) { // Only reveal if not already revealed
+        this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
+        this.revealedStaticItems.add(currentCoord); // Mark as revealed
         interacted = true;
       }
     }
 
-    // Try to use a static item (if revealed)
-    if (this.staticItemLocations.has(coord) && this.revealedStaticItems.has(coord)) {
-      const staticItemId = this.staticItemLocations.get(coord)!;
-      const staticItem = this.staticItems.get(staticItemId)!;
-      this.addMessage(`You interact with the ${staticItem.name}. It feels ancient.`);
-      interacted = true;
-    }
-
     if (!interacted) {
-      this.addMessage("There's nothing obvious to interact with here.");
+      this.addMessage("There's nothing here that responds to your touch.");
     }
   }
 
-  fight(playerChoice: 'left' | 'center' | 'right') {
-    if (this.isGameOverFlag) return;
+  fight(playerChoice: "left" | "center" | "right") {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
 
-    const { x, y } = this.playerLocation;
-    const coord = `${x},${y}`;
-    const enemyId = this.enemyLocations.get(coord);
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+    const enemyId = this.enemyLocations.get(currentCoord);
 
     if (!enemyId) {
-      this.addMessage("There's no enemy to fight here.");
+      this.addMessage("There's no enemy here to fight.");
       return;
     }
 
     const enemy = this.enemies.get(enemyId);
     if (!enemy || enemy.defeated) {
-      this.addMessage("The enemy is already defeated.");
+      this.addMessage("The enemy here has already been defeated.");
       return;
     }
 
-    // Map player choice to RPS
-    const playerRPS: 'rock' | 'paper' | 'scissors' =
-      playerChoice === 'left' ? 'rock' :
-      playerChoice === 'center' ? 'paper' :
-      'scissors';
+    const enemyChoices: ("left" | "center" | "right")[] = ["left", "center", "right"];
+    const enemyChoice = enemyChoices[Math.floor(Math.random() * enemyChoices.length)];
 
-    const enemyRPS = enemy.combatStrategy;
+    this.addMessage(`You prepare for battle, choosing to ${playerChoice}! The ${enemy.name} counters with ${enemyChoice}!`);
 
-    this.addMessage(`You chose ${playerRPS}. The ${enemy.name} chose ${enemyRPS}.`);
+    let playerWins = false;
+    let enemyWins = false;
 
-    let playerDamage = 0;
-    let enemyDamage = enemy.attack;
+    // Define winning conditions for Attack Left/Center/Right
+    const winningMoves = {
+      "left": "right",
+      "center": "left",
+      "right": "center",
+    };
 
-    // Determine winner based on RPS
-    if (playerRPS === enemyRPS) {
-      this.addMessage("It's a tie! Both sides take minor damage.");
-      playerDamage = 5; // Small damage for tie
-      enemyDamage = 5;
-    } else if (
-      (playerRPS === 'rock' && enemyRPS === 'scissors') ||
-      (playerRPS === 'paper' && enemyRPS === 'rock') ||
-      (playerRPS === 'scissors' && enemyRPS === 'paper')
-    ) {
-      this.addMessage("You landed a strong hit!");
-      playerDamage = 0; // Player takes no damage on win
-      enemyDamage = 15 + (this.inventory.some(item => item.type === 'weapon') ? 5 : 0); // Player deals more damage
+    if (playerChoice === enemyChoice) {
+      this.addMessage("Clash! Your moves mirror each other, a momentary stalemate.");
+    } else if (winningMoves[playerChoice] === enemyChoice) {
+      playerWins = true;
     } else {
-      this.addMessage("The enemy's attack connects!");
-      playerDamage = enemy.attack; // Player takes full enemy damage on loss
-      enemyDamage = 0; // Enemy takes no damage
+      enemyWins = true;
     }
 
-    this.playerHealth -= playerDamage;
-    enemy.health -= enemyDamage;
-
-    this.addMessage(`You took ${playerDamage} damage. Your health: ${this.playerHealth} HP.`);
-    this.addMessage(`${enemy.name} took ${enemyDamage} damage. ${enemy.name}'s health: ${enemy.health} HP.`);
-
-    if (enemy.health <= 0) {
-      enemy.defeated = true;
-      this.addMessage(`You defeated the ${enemy.name}!`);
-      this.enemyLocations.delete(coord); // Remove enemy from map
-    }
-
-    this.checkLoseCondition();
-  }
-
-  private checkWinCondition() {
-    const { x, y } = this.playerLocation;
-    const coord = `${x},${y}`;
-
-    // Check if player has the artifact and is at the exit (e.g., 8,8 where artifact is)
-    const hasArtifact = this.inventory.some(item => item.id === "artifact1");
-    if (hasArtifact && coord === "8,8") {
-      this.isGameWonFlag = true;
-      this.isGameOverFlag = true;
-      this.addMessage("Congratulations! You found the Ancient Artifact and escaped the Labyrinth!");
-    }
-  }
-
-  private checkLoseCondition() {
-    if (this.playerHealth <= 0) {
-      this.playerHealth = 0; // Ensure health doesn't go negative in display
-      this.isGameOverFlag = true;
-      this.addMessage("Your health has dropped to zero. You have fallen in the Labyrinth...");
+    if (playerWins) {
+      enemy.takeDamage(1); // Each win reduces enemy health by 1
+      this.addMessage(`A decisive blow! You hit the ${enemy.name}! Its health is now ${enemy.health}.`);
+      if (enemy.defeated) {
+        this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
+      }
+    } else if (enemyWins) {
+      this.playerHealth -= 10; // Player takes damage
+      this.addMessage(`The ${enemy.name} strikes true! You wince as you take damage. Your health is now ${this.playerHealth}.`);
+      if (this.playerHealth <= 0) {
+        this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
+        this.gameOver = true;
+      }
     }
   }
 }
-
-export { Labyrinth as Labyrinth };

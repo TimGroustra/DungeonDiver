@@ -465,56 +465,119 @@ export class Labyrinth {
       return;
     }
 
-    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
-    let foundSomething = false;
+    const playerX = this.playerLocation.x;
+    const playerY = this.playerLocation.y;
+    let foundSomethingInRadius = false;
 
-    // Check for visible items
-    const itemId = this.itemLocations.get(currentCoord);
-    if (itemId) {
-      const item = this.items.get(itemId);
-      if (item && !item.isStatic) {
-        this.inventory.push(item);
-        this.itemLocations.delete(currentCoord); // Remove from map once picked up
-        this.addMessage(`Your fingers brush against something hidden in the rubble... you found a ${item.name}! It's a ${item.description}`);
-        foundSomething = true;
-      }
-    }
+    this.addMessage("You carefully scan your surroundings...");
 
-    // Check for static/hidden items
-    const staticItemId = this.staticItemLocations.get(currentCoord);
-    if (staticItemId) {
-      const staticItem = this.items.get(staticItemId);
-      if (staticItem) {
-        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
-        this.revealedStaticItems.add(currentCoord); // Mark as revealed
-        foundSomething = true;
-      }
-    }
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            const targetX = playerX + dx;
+            const targetY = playerY + dy;
+            const coordStr = `${targetX},${targetY}`;
 
-    // Check for puzzles
-    const puzzleId = this.puzzleLocations.get(currentCoord);
-    if (puzzleId) {
-      const puzzle = this.puzzles.get(puzzleId);
-      if (puzzle && !puzzle.solved) {
-        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
-        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
-          if (puzzle.solve("echo")) {
-            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
-            if (puzzle.reward) {
-              this.inventory.push(puzzle.reward);
-              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+            // Check bounds
+            if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT) {
+                continue;
             }
-            foundSomething = true;
-          }
-        } else {
-          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-          foundSomething = true;
+
+            // Check if it's a wall
+            if (this.map[targetY][targetX] === 'wall') {
+                continue;
+            }
+
+            // Mark the cell as visited if it's an open room within the radius
+            this.markVisited({ x: targetX, y: targetY });
+
+            // If it's the player's current location, perform full interaction
+            if (dx === 0 && dy === 0) {
+                // Existing logic for current cell
+                const itemId = this.itemLocations.get(coordStr);
+                if (itemId) {
+                    const item = this.items.get(itemId);
+                    if (item && !item.isStatic) {
+                        this.inventory.push(item);
+                        this.itemLocations.delete(coordStr);
+                        this.addMessage(`You found a ${item.name} at your feet! It's a ${item.description}`);
+                        foundSomethingInRadius = true;
+                    }
+                }
+
+                const staticItemId = this.staticItemLocations.get(coordStr);
+                if (staticItemId) {
+                    const staticItem = this.items.get(staticItemId);
+                    if (staticItem && !this.revealedStaticItems.has(coordStr)) {
+                        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
+                        this.revealedStaticItems.add(coordStr);
+                        foundSomethingInRadius = true;
+                    }
+                }
+
+                const puzzleId = this.puzzleLocations.get(coordStr);
+                if (puzzleId) {
+                    const puzzle = this.puzzles.get(puzzleId);
+                    if (puzzle && !puzzle.solved) {
+                        // Auto-solve logic for key
+                        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+                            if (puzzle.solve("echo")) {
+                                this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+                                if (puzzle.reward) {
+                                    this.inventory.push(puzzle.reward);
+                                    this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+                                }
+                                foundSomethingInRadius = true;
+                            }
+                        } else {
+                            this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
+                            foundSomethingInRadius = true;
+                        }
+                    }
+                }
+            } else {
+                // Logic for cells within radius but not current location (only reveal)
+                const itemId = this.itemLocations.get(coordStr);
+                if (itemId) {
+                    const item = this.items.get(itemId);
+                    if (item && !item.isStatic) {
+                        this.addMessage(`You spot a ${item.name} at (${targetX},${targetY}).`);
+                        foundSomethingInRadius = true;
+                    }
+                }
+
+                const staticItemId = this.staticItemLocations.get(coordStr);
+                if (staticItemId) {
+                    const staticItem = this.items.get(staticItemId);
+                    if (staticItem && !this.revealedStaticItems.has(coordStr)) {
+                        this.addMessage(`You discern a hidden ${staticItem.name} at (${targetX},${targetY}).`);
+                        this.revealedStaticItems.add(coordStr); // Mark as revealed for map
+                        foundSomethingInRadius = true;
+                    }
+                }
+
+                const puzzleId = this.puzzleLocations.get(coordStr);
+                if (puzzleId) {
+                    const puzzle = this.puzzles.get(puzzleId);
+                    if (puzzle && !puzzle.solved) {
+                        this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}).`);
+                        foundSomethingInRadius = true;
+                    }
+                }
+
+                const enemyId = this.enemyLocations.get(coordStr);
+                if (enemyId) {
+                    const enemy = this.enemies.get(enemyId);
+                    if (enemy && !enemy.defeated) {
+                        this.addMessage(`You hear a faint growl from a ${enemy.name} at (${targetX},${targetY}).`);
+                        foundSomethingInRadius = true;
+                    }
+                }
+            }
         }
-      }
     }
 
-    if (!foundSomething) {
-      this.addMessage("You meticulously search the area, but find nothing but dust and cobwebs.");
+    if (!foundSomethingInRadius) {
+        this.addMessage("You meticulously search the area and its immediate surroundings, but find nothing new.");
     }
   }
 

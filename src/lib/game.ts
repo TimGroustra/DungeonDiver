@@ -151,118 +151,114 @@ export class Labyrinth {
       .fill(null)
       .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    let currentX = 0;
-    let currentY = 0;
-    const path: Coordinate[] = [{ x: currentX, y: currentY }];
-    const pathSet = new Set<string>();
-    pathSet.add(`${currentX},${currentY}`);
-
+    const startX = 0;
+    const startY = 0;
     const targetX = this.MAP_WIDTH - 1;
     const targetY = this.MAP_HEIGHT - 1;
 
-    // Carve out a path using a biased random walk
-    let pathFound = false;
-    while (!pathFound && path.length < this.MAP_WIDTH * this.MAP_HEIGHT * 3) { // Safety break
-      const moves: { dx: number; dy: number }[] = [];
+    // Stack for DFS-based maze generation
+    const stack: Coordinate[] = [];
+    const visited = new Set<string>();
 
-      // Prioritize moves towards the target
-      if (currentX < targetX) moves.push({ dx: 1, dy: 0 }); // East
-      if (currentY < targetY) moves.push({ dx: 0, dy: 1 }); // South
-      if (currentX > targetX) moves.push({ dx: -1, dy: 0 }); // West
-      if (currentY > targetY) moves.push({ dx: 0, dy: -1 }); // North
+    // Start at (0,0)
+    stack.push({ x: startX, y: startY });
+    visited.add(`${startX},${startY}`);
+    this.map[startY][startX] = new LogicalRoom(`room-${startX}-${startY}`, `Chamber ${startX},${startY}`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
 
-      // Add other valid moves (non-biased) to allow for more exploration
-      // Add them with lower "weight" by only adding if not already present from biased moves
-      if (currentX + 1 < this.MAP_WIDTH && !moves.some(m => m.dx === 1 && m.dy === 0)) moves.push({ dx: 1, dy: 0 });
-      if (currentY + 1 < this.MAP_HEIGHT && !moves.some(m => m.dx === 0 && m.dy === 1)) moves.push({ dx: 0, dy: 1 });
-      if (currentX - 1 >= 0 && !moves.some(m => m.dx === -1 && m.dy === 0)) moves.push({ dx: -1, dy: 0 });
-      if (currentY - 1 >= 0 && !moves.some(m => m.dx === 0 && m.dy === -1)) moves.push({ dx: 0, dy: -1 });
+    while (stack.length > 0) {
+        const current = stack[stack.length - 1]; // Peek at the top of the stack
 
-      // Filter out moves that would go out of bounds
-      const validMoves = moves.filter(move => {
-        const nextX = currentX + move.dx;
-        const nextY = currentY + move.dy;
-        return nextX >= 0 && nextX < this.MAP_WIDTH && nextY >= 0 && nextY < this.MAP_HEIGHT;
-      });
+        const neighbors: { dx: number; dy: number }[] = [
+            { dx: 0, dy: -1 }, // North
+            { dx: 0, dy: 1 },  // South
+            { dx: 1, dy: 0 },  // East
+            { dx: -1, dy: 0 }  // West
+        ];
 
-      if (validMoves.length === 0) {
-        // Should not happen if map is large enough and not fully blocked
-        // If it does, it means we are stuck. Break to prevent infinite loop.
-        console.warn("Labyrinth path generation stuck, cannot find a path.");
-        break;
-      }
+        // Shuffle neighbors to ensure randomness in path carving
+        for (let i = neighbors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
+        }
 
-      // Choose a move: 60% chance to pick a move that reduces Manhattan distance, 40% any valid move
-      let chosenMove: { dx: number; dy: number };
-      const movesReducingDistance = validMoves.filter(move => {
-        const newDist = Math.abs((currentX + move.dx) - targetX) + Math.abs((currentY + move.dy) - targetY);
-        const currentDist = Math.abs(currentX - targetX) + Math.abs(currentY - targetY);
-        return newDist < currentDist;
-      });
+        let foundUnvisitedNeighbor = false;
+        for (const move of neighbors) {
+            const nextX = current.x + move.dx;
+            const nextY = current.y + move.dy;
+            const nextCoordStr = `${nextX},${nextY}`;
 
-      if (movesReducingDistance.length > 0 && Math.random() < 0.6) { // Changed from 0.8 to 0.6
-        chosenMove = movesReducingDistance[Math.floor(Math.random() * movesReducingDistance.length)];
-      } else {
-        chosenMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-      }
+            if (
+                nextX >= 0 && nextX < this.MAP_WIDTH &&
+                nextY >= 0 && nextY < this.MAP_HEIGHT &&
+                !visited.has(nextCoordStr)
+            ) {
+                // Carve path: convert wall to LogicalRoom
+                let roomDescription = `You are in a dimly lit chamber at (${nextX},${nextY}). The air is heavy with the scent of damp earth and ancient magic.`;
+                if (nextX === targetX && nextY === targetY) {
+                    roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+                } else {
+                    // Add some variety to other room descriptions
+                    if (Math.random() < 0.1) {
+                        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
+                    } else if (Math.random() < 0.05) {
+                        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+                    } else if (Math.random() < 0.07) {
+                        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+                    }
+                }
+                this.map[nextY][nextX] = new LogicalRoom(`room-${nextX}-${nextY}`, `Chamber ${nextX},${nextY}`, roomDescription);
+                visited.add(nextCoordStr);
+                stack.push({ x: nextX, y: nextY });
+                foundUnvisitedNeighbor = true;
+                break; // Move to this neighbor and continue DFS
+            }
+        }
 
-      currentX += chosenMove.dx;
-      currentY += chosenMove.dy;
-
-      const coordStr = `${currentX},${currentY}`;
-      if (!pathSet.has(coordStr)) {
-        path.push({ x: currentX, y: currentY });
-        pathSet.add(coordStr);
-      }
-
-      if (currentX === targetX && currentY === targetY) {
-        pathFound = true;
-      }
+        if (!foundUnvisitedNeighbor) {
+            stack.pop(); // Backtrack if no unvisited neighbors
+        }
     }
 
-    // Fallback: If path not found by random walk, force a direct path from current position to target
-    if (!pathFound) {
-      console.warn("Forcing direct path to exit due to random walk failure.");
-      let lastX = path[path.length - 1].x;
-      let lastY = path[path.length - 1].y;
+    // Post-processing: Add more branching paths and open areas
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+            // Skip start and end points from random modification
+            if ((x === startX && y === startY) || (x === targetX && y === targetY)) {
+                continue;
+            }
 
-      while (lastX !== targetX || lastY !== targetY) {
-        if (lastX < targetX) lastX++;
-        else if (lastX > targetX) lastX--;
-        else if (lastY < targetY) lastY++;
-        else if (lastY > targetY) lastY--;
+            if (this.map[y][x] === 'wall') {
+                let openNeighbors = 0;
+                const checkNeighbors = [
+                    { dx: 0, dy: -1 }, { dx: 0, dy: 1 },
+                    { dx: 1, dy: 0 }, { dx: -1, dy: 0 }
+                ];
+                for (const move of checkNeighbors) {
+                    const nx = x + move.dx;
+                    const ny = y + move.dy;
+                    if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT && this.map[ny][nx] !== 'wall') {
+                        openNeighbors++;
+                    }
+                }
 
-        const coordStr = `${lastX},${lastY}`;
-        if (!pathSet.has(coordStr)) {
-          path.push({ x: lastX, y: lastY });
-          pathSet.add(coordStr);
+                // If a wall has at least 2 open neighbors (e.g., a corner or a path next to it)
+                // and a random chance, convert it to an open room.
+                // This helps create wider paths and small open areas.
+                // Increased probability for more open areas.
+                if (openNeighbors >= 1 && Math.random() < 0.25) { // 25% chance to open up if at least one open neighbor
+                    let roomDescription = `You are in a dimly lit chamber at (${x},${y}). The air is heavy with the scent of damp earth and ancient magic.`;
+                    if (Math.random() < 0.1) {
+                        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
+                    } else if (Math.random() < 0.05) {
+                        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+                    } else if (Math.random() < 0.07) {
+                        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+                    }
+                    this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Chamber ${x},${y}`, roomDescription);
+                }
+            }
         }
-      }
     }
-
-    // Convert path coordinates to LogicalRooms
-    path.forEach(coord => {
-      const roomId = `room-${coord.x}-${coord.y}`;
-      const roomName = `Chamber ${coord.x},${coord.y}`;
-      let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
-
-      // Special descriptions for start and end
-      if (coord.x === 0 && coord.y === 0) {
-        roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
-      } else if (coord.x === targetX && coord.y === targetY) {
-        roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
-      } else {
-        // Add some variety to other room descriptions
-        if (Math.random() < 0.1) {
-          roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
-        } else if (Math.random() < 0.05) {
-          roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
-        } else if (Math.random() < 0.07) {
-          roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
-        }
-      }
-      this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
-    });
 
     this.addGameElements();
   }

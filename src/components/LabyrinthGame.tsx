@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Labyrinth, LogicalRoom, Item, Enemy, Puzzle } from "@/lib/game";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } => "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
@@ -314,11 +314,11 @@ const LabyrinthGame: React.FC = () => {
     return (
       <div className="mt-2">
         <p className="font-semibold text-lg">Your Inventory:</p>
-        <ul className="list-disc list-inside text-sm text-gray-300 dark:text-gray-700"> {/* Changed text-gray-700 to text-gray-300 for better contrast in dark mode */}
+        <ul className="list-disc list-inside text-sm text-gray-300 dark:text-gray-700">
           {inventoryItems.map((item) => (
             <li key={item.id} className="flex items-center justify-between mb-1">
               <div>
-                <span className="font-medium text-yellow-300 dark:text-indigo-700">{item.name}</span>: {item.description} {/* Changed text-white to text-yellow-300 and dark:text-gray-950 to dark:text-indigo-700 */}
+                <span className="font-medium text-yellow-300 dark:text-indigo-700">{item.name}</span>: <span className="text-gray-400 dark:text-gray-600">{item.description}</span>
                 {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
                 {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
               </div>

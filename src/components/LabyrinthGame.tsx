@@ -341,8 +341,12 @@ const LabyrinthGame: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 dark:bg-zinc-900 p-4">
-      <Card className="w-full max-w-5xl shadow-2xl bg-stone-800 text-stone-100 dark:bg-stone-200 dark:text-stone-900 border-2 border-stone-700 dark:border-stone-400">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-4 bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: `url('/labyrinth-background.png')` }}
+    >
+      <div className="absolute inset-0 bg-black opacity-60"></div> {/* Overlay for readability */}
+      <Card className="relative z-10 w-full max-w-5xl shadow-2xl bg-stone-800/90 text-stone-100 dark:bg-stone-200/90 dark:text-stone-900 border-2 border-stone-700 dark:border-stone-400">
         <CardHeader className="border-b-2 border-amber-700 dark:border-amber-400 pb-4">
           <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-amber-400 dark:text-amber-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-base sm:text-lg italic text-center text-stone-300 dark:text-stone-700">A perilous journey into the unknown...</CardDescription>

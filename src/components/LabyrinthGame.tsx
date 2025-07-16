@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices } from "lucide-react"; // Importing new icons and aliasing Puzzle
 
 const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
 
@@ -135,6 +135,15 @@ const LabyrinthGame: React.FC = () => {
     labyrinth.fight(choice);
     setGameVersion(prev => prev + 1); // Increment version to force re-render
     // The updateGameDisplay useEffect will handle showing/hiding RPS based on enemy status
+  };
+
+  const handleUseItem = (itemId: string) => {
+    if (labyrinth.isGameOver() || showRPS) {
+      toast.info("Cannot use items right now.");
+      return;
+    }
+    labyrinth.useItem(itemId);
+    setGameVersion(prev => prev + 1);
   };
 
   const handleRestart = () => {
@@ -296,6 +305,9 @@ const LabyrinthGame: React.FC = () => {
 
   const renderInventory = () => {
     const inventoryItems = labyrinth.getInventoryItems();
+    const equippedWeapon = labyrinth.getEquippedWeapon();
+    const equippedShield = labyrinth.getEquippedShield();
+
     if (inventoryItems.length === 0) {
       return <p className="text-gray-600 dark:text-gray-400">Your inventory is empty. Perhaps you'll find something useful...</p>;
     }
@@ -304,8 +316,23 @@ const LabyrinthGame: React.FC = () => {
         <p className="font-semibold text-lg">Your Inventory:</p>
         <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
           {inventoryItems.map((item) => (
-            <li key={item.id}>
-              <span className="font-medium">{item.name}</span>: {item.description}
+            <li key={item.id} className="flex items-center justify-between mb-1">
+              <div>
+                <span className="font-medium">{item.name}</span>: {item.description}
+                {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
+                {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
+              </div>
+              {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
+                  onClick={() => handleUseItem(item.id)}
+                  disabled={labyrinth.isGameOver() || showRPS}
+                >
+                  {item.type === 'consumable' ? 'Use' : (equippedWeapon?.id === item.id || equippedShield?.id === item.id ? 'Unequip' : 'Equip')}
+                </Button>
+              )}
             </li>
           ))}
         </ul>
@@ -381,7 +408,21 @@ const LabyrinthGame: React.FC = () => {
 
               <div className="mb-4">
                 <h3 className="text-2xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
-                <p className="text-lg text-gray-300 dark:text-gray-700">Health: <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} HP</span></p>
+                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
+                  <Heart className="mr-2 text-red-500" size={20} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
+                </p>
+                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
+                  <Sword className="mr-2 text-gray-400" size={20} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
+                </p>
+                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
+                  <Shield className="mr-2 text-gray-400" size={20} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
+                </p>
+                {labyrinth.getEquippedWeapon() && (
+                  <p className="text-sm text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
+                )}
+                {labyrinth.getEquippedShield() && (
+                  <p className="text-sm text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
+                )}
                 {renderInventory()}
               </div>
             </div>

@@ -45,12 +45,23 @@ export class Item {
   name: string;
   description: string;
   isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
+  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic';
+  effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
 
-  constructor(id: string, name: string, description: string, isStatic: boolean = false) {
+  constructor(
+    id: string,
+    name: string,
+    description: string,
+    isStatic: boolean = false,
+    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' = 'generic',
+    effectValue?: number
+  ) {
     this.id = id;
     this.name = name;
     this.description = description;
     this.isStatic = isStatic;
+    this.type = type;
+    this.effectValue = effectValue;
   }
 }
 
@@ -107,6 +118,11 @@ export class Labyrinth {
   private map: (LogicalRoom | 'wall')[][]; // Map can now contain walls
   private playerLocation: Coordinate;
   private playerHealth: number;
+  private playerMaxHealth: number; // New: Max health for potion
+  private baseAttackDamage: number; // New: Base attack damage
+  private baseDefense: number; // New: Base defense
+  private equippedWeapon: Item | undefined; // New: Equipped weapon
+  private equippedShield: Item | undefined; // New: Equipped shield
   private inventory: Item[];
   private messages: string[];
   private gameOver: boolean;
@@ -127,6 +143,11 @@ export class Labyrinth {
     this.map = [];
     this.playerLocation = { x: 0, y: 0 };
     this.playerHealth = 100;
+    this.playerMaxHealth = 100; // Initialize max health
+    this.baseAttackDamage = 10; // Initialize base attack
+    this.baseDefense = 0; // Initialize base defense
+    this.equippedWeapon = undefined;
+    this.equippedShield = undefined;
     this.inventory = [];
     this.messages = [];
     this.gameOver = false;
@@ -203,17 +224,27 @@ export class Labyrinth {
 
   private addGameElements() {
     // Add a key
-    const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.");
+    const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.", false, 'key');
     this.items.set(key.id, key);
     this.placeElementRandomly(key.id, this.itemLocations);
 
-    // Add a potion
-    const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.");
+    // Add a potion (now consumable)
+    const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100);
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations);
 
+    // Add a sword
+    const sword = new Item("sword-1", "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15);
+    this.items.set(sword.id, sword);
+    this.placeElementRandomly(sword.id, this.itemLocations);
+
+    // Add a shield
+    const shield = new Item("shield-1", "Aegis of the Guardian", "A sturdy shield emblazoned with a forgotten crest. Increases your defense.", false, 'shield', 5);
+    this.items.set(shield.id, shield);
+    this.placeElementRandomly(shield.id, this.itemLocations);
+
     // Add a static item (e.g., a broken lever)
-    const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true);
+    const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true, 'static');
     this.items.set(lever.id, lever);
     this.placeElementRandomly(lever.id, this.staticItemLocations);
 
@@ -231,7 +262,7 @@ export class Labyrinth {
     this.placeElementRandomly(shadowBeast.id, this.enemyLocations);
 
     // Add a puzzle
-    const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!"));
+    const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!", false, 'artifact'));
     this.puzzles.set(riddle.id, riddle);
     this.placeElementRandomly(riddle.id, this.puzzleLocations);
   }
@@ -277,6 +308,26 @@ export class Labyrinth {
 
   getPlayerHealth(): number {
     return this.playerHealth;
+  }
+
+  getPlayerMaxHealth(): number {
+    return this.playerMaxHealth;
+  }
+
+  getCurrentAttackDamage(): number {
+    return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0);
+  }
+
+  getCurrentDefense(): number {
+    return this.baseDefense + (this.equippedShield?.effectValue || 0);
+  }
+
+  getEquippedWeapon(): Item | undefined {
+    return this.equippedWeapon;
+  }
+
+  getEquippedShield(): Item | undefined {
+    return this.equippedShield;
   }
 
   getInventoryItems(): Item[] {
@@ -514,6 +565,64 @@ export class Labyrinth {
     }
   }
 
+  useItem(itemId: string) {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
+
+    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
+    if (itemIndex === -1) {
+      this.addMessage("You don't have that item in your inventory.");
+      return;
+    }
+
+    const item = this.inventory[itemIndex];
+
+    switch (item.type) {
+      case 'consumable':
+        if (item.effectValue && this.playerHealth < this.playerMaxHealth) {
+          this.playerHealth = Math.min(this.playerMaxHealth, this.playerHealth + item.effectValue);
+          this.inventory.splice(itemIndex, 1); // Remove consumed item
+          this.addMessage(`You consume the ${item.name}. Your health is restored to ${this.playerHealth} HP!`);
+        } else if (this.playerHealth >= this.playerMaxHealth) {
+          this.addMessage(`You are already at full health. No need to use the ${item.name} now.`);
+        } else {
+          this.addMessage(`The ${item.name} seems to have no effect.`);
+        }
+        break;
+      case 'weapon':
+        if (this.equippedWeapon?.id === item.id) {
+          this.equippedWeapon = undefined;
+          this.addMessage(`You unequip the ${item.name}.`);
+        } else {
+          if (this.equippedWeapon) {
+            this.addMessage(`You unequip the ${this.equippedWeapon.name} and equip the ${item.name}.`);
+          } else {
+            this.addMessage(`You equip the ${item.name}.`);
+          }
+          this.equippedWeapon = item;
+        }
+        break;
+      case 'shield':
+        if (this.equippedShield?.id === item.id) {
+          this.equippedShield = undefined;
+          this.addMessage(`You unequip the ${item.name}.`);
+        } else {
+          if (this.equippedShield) {
+            this.addMessage(`You unequip the ${this.equippedShield.name} and equip the ${item.name}.`);
+          } else {
+            this.addMessage(`You equip the ${item.name}.`);
+          }
+          this.equippedShield = item;
+        }
+        break;
+      default:
+        this.addMessage(`You can't seem to use the ${item.name} in this way.`);
+        break;
+    }
+  }
+
   fight(playerChoice: "left" | "center" | "right") {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
@@ -558,14 +667,16 @@ export class Labyrinth {
     }
 
     if (playerWins) {
-      enemy.takeDamage(1); // Each win reduces enemy health by 1
-      this.addMessage(`A decisive blow! You hit the ${enemy.name}! Its health is now ${enemy.health}.`);
+      enemy.takeDamage(this.getCurrentAttackDamage()); // Use player's current attack damage
+      this.addMessage(`A decisive blow! You hit the ${enemy.name} for ${this.getCurrentAttackDamage()} damage! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
         this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
       }
     } else if (enemyWins) {
-      this.playerHealth -= 10; // Player takes damage
-      this.addMessage(`The ${enemy.name} strikes true! You wince as you take damage. Your health is now ${this.playerHealth}.`);
+      const enemyBaseDamage = 10; // Assuming a base damage for enemies
+      const damageTaken = Math.max(0, enemyBaseDamage - this.getCurrentDefense()); // Reduce damage by player's defense
+      this.playerHealth -= damageTaken;
+      this.addMessage(`The ${enemy.name} strikes true! You wince as you take ${damageTaken} damage. Your health is now ${this.playerHealth}.`);
       if (this.playerHealth <= 0) {
         this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
         this.gameOver = true;

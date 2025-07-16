@@ -13,6 +13,7 @@ const VIEWPORT_SIZE = 25; // 25x25 blocks for the map display
 
 const LabyrinthGame: React.FC = () => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
+  const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [showRPS, setShowRPS] = useState<boolean>(false);
@@ -21,7 +22,7 @@ const LabyrinthGame: React.FC = () => {
 
   useEffect(() => {
     updateGameDisplay();
-  }, [labyrinth, labyrinth.getPlayerLocation()]); // Depend on labyrinth instance and player location
+  }, [gameVersion]); // Depend on gameVersion to trigger updates
 
   useEffect(() => {
     // Scroll to bottom of log
@@ -62,7 +63,7 @@ const LabyrinthGame: React.FC = () => {
       return;
     }
     labyrinth.move(direction);
-    setLabyrinth(labyrinth); // Pass the same instance to trigger re-render
+    setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
   const handleSearch = () => {
@@ -71,7 +72,7 @@ const LabyrinthGame: React.FC = () => {
       return;
     }
     labyrinth.search();
-    setLabyrinth(labyrinth);
+    setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
   const handleInteract = () => {
@@ -80,19 +81,20 @@ const LabyrinthGame: React.FC = () => {
       return;
     }
     labyrinth.interact();
-    setLabyrinth(labyrinth);
+    setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
   const handleRPSChoice = (choice: "rock" | "paper" | "scissors") => {
     if (!currentEnemy) return;
     labyrinth.fight(choice);
-    setLabyrinth(labyrinth);
+    setGameVersion(prev => prev + 1); // Increment version to force re-render
     // The updateGameDisplay useEffect will handle showing/hiding RPS based on enemy status
   };
 
   const handleRestart = () => {
     const newLabyrinth = new Labyrinth();
     setLabyrinth(newLabyrinth);
+    setGameVersion(0); // Reset version on restart
     setCurrentLogicalRoom(newLabyrinth.getCurrentLogicalRoom());
     setGameLog(["Game restarted!"]);
     setShowRPS(false);

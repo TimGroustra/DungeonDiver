@@ -322,8 +322,14 @@ export class Labyrinth {
       newY < this.map.length
     ) {
       this.playerLocation = { x: newX, y: newY };
-      this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
       this.markVisited(this.playerLocation);
+
+      const currentRoom = this.getCurrentLogicalRoom();
+      if (currentRoom) {
+        this.addMessage(`You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}`);
+      } else {
+        this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
+      }
 
       // Check for game over condition (e.g., reaching the exit)
       if (newX === this.map[0].length - 1 && newY === this.map.length - 1) {

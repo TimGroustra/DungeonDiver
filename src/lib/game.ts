@@ -465,110 +465,56 @@ export class Labyrinth {
       return;
     }
 
-    const px = this.playerLocation.x;
-    const py = this.playerLocation.y;
-    let foundSomethingInRadius = false;
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+    let foundSomething = false;
 
-    // Iterate through a 5x5 grid centered on the player (2-block radius)
-    for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
-            const targetX = px + dx;
-            const targetY = py + dy;
-            const targetCoordStr = `${targetX},${targetY}`;
-
-            // Check bounds and if it's an open room
-            if (
-                targetX >= 0 && targetX < this.MAP_WIDTH &&
-                targetY >= 0 && targetY < this.MAP_HEIGHT &&
-                this.map[targetY][targetX] !== 'wall'
-            ) {
-                // If it's the player's current location
-                if (dx === 0 && dy === 0) {
-                    // Existing logic for current room: pick up items, interact with static items/puzzles
-                    const itemId = this.itemLocations.get(targetCoordStr);
-                    if (itemId) {
-                        const item = this.items.get(itemId);
-                        if (item && !item.isStatic) {
-                            this.inventory.push(item);
-                            this.itemLocations.delete(targetCoordStr);
-                            this.addMessage(`Your fingers brush against something hidden in the rubble... you found a ${item.name}! It's a ${item.description}`);
-                            foundSomethingInRadius = true;
-                        }
-                    }
-
-                    const staticItemId = this.staticItemLocations.get(targetCoordStr);
-                    if (staticItemId) { // No need to check revealedStaticItems here, it's about finding it initially
-                        const staticItem = this.items.get(staticItemId);
-                        if (staticItem && !this.revealedStaticItems.has(targetCoordStr)) {
-                            this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
-                            this.revealedStaticItems.add(targetCoordStr);
-                            foundSomethingInRadius = true;
-                        }
-                    }
-
-                    const puzzleId = this.puzzleLocations.get(targetCoordStr);
-                    if (puzzleId) {
-                        const puzzle = this.puzzles.get(puzzleId);
-                        if (puzzle && !puzzle.solved) {
-                            // For simplicity, auto-solve if key is present and it's the echo puzzle
-                            if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
-                                if (puzzle.solve("echo")) {
-                                    this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
-                                    if (puzzle.reward) {
-                                        this.inventory.push(puzzle.reward);
-                                        this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
-                                    }
-                                    foundSomethingInRadius = true;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Logic for nearby cells (within 2-block radius, but not current cell)
-                    // Only reveal presence, not interact/pickup
-                    const enemyId = this.enemyLocations.get(targetCoordStr);
-                    if (enemyId) {
-                        const enemy = this.enemies.get(enemyId);
-                        if (enemy && !enemy.defeated) {
-                            this.addMessage(`You hear faint growls from a nearby passage at (${targetX},${targetY}).`);
-                            foundSomethingInRadius = true;
-                        }
-                    }
-
-                    const puzzleId = this.puzzleLocations.get(targetCoordStr);
-                    if (puzzleId) {
-                        const puzzle = this.puzzles.get(puzzleId);
-                        if (puzzle && !puzzle.solved) {
-                            this.addMessage(`Strange symbols adorn a wall in a chamber at (${targetX},${targetY}).`);
-                            foundSomethingInRadius = true;
-                        }
-                    }
-
-                    const itemId = this.itemLocations.get(targetCoordStr);
-                    if (itemId) {
-                        const item = this.items.get(itemId);
-                        if (item && !item.isStatic) {
-                            this.addMessage(`You spot a glimmering object in a nearby chamber at (${targetX},${targetY}).`);
-                            foundSomethingInRadius = true;
-                        }
-                    }
-
-                    const staticItemId = this.staticItemLocations.get(targetCoordStr);
-                    if (staticItemId && !this.revealedStaticItems.has(targetCoordStr)) {
-                        const staticItem = this.items.get(staticItemId);
-                        if (staticItem) {
-                            this.addMessage(`You notice an ancient mechanism in a nearby chamber at (${targetX},${targetY}).`);
-                            this.revealedStaticItems.add(targetCoordStr); // Mark as revealed on map
-                            foundSomethingInRadius = true;
-                        }
-                    }
-                }
-            }
-        }
+    // Check for visible items
+    const itemId = this.itemLocations.get(currentCoord);
+    if (itemId) {
+      const item = this.items.get(itemId);
+      if (item && !item.isStatic) {
+        this.inventory.push(item);
+        this.itemLocations.delete(currentCoord); // Remove from map once picked up
+        this.addMessage(`Your fingers brush against something hidden in the rubble... you found a ${item.name}! It's a ${item.description}`);
+        foundSomething = true;
+      }
     }
 
-    if (!foundSomethingInRadius) {
-        this.addMessage("You meticulously search the area, but find nothing but dust and cobwebs.");
+    // Check for static/hidden items
+    const staticItemId = this.staticItemLocations.get(currentCoord);
+    if (staticItemId) {
+      const staticItem = this.items.get(staticItemId);
+      if (staticItem) {
+        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
+        this.revealedStaticItems.add(currentCoord); // Mark as revealed
+        foundSomething = true;
+      }
+    }
+
+    // Check for puzzles
+    const puzzleId = this.puzzleLocations.get(currentCoord);
+    if (puzzleId) {
+      const puzzle = this.puzzles.get(puzzleId);
+      if (puzzle && !puzzle.solved) {
+        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
+        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+          if (puzzle.solve("echo")) {
+            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+            if (puzzle.reward) {
+              this.inventory.push(puzzle.reward);
+              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+            }
+            foundSomething = true;
+          }
+        } else {
+          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
+          foundSomething = true;
+        }
+      }
+    }
+
+    if (!foundSomething) {
+      this.addMessage("You meticulously search the area, but find nothing but dust and cobwebs.");
     }
   }
 

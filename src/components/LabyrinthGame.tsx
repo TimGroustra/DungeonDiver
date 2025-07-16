@@ -275,7 +275,8 @@ const LabyrinthGame: React.FC = () => {
                 <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
                 <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
                   <div ref={logRef}>
-                    {gameLog.map((message, index) => (
+                    {/* Reverse the gameLog array to show latest at top */}
+                    {gameLog.slice().reverse().map((message, index) => (
                       <p key={index} className="mb-1 last:mb-0">{message}</p>
                     ))}
                   </div>

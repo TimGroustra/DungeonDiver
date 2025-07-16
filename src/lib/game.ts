@@ -135,6 +135,7 @@ export class Labyrinth {
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
+  private leverActivated: boolean; // New property
 
   private readonly MAP_WIDTH = 50;
   private readonly MAP_HEIGHT = 50;
@@ -160,6 +161,7 @@ export class Labyrinth {
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
+    this.leverActivated = false; // Initialize new property
 
     this.initializeLabyrinth();
     this.addMessage("Welcome, brave adventurer, to the Labyrinth of Whispers! Find the ancient artifact and escape!");
@@ -247,6 +249,10 @@ export class Labyrinth {
     const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true, 'static');
     this.items.set(lever.id, lever);
     this.placeElementRandomly(lever.id, this.staticItemLocations);
+
+    // Add a new powerful consumable item to be revealed by the lever
+    const elixir = new Item("elixir-1", "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100); // 100 for full health
+    this.items.set(elixir.id, elixir); // Add to global items map, but don't place randomly yet
 
     // Add some enemies
     const goblin = new Enemy("goblin-1", "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", 2);
@@ -607,7 +613,7 @@ export class Labyrinth {
           }
         } else {
           this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-          interacted = true;
+            interacted = true; // Mark as interacted even if not solved, to prevent "nothing responds"
         }
       }
     }
@@ -616,10 +622,28 @@ export class Labyrinth {
     const staticItemId = this.staticItemLocations.get(currentCoord);
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
-      if (staticItem && !this.revealedStaticItems.has(currentCoord)) { // Only reveal if not already revealed
-        this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
-        this.revealedStaticItems.add(currentCoord); // Mark as revealed
-        interacted = true;
+      if (staticItem) { // Always allow interaction with static items, even if already revealed
+        if (staticItem.id === "lever-1") {
+          if (!this.leverActivated) {
+            this.leverActivated = true;
+            // Place the elixir at the current location for pickup
+            this.itemLocations.set(currentCoord, "elixir-1");
+            this.addMessage(`With a mighty heave, the ancient lever grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
+            this.addMessage(`The Elixir of Might has appeared at your current location. Use 'Search Area' to pick it up!`);
+          } else {
+            this.addMessage("The lever is already activated, but nothing more happens.");
+          }
+          interacted = true;
+        } else {
+          // Default behavior for other static items (just reveal message)
+          if (!this.revealedStaticItems.has(currentCoord)) {
+            this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
+            this.revealedStaticItems.add(currentCoord); // Mark as revealed
+          } else {
+            this.addMessage(`You examine the ${staticItem.name} again. It's still ${staticItem.description}`);
+          }
+          interacted = true;
+        }
       }
     }
 

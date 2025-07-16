@@ -21,11 +21,11 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path Aliases */
-    "baseUrl": "./src", // Changed baseUrl to src
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"] // Path now relative to baseUrl
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src"], // 'src' still includes everything under it
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

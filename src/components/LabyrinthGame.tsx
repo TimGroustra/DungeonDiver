@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Swords, Puzzle as PuzzleIcon, Sparkles, ScrollText } from "lucide-react"; // Importing new icons and renaming Puzzle
+import { PersonStanding } from "lucide-react"; // Importing the PersonStanding icon
 
 const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
 
@@ -154,19 +154,19 @@ const LabyrinthGame: React.FC = () => {
             const hasStaticItem = labyrinth["staticItemLocations"].has(cellCoord);
 
             if (hasEnemy) {
-              cellContentIndicator = <Swords size={12} />; // Enemy icon
+              cellContentIndicator = "E"; // Enemy
               cellClasses = "bg-red-800 text-red-200";
               cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks)`;
             } else if (hasPuzzle) {
-              cellContentIndicator = <PuzzleIcon size={12} />; // Unsolved Puzzle icon
+              cellContentIndicator = "U"; // Unsolved Puzzle
               cellClasses = "bg-purple-800 text-purple-200";
               cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle)`;
             } else if (hasVisibleItem) {
-              cellContentIndicator = <Sparkles size={12} />; // Item icon
+              cellContentIndicator = "I"; // Item
               cellClasses = "bg-yellow-700 text-yellow-200";
               cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item)`;
             } else if (hasStaticItem) {
-              cellContentIndicator = <ScrollText size={12} />; // Hidden/Static Item icon
+              cellContentIndicator = "H"; // Hidden/Static Item
               cellClasses = "bg-green-700 text-green-200";
               cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature)`;
             } else {

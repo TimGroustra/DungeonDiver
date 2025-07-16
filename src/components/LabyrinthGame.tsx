@@ -36,20 +36,34 @@ const LabyrinthGame: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (labyrinth.isGameOver() || showRPS) {
-        // Do not allow movement if game is over or in combat
+        // Do not allow actions if game is over or in combat
         return;
       }
 
       switch (event.key) {
         case "ArrowUp":
+          event.preventDefault();
+          handleMove("north");
+          break;
         case "ArrowDown":
+          event.preventDefault();
+          handleMove("south");
+          break;
         case "ArrowLeft":
+          event.preventDefault();
+          handleMove("west");
+          break;
         case "ArrowRight":
-          event.preventDefault(); // Prevent default scrolling behavior
-          if (event.key === "ArrowUp") handleMove("north");
-          else if (event.key === "ArrowDown") handleMove("south");
-          else if (event.key === "ArrowLeft") handleMove("west");
-          else if (event.key === "ArrowRight") handleMove("east");
+          event.preventDefault();
+          handleMove("east");
+          break;
+        case "Shift": // For Search
+          event.preventDefault();
+          handleSearch();
+          break;
+        case "Control": // For Interact
+          event.preventDefault();
+          handleInteract();
           break;
         default:
           break;

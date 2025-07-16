@@ -346,7 +346,7 @@ const LabyrinthGame: React.FC = () => {
         {/* Background Image Layer */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1519681393784-a93987cb0f76?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}
+          style={{ backgroundImage: "url('/download.png')" }}
         ></div>
         {/* Semi-transparent Overlay */}
         <div className="absolute inset-0 bg-black opacity-70"></div> {/* Adjust opacity as needed */}

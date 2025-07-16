@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
+import { Swords } from "lucide-react"; // Importing the Swords icon
 
 const VIEWPORT_SIZE = 25; // 25x25 blocks for the map display
 
@@ -109,27 +110,23 @@ const LabyrinthGame: React.FC = () => {
     const fullGridWidth = mapGrid[0]?.length || 0;
     const fullGridHeight = mapGrid.length;
 
-    // Calculate the visible window
     const halfViewport = Math.floor(VIEWPORT_SIZE / 2);
-    let startX = Math.max(0, playerLoc.x - halfViewport);
-    let startY = Math.max(0, playerLoc.y - halfViewport);
-    let endX = Math.min(fullGridWidth - 1, playerLoc.x + halfViewport);
-    let endY = Math.min(fullGridHeight - 1, playerLoc.y + halfViewport);
 
-    // Adjust startX/Y if clamping occurred at the end
-    if (endX - startX + 1 < VIEWPORT_SIZE) {
-      startX = Math.max(0, endX - VIEWPORT_SIZE + 1);
-    }
-    if (endY - startY + 1 < VIEWPORT_SIZE) {
-      startY = Math.max(0, endY - VIEWPORT_SIZE + 1);
-    }
+    // Calculate raw start coordinates for centering
+    let rawStartX = playerLoc.x - halfViewport;
+    let rawStartY = playerLoc.y - halfViewport;
 
-    // Final check to ensure viewport size is maintained if possible
-    startX = Math.max(0, Math.min(startX, fullGridWidth - VIEWPORT_SIZE));
-    startY = Math.max(0, Math.min(startY, fullGridHeight - VIEWPORT_SIZE));
-    endX = startX + VIEWPORT_SIZE - 1;
-    endY = startY + VIEWPORT_SIZE - 1;
+    // Clamp startX to ensure it's within map bounds and viewport fits
+    let startX = Math.max(0, rawStartX);
+    startX = Math.min(startX, fullGridWidth - VIEWPORT_SIZE); // Ensure viewport doesn't go past right edge
 
+    // Clamp startY to ensure it's within map bounds and viewport fits
+    let startY = Math.max(0, rawStartY);
+    startY = Math.min(startY, fullGridHeight - VIEWPORT_SIZE); // Ensure viewport doesn't go past bottom edge
+
+    // Calculate end coordinates based on clamped start and viewport size
+    let endX = startX + VIEWPORT_SIZE - 1;
+    let endY = startY + VIEWPORT_SIZE - 1;
 
     const cellSize = 20; // Adjust cell size for a 25x25 display
     const mapDisplayWidth = VIEWPORT_SIZE * cellSize;
@@ -168,12 +165,12 @@ const LabyrinthGame: React.FC = () => {
               const hasEnemy = labyrinth["enemyLocations"].has(cellCoord) && !labyrinth.getEnemy(labyrinth["enemyLocations"].get(cellCoord)!)?.defeated;
               const hasPuzzle = labyrinth["puzzleLocations"].has(cellCoord) && !labyrinth.getPuzzle(labyrinth["puzzleLocations"].get(cellCoord)!)?.solved;
 
-              let cellContentIndicator = "";
+              let cellContentIndicator: React.ReactNode = "";
               let cellTitle = isPlayerHere ? "You are here" : isVisited ? "Explored" : "Unexplored";
               let cellClasses = "";
 
               if (isPlayerHere) {
-                cellContentIndicator = "P"; // Player
+                cellContentIndicator = <Swords size={12} />; // Player icon
                 cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
               } else if (isWall) {
                 cellContentIndicator = "█"; // Wall character

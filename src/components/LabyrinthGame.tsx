@@ -343,8 +343,8 @@ const LabyrinthGame: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 dark:bg-zinc-900 p-4">
       <Card
-        className="w-full max-w-5xl shadow-2xl relative overflow-hidden border-2 border-stone-700 dark:border-stone-400"
-        style={{ backgroundImage: "url('/download.png')", backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat" }}
+        className="w-full max-w-5xl shadow-2xl relative overflow-hidden border-2 border-stone-700 dark:border-stone-400
+                   bg-[url('/download.png')] bg-cover bg-center bg-no-repeat"
       >
         {/* Semi-transparent Overlay */}
         <div className="absolute inset-0 bg-black opacity-70"></div> {/* Adjust opacity as needed */}

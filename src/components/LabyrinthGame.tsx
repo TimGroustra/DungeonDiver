@@ -112,31 +112,92 @@ const LabyrinthGame: React.FC = () => {
 
     const halfViewport = Math.floor(VIEWPORT_SIZE / 2);
 
-    // Calculate raw start coordinates for centering
-    let rawStartX = playerLoc.x - halfViewport;
-    let rawStartY = playerLoc.y - halfViewport;
-
-    // Clamp startX to ensure it's within map bounds and viewport fits
-    let startX = Math.max(0, rawStartX);
-    startX = Math.min(startX, fullGridWidth - VIEWPORT_SIZE); // Ensure viewport doesn't go past right edge
-
-    // Clamp startY to ensure it's within map bounds and viewport fits
-    let startY = Math.max(0, rawStartY);
-    startY = Math.min(startY, fullGridHeight - VIEWPORT_SIZE); // Ensure viewport doesn't go past bottom edge
-
-    // Calculate end coordinates based on clamped start and viewport size
-    let endX = startX + VIEWPORT_SIZE - 1;
-    let endY = startY + VIEWPORT_SIZE - 1;
+    // Calculate the top-left corner of the viewport in map coordinates
+    // This ensures the player is at (halfViewport, halfViewport) relative to this start
+    const viewportMapStartX = playerLoc.x - halfViewport;
+    const viewportMapStartY = playerLoc.y - halfViewport;
 
     const cellSize = 20; // Adjust cell size for a 25x25 display
     const mapDisplayWidth = VIEWPORT_SIZE * cellSize;
     const mapDisplayHeight = VIEWPORT_SIZE * cellSize;
 
     const visibleCells = [];
-    for (let y = startY; y <= endY; y++) {
+    for (let viewportY = 0; viewportY < VIEWPORT_SIZE; viewportY++) {
       const rowCells = [];
-      for (let x = startX; x <= endX; x++) {
-        rowCells.push({ x, y, cellType: mapGrid[y][x] });
+      for (let viewportX = 0; viewportX < VIEWPORT_SIZE; viewportX++) {
+        const mapX = viewportMapStartX + viewportX;
+        const mapY = viewportMapStartY + viewportY;
+
+        const isPlayerHere = playerLoc.x === mapX && playerLoc.y === mapY;
+        let cellContentIndicator: React.ReactNode = "";
+        let cellTitle = "";
+        let cellClasses = "";
+
+        // Check if the map coordinates are within the actual labyrinth bounds
+        if (mapX >= 0 && mapX < fullGridWidth && mapY >= 0 && mapY < fullGridHeight) {
+          const cellCoord = `${mapX},${mapY}`;
+          const isVisited = visitedCells.has(cellCoord);
+          const isWall = mapGrid[mapY][mapX] === 'wall';
+
+          if (isPlayerHere) {
+            cellContentIndicator = <PersonStanding size={12} />; // Player icon
+            cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
+            cellTitle = "You are here";
+          } else if (isWall) {
+            cellContentIndicator = "█"; // Wall character
+            cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
+            cellTitle = "Solid Wall";
+          } else if (isVisited) {
+            const hasEnemy = labyrinth["enemyLocations"].has(cellCoord) && !labyrinth.getEnemy(labyrinth["enemyLocations"].get(cellCoord)!)?.defeated;
+            const hasPuzzle = labyrinth["puzzleLocations"].has(cellCoord) && !labyrinth.getPuzzle(labyrinth["puzzleLocations"].get(cellCoord)!)?.solved;
+            const hasVisibleItem = labyrinth["itemLocations"].has(cellCoord);
+            const hasStaticItem = labyrinth["staticItemLocations"].has(cellCoord);
+
+            if (hasEnemy) {
+              cellContentIndicator = "E"; // Enemy
+              cellClasses = "bg-red-800 text-red-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks)`;
+            } else if (hasPuzzle) {
+              cellContentIndicator = "U"; // Unsolved Puzzle
+              cellClasses = "bg-purple-800 text-purple-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle)`;
+            } else if (hasVisibleItem) {
+              cellContentIndicator = "I"; // Item
+              cellClasses = "bg-yellow-700 text-yellow-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item)`;
+            } else if (hasStaticItem) {
+              cellContentIndicator = "H"; // Hidden/Static Item
+              cellClasses = "bg-green-700 text-green-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature)`;
+            } else {
+              cellContentIndicator = "·"; // Explored path
+              cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
+              cellTitle = `Explored (${mapX},${mapY})`;
+            }
+          } else {
+            cellContentIndicator = "?"; // Unvisited, unknown
+            cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
+            cellTitle = `Unexplored (${mapX},${mapY})`;
+          }
+        } else {
+          // Out of bounds - render as void
+          cellContentIndicator = " "; // Empty space for void
+          cellClasses = "bg-gray-950 dark:bg-gray-100 border-gray-900 dark:border-gray-200"; // Darker/lighter background for void
+          cellTitle = "The Void";
+        }
+        rowCells.push(
+          <div
+            key={`${viewportX}-${viewportY}`} // Use viewport coordinates for key
+            className={cn(
+              "w-full h-full flex items-center justify-center text-[10px] font-bold",
+              "border border-gray-800 dark:border-gray-500",
+              cellClasses,
+            )}
+            title={cellTitle}
+          >
+            {cellContentIndicator}
+          </div>
+        );
       }
       visibleCells.push(rowCells);
     }
@@ -153,69 +214,7 @@ const LabyrinthGame: React.FC = () => {
       >
         {visibleCells.map((row, rowIndex) => (
           <React.Fragment key={rowIndex}>
-            {row.map((cell, colIndex) => {
-              const cellCoord = `${cell.x},${cell.y}`;
-              const isPlayerHere = playerLoc.x === cell.x && playerLoc.y === cell.y;
-              const isVisited = visitedCells.has(cellCoord);
-              const isWall = cell.cellType === 'wall'; // Currently all 'open' in game.ts, but kept for future maze logic
-
-              // Determine cell content for title/visuals
-              const hasVisibleItem = labyrinth["itemLocations"].has(cellCoord);
-              const hasStaticItem = labyrinth["staticItemLocations"].has(cellCoord);
-              const hasEnemy = labyrinth["enemyLocations"].has(cellCoord) && !labyrinth.getEnemy(labyrinth["enemyLocations"].get(cellCoord)!)?.defeated;
-              const hasPuzzle = labyrinth["puzzleLocations"].has(cellCoord) && !labyrinth.getPuzzle(labyrinth["puzzleLocations"].get(cellCoord)!)?.solved;
-
-              let cellContentIndicator: React.ReactNode = "";
-              let cellTitle = isPlayerHere ? "You are here" : isVisited ? "Explored" : "Unexplored";
-              let cellClasses = "";
-
-              if (isPlayerHere) {
-                cellContentIndicator = <PersonStanding size={12} />; // Player icon
-                cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
-              } else if (isWall) {
-                cellContentIndicator = "█"; // Wall character
-                cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
-                cellTitle = "Solid Wall";
-              } else if (isVisited) {
-                if (hasEnemy) {
-                  cellContentIndicator = "E"; // Enemy
-                  cellClasses = "bg-red-800 text-red-200";
-                  cellTitle += " (Enemy Lurks)";
-                } else if (hasPuzzle) {
-                  cellContentIndicator = "U"; // Unsolved Puzzle
-                  cellClasses = "bg-purple-800 text-purple-200";
-                  cellTitle += " (Ancient Puzzle)";
-                } else if (hasVisibleItem) {
-                  cellContentIndicator = "I"; // Item
-                  cellClasses = "bg-yellow-700 text-yellow-200";
-                  cellTitle += " (Glimmering Item)";
-                } else if (hasStaticItem) {
-                  cellContentIndicator = "H"; // Hidden/Static Item
-                  cellClasses = "bg-green-700 text-green-200";
-                  cellTitle += " (Hidden Feature)";
-                } else {
-                  cellContentIndicator = "·"; // Explored path
-                  cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
-                }
-              } else {
-                cellContentIndicator = "?"; // Unvisited, unknown
-                cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
-              }
-
-              return (
-                <div
-                  key={cellCoord}
-                  className={cn(
-                    "w-full h-full flex items-center justify-center text-[10px] font-bold",
-                    "border border-gray-800 dark:border-gray-500",
-                    cellClasses,
-                  )}
-                  title={cellTitle}
-                >
-                  {cellContentIndicator}
-                </div>
-              );
-            })}
+            {row}
           </React.Fragment>
         ))}
       </div>

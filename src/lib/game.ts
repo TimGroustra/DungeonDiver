@@ -115,6 +115,7 @@ export class Labyrinth {
   private puzzleLocations: Map<string, string>; // "x,y" -> puzzleId
   private itemLocations: Map<string, string>; // "x,y" -> itemId (for visible items)
   private staticItemLocations: Map<string, string>; // "x,y" -> itemId (for hidden/static items)
+  private revealedStaticItems: Set<string>; // New: Stores "x,y" strings of revealed static items
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
@@ -134,6 +135,7 @@ export class Labyrinth {
     this.puzzleLocations = new Map();
     this.itemLocations = new Map();
     this.staticItemLocations = new Map();
+    this.revealedStaticItems = new Set<string>(); // Initialize new set
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
@@ -306,6 +308,10 @@ export class Labyrinth {
     return this.items.get(id);
   }
 
+  getRevealedStaticItems(): Set<string> {
+    return this.revealedStaticItems;
+  }
+
   isGameOver(): boolean {
     return this.gameOver;
   }
@@ -429,6 +435,7 @@ export class Labyrinth {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
         this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
+        this.revealedStaticItems.add(currentCoord); // Mark as revealed
         foundSomething = true;
       }
     }
@@ -488,6 +495,17 @@ export class Labyrinth {
           this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
           interacted = true;
         }
+      }
+    }
+
+    // Also check for static items to interact with
+    const staticItemId = this.staticItemLocations.get(currentCoord);
+    if (staticItemId) {
+      const staticItem = this.items.get(staticItemId);
+      if (staticItem && !this.revealedStaticItems.has(currentCoord)) { // Only reveal if not already revealed
+        this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
+        this.revealedStaticItems.add(currentCoord); // Mark as revealed
+        interacted = true;
       }
     }
 

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle } from "lucide-react"; // Importing new icons and aliasing Puzzle
 
 const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
 
@@ -107,6 +107,7 @@ const LabyrinthGame: React.FC = () => {
     const mapGrid = labyrinth.getMapGrid();
     const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
+    const revealedStaticItems = labyrinth.getRevealedStaticItems(); // Get the new set
     const fullGridWidth = mapGrid[0]?.length || 0;
     const fullGridHeight = mapGrid.length;
 
@@ -147,35 +148,64 @@ const LabyrinthGame: React.FC = () => {
             cellContentIndicator = "█"; // Wall character
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
-          } else { // This block now covers both visited and unvisited open cells
-            const hasEnemy = labyrinth["enemyLocations"].has(cellCoord) && !labyrinth.getEnemy(labyrinth["enemyLocations"].get(cellCoord)!)?.defeated;
-            const hasPuzzle = labyrinth["puzzleLocations"].has(cellCoord) && !labyrinth.getPuzzle(labyrinth["puzzleLocations"].get(cellCoord)!)?.solved;
-            const hasVisibleItem = labyrinth["itemLocations"].has(cellCoord);
-            const hasStaticItem = labyrinth["staticItemLocations"].has(cellCoord);
+          } else if (isVisited) { // Only show special indicators on visited cells
+            const enemyId = labyrinth["enemyLocations"].get(cellCoord);
+            const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
+            const hasUndefeatedEnemy = enemy && !enemy.defeated;
 
-            if (hasEnemy) {
-              cellContentIndicator = <Sword size={12} />; // Enemy icon
-              cellClasses = "bg-red-800 text-red-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks)`;
-            } else if (hasPuzzle) {
-              cellContentIndicator = <PuzzleIcon size={12} />; // Unsolved Puzzle icon
+            const puzzleId = labyrinth["puzzleLocations"].get(cellCoord);
+            const puzzle = puzzleId ? labyrinth.getPuzzle(puzzleId) : undefined;
+            const hasUnsolvedPuzzle = puzzle && !puzzle.solved;
+            const hasSolvedPuzzle = puzzle && puzzle.solved;
+
+            const hasUnpickedItem = labyrinth["itemLocations"].has(cellCoord);
+
+            const staticItemId = labyrinth["staticItemLocations"].get(cellCoord);
+            const hasStaticItemAtLocation = !!staticItemId; // Check if a static item exists at this coord
+            const isStaticItemCurrentlyRevealed = revealedStaticItems.has(cellCoord);
+
+            // Determine content based on activation status
+            if (hasUndefeatedEnemy) {
+              // If player is currently fighting this specific enemy, show sword. Otherwise, question mark.
+              if (currentEnemy && currentEnemy.id === enemyId && showRPS) {
+                cellContentIndicator = <Sword size={12} />;
+                cellClasses = "bg-red-800 text-red-200";
+                cellTitle = `Explored (${mapX},${mapY}) (Combat Active!)`;
+              } else {
+                cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+                cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+                cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
+              }
+            } else if (hasUnsolvedPuzzle) {
+              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+              cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
+            } else if (hasUnpickedItem) {
+              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+              cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+            } else if (hasStaticItemAtLocation && !isStaticItemCurrentlyRevealed) {
+              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+              cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature!)`;
+            } else if (hasSolvedPuzzle) { // Show solved puzzle icon
+              cellContentIndicator = <PuzzleIcon size={12} />;
               cellClasses = "bg-purple-800 text-purple-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle)`;
-            } else if (hasVisibleItem) {
-              cellContentIndicator = <Scroll size={12} />; // Item icon
-              cellClasses = "bg-yellow-700 text-yellow-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item)`;
-            } else if (hasStaticItem) {
-              cellContentIndicator = <BookOpen size={12} />; // Hidden/Static Item icon
+              cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
+            } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) { // Show revealed static item icon
+              cellContentIndicator = <BookOpen size={12} />;
               cellClasses = "bg-green-700 text-green-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature)`;
+              cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
             } else {
-              cellContentIndicator = "·"; // Explored path or unvisited open path
-              cellClasses = isVisited 
-                ? "bg-gray-700 dark:bg-gray-600 text-gray-500" // Visited path
-                : "bg-gray-900 dark:bg-gray-800 text-gray-700"; // Unvisited open path (revealed)
-              cellTitle = isVisited ? `Explored (${mapX},${mapY})` : `Unexplored (${mapX},${mapY})`;
+              // Visited path with no special elements or all elements activated/removed
+              cellContentIndicator = "·"; // Explored path
+              cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
+              cellTitle = `Explored (${mapX},${mapY})`;
             }
+          } else { // Unvisited open path
+            cellContentIndicator = "·";
+            cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
+            cellTitle = `Unexplored (${mapX},${mapY})`;
           }
         } else {
           // Out of bounds - render as void

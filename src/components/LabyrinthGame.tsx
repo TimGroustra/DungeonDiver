@@ -32,6 +32,39 @@ const LabyrinthGame: React.FC = () => {
     }
   }, [gameLog]);
 
+  // New useEffect for keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (labyrinth.isGameOver() || showRPS) {
+        // Do not allow movement if game is over or in combat
+        return;
+      }
+
+      switch (event.key) {
+        case "ArrowUp":
+          handleMove("north");
+          break;
+        case "ArrowDown":
+          handleMove("south");
+          break;
+        case "ArrowLeft":
+          handleMove("west");
+          break;
+        case "ArrowRight":
+          handleMove("east");
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [labyrinth, showRPS]); // Re-run effect if labyrinth or showRPS state changes
+
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());
     const newMessages = labyrinth.getMessages();

@@ -304,6 +304,11 @@ export class Labyrinth {
     this.items.set(lever.id, lever);
     this.placeElementRandomly(lever.id, this.staticItemLocations);
 
+    // Add the new Oil Can item
+    const oilCan = new Item("oil-can-1", "Rusty Oil Can", "A small can filled with thick, dark oil. Might be useful for rusted mechanisms.", false, 'generic');
+    this.items.set(oilCan.id, oilCan);
+    this.placeElementRandomly(oilCan.id, this.itemLocations);
+
     // Add a new powerful consumable item to be revealed by the lever
     const elixir = new Item("elixir-1", "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100); // 100 for full health
     this.items.set(elixir.id, elixir); // Add to global items map, but don't place randomly yet
@@ -678,12 +683,18 @@ export class Labyrinth {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) { // Always allow interaction with static items, even if already revealed
         if (staticItem.id === "lever-1") {
+          const oilCanIndex = this.inventory.findIndex(item => item.id === "oil-can-1");
           if (!this.leverActivated) {
-            this.leverActivated = true;
-            // Place the elixir at the current location for pickup
-            this.itemLocations.set(currentCoord, "elixir-1");
-            this.addMessage(`With a mighty heave, the ancient lever grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
-            this.addMessage(`The Elixir of Might has appeared at your current location. Use 'Search Area' to pick it up!`);
+            if (oilCanIndex !== -1) {
+              this.inventory.splice(oilCanIndex, 1); // Consume the oil can
+              this.leverActivated = true;
+              // Place the elixir at the current location for pickup
+              this.itemLocations.set(currentCoord, "elixir-1");
+              this.addMessage(`You apply the oil to the rusty lever. With a mighty heave, it grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
+              this.addMessage(`The Elixir of Might has appeared at your current location. Use 'Search Area' to pick it up!`);
+            } else {
+              this.addMessage("The ancient lever is rusted solid. It seems to require something to loosen it.");
+            }
           } else {
             this.addMessage("The lever is already activated, but nothing more happens.");
           }

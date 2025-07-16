@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
 import { PersonStanding } from "lucide-react"; // Importing the PersonStanding icon
 
-const VIEWPORT_SIZE = 25; // 25x25 blocks for the map display
+const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
 
 const LabyrinthGame: React.FC = () => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
@@ -249,7 +249,7 @@ const LabyrinthGame: React.FC = () => {
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left Column: Map and Controls */}
+            {/* Left Column: Map, Controls, and Game Log */}
             <div className="flex flex-col items-center">
               <h3 className="text-2xl font-bold mb-3 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
@@ -268,9 +268,22 @@ const LabyrinthGame: React.FC = () => {
                 <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
                 <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
               </div>
+
+              <Separator className="my-6 w-full bg-gray-700 dark:bg-gray-300" />
+
+              <div className="w-full">
+                <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
+                <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
+                  <div ref={logRef}>
+                    {gameLog.map((message, index) => (
+                      <p key={index} className="mb-1 last:mb-0">{message}</p>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
 
-            {/* Right Column: Game Info and Log */}
+            {/* Right Column: Game Info and Combat */}
             <div className="flex flex-col">
               <div className="mb-4">
                 <h2 className="text-3xl font-bold mb-2 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
@@ -299,15 +312,6 @@ const LabyrinthGame: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              <div className="mb-4 flex-grow">
-                <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600">Chronicles of the Labyrinth:</h3>
-                <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
-                  {gameLog.map((message, index) => (
-                    <p key={index} className="mb-1 last:mb-0">{message}</p>
-                  ))}
-                </ScrollArea>
-              </div>
             </div>
           </div>
         </CardContent>

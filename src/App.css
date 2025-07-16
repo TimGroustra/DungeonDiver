@@ -1,13 +1,9 @@
-/* No specific styles for #root here to allow full page background */
-/* The following styles are from the original template and are not needed for a full-screen app */
-/*
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
 }
-*/
 
 .logo {
   height: 6em;

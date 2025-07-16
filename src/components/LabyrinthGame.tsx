@@ -354,10 +354,31 @@ const LabyrinthGame: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              <Separator className="my-6 w-full bg-gray-700 dark:bg-gray-300" />
+
+              <div className="w-full">
+                <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
+                <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
+                  <div ref={logRef}>
+                    {/* Reverse the gameLog array to show latest at top */}
+                    {gameLog.slice().reverse().map((message, index) => (
+                      <p key={index} className="mb-1 last:mb-0">{message}</p>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
 
             {/* Right Column: Game Info */}
             <div className="flex flex-col">
+              <div className="mb-4">
+                <h2 className="text-3xl font-bold mb-2 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+                <p className="text-gray-300 dark:text-gray-700 text-lg italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+              </div>
+
+              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
+
               <div className="mb-4">
                 <h3 className="text-2xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
                 <p className="text-lg text-gray-300 dark:text-gray-700">Health: <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} HP</span></p>

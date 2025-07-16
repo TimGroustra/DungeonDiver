@@ -317,8 +317,8 @@ const LabyrinthGame: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-4">
       <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
         <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-4">
-          <CardTitle className="text-4xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
-          <CardDescription className="text-center text-gray-300 dark:text-gray-700 text-lg italic">A perilous journey into the unknown...</CardDescription>
+          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
+          <CardDescription className="text-base sm:text-lg italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

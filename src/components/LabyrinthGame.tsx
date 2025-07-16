@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { Swords } from "lucide-react"; // Importing the Swords icon
+import { PersonStanding } from "lucide-react"; // Importing the PersonStanding icon
 
 const VIEWPORT_SIZE = 25; // 25x25 blocks for the map display
 
@@ -170,7 +170,7 @@ const LabyrinthGame: React.FC = () => {
               let cellClasses = "";
 
               if (isPlayerHere) {
-                cellContentIndicator = <Swords size={12} />; // Player icon
+                cellContentIndicator = <PersonStanding size={12} />; // Player icon
                 cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
               } else if (isWall) {
                 cellContentIndicator = "█"; // Wall character

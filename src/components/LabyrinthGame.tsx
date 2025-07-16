@@ -42,16 +42,14 @@ const LabyrinthGame: React.FC = () => {
 
       switch (event.key) {
         case "ArrowUp":
-          handleMove("north");
-          break;
         case "ArrowDown":
-          handleMove("south");
-          break;
         case "ArrowLeft":
-          handleMove("west");
-          break;
         case "ArrowRight":
-          handleMove("east");
+          event.preventDefault(); // Prevent default scrolling behavior
+          if (event.key === "ArrowUp") handleMove("north");
+          else if (event.key === "ArrowDown") handleMove("south");
+          else if (event.key === "ArrowLeft") handleMove("west");
+          else if (event.key === "ArrowRight") handleMove("east");
           break;
         default:
           break;

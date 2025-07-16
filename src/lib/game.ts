@@ -169,89 +169,107 @@ export class Labyrinth {
   }
 
   private initializeLabyrinth() {
-    // Initialize map with all walls
+    // 1. Initialize map with all walls
     this.map = Array(this.MAP_HEIGHT)
       .fill(null)
       .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    // Step 1: Carve a guaranteed path from start (0,0) to end (MAP_WIDTH-1, MAP_HEIGHT-1)
-    let currentX = 0;
-    let currentY = 0;
-    const mainPathCoords: Coordinate[] = [];
-
-    while (currentX < this.MAP_WIDTH - 1 || currentY < this.MAP_HEIGHT - 1) {
-      mainPathCoords.push({ x: currentX, y: currentY });
-
-      const canMoveRight = currentX < this.MAP_WIDTH - 1;
-      const canMoveDown = currentY < this.MAP_HEIGHT - 1;
-
-      if (canMoveRight && canMoveDown) {
-        // Randomly choose to move right or down
-        if (Math.random() < 0.5) {
-          currentX++;
-        } else {
-          currentY++;
+    // Helper to get valid neighbors of a certain type
+    const getNeighbors = (x: number, y: number, type: 'wall' | 'room') => {
+      const neighbors: Coordinate[] = [];
+      const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+      for (const dir of directions) {
+        const nx = x + dir.dx;
+        const ny = y + dir.dy;
+        if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
+          if (type === 'wall' && this.map[ny][nx] === 'wall') {
+            neighbors.push({ x: nx, y: ny });
+          } else if (type === 'room' && this.map[ny][nx] !== 'wall') {
+            neighbors.push({ x: nx, y: ny });
+          }
         }
-      } else if (canMoveRight) {
-        currentX++;
-      } else if (canMoveDown) {
-        currentY++;
-      } else {
-        // Should not happen if loop condition is correct
-        break;
+      }
+      return neighbors;
+    };
+
+    // 2. Create a frontier list for maze generation
+    const frontier: Coordinate[] = [];
+
+    // 3. Start point: Set (0,0) to a LogicalRoom. Add its valid 'wall' neighbors to frontier.
+    const startX = 0;
+    const startY = 0;
+    this.map[startY][startX] = new LogicalRoom(`room-${startX}-${startY}`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
+    frontier.push(...getNeighbors(startX, startY, 'wall'));
+
+    // 4. Main generation loop (Prim's-like algorithm)
+    while (frontier.length > 0) {
+      // Pick a random cell from frontier
+      const randomIndex = Math.floor(Math.random() * frontier.length);
+      const { x, y } = frontier.splice(randomIndex, 1)[0]; // Remove from frontier
+
+      // If (x,y) is still a 'wall' (it might have been opened by another path)
+      if (this.map[y][x] === 'wall') {
+        // Convert map[y][x] to a LogicalRoom
+        this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Winding Passage ${x},${y}`, this.getRandomRoomDescription());
+
+        // Add its new 'wall' neighbors to frontier
+        frontier.push(...getNeighbors(x, y, 'wall'));
       }
     }
-    // Ensure the very last cell is added
-    mainPathCoords.push({ x: this.MAP_WIDTH - 1, y: this.MAP_HEIGHT - 1 });
 
-    // Convert main path coordinates to LogicalRooms
-    mainPathCoords.forEach(coord => {
-      const roomId = `room-${coord.x}-${coord.y}`;
-      const roomName = `Chamber ${coord.x},${coord.y}`;
-      let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
-
-      if (coord.x === 0 && coord.y === 0) {
-        roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
-      } else if (coord.x === this.MAP_WIDTH - 1 && coord.y === this.MAP_HEIGHT - 1) {
-        roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
-      } else if (Math.random() < 0.1) {
-        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
-      } else if (Math.random() < 0.05) {
-        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
-      } else if (Math.random() < 0.07) {
-        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+    // 5. Ensure End Point: Force the end cell to be a LogicalRoom if it's still a wall
+    const endX = this.MAP_WIDTH - 1;
+    const endY = this.MAP_HEIGHT - 1;
+    if (this.map[endY][endX] === 'wall') {
+      this.map[endY][endX] = new LogicalRoom(`room-${endX}-${endY}`, `The Exit Portal Chamber`, "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!");
+      // If for some reason it's still isolated, connect it to a neighbor
+      const roomNeighbors = getNeighbors(endX, endY, 'room');
+      if (roomNeighbors.length === 0) {
+        const wallNeighbors = getNeighbors(endX, endY, 'wall');
+        if (wallNeighbors.length > 0) {
+          const { x: wx, y: wy } = wallNeighbors[0];
+          this.map[wy][wx] = new LogicalRoom(`room-${wx}-${wy}`, `Connecting Passage`, `A newly opened path to the exit.`);
+        }
       }
-      this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
-    });
+    } else {
+        // If it's already a room, just update its description to be the exit
+        const exitRoom = this.map[endY][endX] as LogicalRoom;
+        exitRoom.name = `The Exit Portal Chamber`;
+        exitRoom.description = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+    }
 
-    // Step 2: Add "side rooms" by converting some adjacent walls to rooms
-    // This makes the maze more complex without blocking the main path
-    for (let y = 0; y < this.MAP_HEIGHT; y++) {
-      for (let x = 0; x < this.MAP_WIDTH; x++) {
-        if (this.map[y][x] === 'wall') {
-          // Check if any adjacent cell is already a room
-          const neighbors = [
-            { nx: x + 1, ny: y }, { nx: x - 1, ny: y },
-            { nx: x, ny: y + 1 }, { nx: x, ny: y - 1 }
-          ];
-          const isAdjacentToRoom = neighbors.some(n =>
-            n.nx >= 0 && n.nx < this.MAP_WIDTH &&
-            n.ny >= 0 && n.ny < this.MAP_HEIGHT &&
-            this.map[n.ny][n.nx] !== 'wall'
-          );
-
-          if (isAdjacentToRoom && Math.random() < 0.1) { // 10% chance to create a side room
-            const roomId = `room-${x}-${y}`;
-            const roomName = `Hidden Passage ${x},${y}`;
-            const roomDescription = "A narrow, dusty passage, leading to an unknown fate.";
-            this.map[y][x] = new LogicalRoom(roomId, roomName, roomDescription);
-          }
+    // 6. Add "open areas" and "dead ends" by randomly converting some walls near rooms
+    // This step creates more interconnectedness and larger rooms.
+    const numExtraOpenings = Math.floor(this.MAP_WIDTH * this.MAP_HEIGHT * 0.15); // Open 15% more cells
+    for (let i = 0; i < numExtraOpenings; i++) {
+      const x = Math.floor(Math.random() * this.MAP_WIDTH);
+      const y = Math.floor(Math.random() * this.MAP_HEIGHT);
+      if (this.map[y][x] === 'wall') {
+        const roomNeighbors = getNeighbors(x, y, 'room');
+        if (roomNeighbors.length > 0) { // Only open walls adjacent to existing rooms
+          this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Hidden Nook ${x},${y}`, this.getRandomRoomDescription());
         }
       }
     }
 
     // Add game elements after the map is fully generated
     this.addGameElements();
+  }
+
+  private getRandomRoomDescription(): string {
+    const descriptions = [
+        "A dimly lit chamber. The air is heavy with the scent of damp earth and ancient magic.",
+        "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.",
+        "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.",
+        "Moss-covered stones line this narrow passage, leading deeper into the unknown.",
+        "This chamber feels strangely familiar, yet you cannot recall ever being here before.",
+        "Dust motes dance in the faint light filtering from above, revealing intricate patterns on the floor.",
+        "The air grows colder here, and a faint, metallic tang hints at something unnatural.",
+        "A small, stagnant pool of water reflects the faint glow of your lantern.",
+        "The passage narrows significantly, forcing you to squeeze through.",
+        "This area is surprisingly well-preserved, with faint murals depicting ancient rituals."
+    ];
+    return descriptions[Math.floor(Math.random() * descriptions.length)];
   }
 
   private addGameElements() {
@@ -381,7 +399,7 @@ export class Labyrinth {
       return typeof cell !== 'string' ? cell : undefined; // Return LogicalRoom if not 'wall'
     }
     return undefined;
-  }
+    }
 
   getEnemy(id: string): Enemy | undefined {
     return this.enemies.get(id);

@@ -184,7 +184,7 @@ export class Labyrinth {
         if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
           if (type === 'wall' && this.map[ny][nx] === 'wall') {
             neighbors.push({ x: nx, y: ny });
-          } else if (type === 'room' && this.map[ny][nx] !== 'wall') {
+          } else if (type === 'room' && this.map[ny][nx] !== 'wall') { // This means it's a LogicalRoom
             neighbors.push({ x: nx, y: ny });
           }
         }
@@ -192,62 +192,76 @@ export class Labyrinth {
       return neighbors;
     };
 
-    // 2. Create a frontier list for maze generation
+    // 2. Prim's Algorithm (to create a perfect maze)
+    const visitedCellsForMaze = new Set<string>(); // Use a separate set for maze generation
     const frontier: Coordinate[] = [];
 
-    // 3. Start point: Set (0,0) to a LogicalRoom. Add its valid 'wall' neighbors to frontier.
     const startX = 0;
     const startY = 0;
-    this.map[startY][startX] = new LogicalRoom(`room-${startX}-${startY}`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
-    frontier.push(...getNeighbors(startX, startY, 'wall'));
 
-    // 4. Main generation loop (Prim's-like algorithm)
+    // Start cell
+    this.map[startY][startX] = new LogicalRoom(`room-${startX}-${startY}`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
+    visitedCellsForMaze.add(`${startX},${startY}`);
+
+    // Add initial wall neighbors to frontier
+    getNeighbors(startX, startY, 'wall').forEach(coord => {
+      if (!visitedCellsForMaze.has(`${coord.x},${coord.y}`)) { // Ensure not already visited
+        frontier.push(coord);
+      }
+    });
+
     while (frontier.length > 0) {
       // Pick a random cell from frontier
       const randomIndex = Math.floor(Math.random() * frontier.length);
       const { x, y } = frontier.splice(randomIndex, 1)[0]; // Remove from frontier
 
-      // If (x,y) is still a 'wall' (it might have been opened by another path)
-      if (this.map[y][x] === 'wall') {
-        // Convert map[y][x] to a LogicalRoom
-        this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Winding Passage ${x},${y}`, this.getRandomRoomDescription());
+      // If this cell is still a wall and hasn't been visited by another path
+      if (this.map[y][x] === 'wall' && !visitedCellsForMaze.has(`${x},${y}`)) {
+        // Find a random *existing room* neighbor to connect to
+        const roomNeighbors = getNeighbors(x, y, 'room').filter(coord => visitedCellsForMaze.has(`${coord.x},${coord.y}`));
 
-        // Add its new 'wall' neighbors to frontier
-        frontier.push(...getNeighbors(x, y, 'wall'));
+        if (roomNeighbors.length > 0) {
+          // Convert map[y][x] to a LogicalRoom
+          this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Winding Passage ${x},${y}`, this.getRandomRoomDescription());
+          visitedCellsForMaze.add(`${x},${y}`);
+
+          // Add its new 'wall' neighbors to frontier if not already visited or in frontier
+          getNeighbors(x, y, 'wall').forEach(coord => {
+            if (!visitedCellsForMaze.has(`${coord.x},${coord.y}`) && !frontier.some(f => f.x === coord.x && f.y === coord.y)) {
+              frontier.push(coord);
+            }
+          });
+        }
       }
     }
 
-    // 5. Ensure End Point: Force the end cell to be a LogicalRoom if it's still a wall
+    // 3. Ensure End Point is a Room (it should be connected by Prim's, but just in case)
     const endX = this.MAP_WIDTH - 1;
     const endY = this.MAP_HEIGHT - 1;
     if (this.map[endY][endX] === 'wall') {
       this.map[endY][endX] = new LogicalRoom(`room-${endX}-${endY}`, `The Exit Portal Chamber`, "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!");
-      // If for some reason it's still isolated, connect it to a neighbor
-      const roomNeighbors = getNeighbors(endX, endY, 'room');
-      if (roomNeighbors.length === 0) {
-        const wallNeighbors = getNeighbors(endX, endY, 'wall');
-        if (wallNeighbors.length > 0) {
-          const { x: wx, y: wy } = wallNeighbors[0];
-          this.map[wy][wx] = new LogicalRoom(`room-${wx}-${wy}`, `Connecting Passage`, `A newly opened path to the exit.`);
-        }
-      }
     } else {
-        // If it's already a room, just update its description to be the exit
-        const exitRoom = this.map[endY][endX] as LogicalRoom;
-        exitRoom.name = `The Exit Portal Chamber`;
-        exitRoom.description = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+      // If it's already a room, just update its description to be the exit
+      const exitRoom = this.map[endY][endX] as LogicalRoom;
+      exitRoom.name = `The Exit Portal Chamber`;
+      exitRoom.description = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
     }
 
-    // 6. Add "open areas" and "dead ends" by randomly converting some walls near rooms
-    // This step creates more interconnectedness and larger rooms.
-    const numExtraOpenings = Math.floor(this.MAP_WIDTH * this.MAP_HEIGHT * 0.15); // Open 15% more cells
-    for (let i = 0; i < numExtraOpenings; i++) {
-      const x = Math.floor(Math.random() * this.MAP_WIDTH);
-      const y = Math.floor(Math.random() * this.MAP_HEIGHT);
-      if (this.map[y][x] === 'wall') {
-        const roomNeighbors = getNeighbors(x, y, 'room');
-        if (roomNeighbors.length > 0) { // Only open walls adjacent to existing rooms
-          this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Hidden Nook ${x},${y}`, this.getRandomRoomDescription());
+    // 4. Post-processing: Add Loops/Open Areas
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+      for (let x = 0; x < this.MAP_WIDTH; x++) {
+        if (this.map[y][x] === 'wall') {
+          const roomNeighbors = getNeighbors(x, y, 'room');
+          const numRoomNeighbors = roomNeighbors.length;
+
+          // Create loops (wall between two rooms)
+          if (numRoomNeighbors >= 2 && Math.random() < 0.15) { // 15% chance to open a wall between two rooms
+            this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Interconnected Passage ${x},${y}`, this.getRandomRoomDescription());
+          }
+          // Create larger open areas (wall surrounded by more rooms)
+          else if (numRoomNeighbors >= 3 && Math.random() < 0.25) { // 25% chance to open a wall surrounded by 3+ rooms
+            this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Spacious Cavern ${x},${y}`, this.getRandomRoomDescription());
+          }
         }
       }
     }

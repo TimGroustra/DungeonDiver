@@ -269,6 +269,19 @@ const LabyrinthGame: React.FC = () => {
                 <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
               </div>
 
+              {showRPS && currentEnemy && (
+                <div className="mt-6 mb-4 p-4 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900 w-full">
+                  <h3 className="text-2xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
+                  <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
+                  <p className="mb-3">Choose your move wisely, adventurer:</p>
+                  <div className="flex gap-3 justify-center">
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("rock")}>Rock</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("paper")}>Paper</Button>
+                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("scissors")}>Scissors</Button>
+                  </div>
+                </div>
+              )}
+
               <Separator className="my-6 w-full bg-gray-700 dark:bg-gray-300" />
 
               <div className="w-full">
@@ -284,7 +297,7 @@ const LabyrinthGame: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Game Info and Combat */}
+            {/* Right Column: Game Info */}
             <div className="flex flex-col">
               <div className="mb-4">
                 <h2 className="text-3xl font-bold mb-2 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
@@ -298,21 +311,6 @@ const LabyrinthGame: React.FC = () => {
                 <p className="text-lg text-gray-300 dark:text-gray-700">Health: <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} HP</span></p>
                 {renderInventory()}
               </div>
-
-              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
-
-              {showRPS && currentEnemy && (
-                <div className="mb-4 p-4 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900">
-                  <h3 className="text-2xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
-                  <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                  <p className="mb-3">Choose your move wisely, adventurer:</p>
-                  <div className="flex gap-3 justify-center">
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("rock")}>Rock</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("paper")}>Paper</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("scissors")}>Scissors</Button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </CardContent>

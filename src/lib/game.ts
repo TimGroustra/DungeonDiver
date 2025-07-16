@@ -104,7 +104,7 @@ export class Puzzle {
 }
 
 export class Labyrinth {
-  private map: LogicalRoom[][];
+  private map: (LogicalRoom | 'wall')[][]; // Map can now contain walls
   private playerLocation: Coordinate;
   private playerHealth: number;
   private inventory: Item[];
@@ -118,6 +118,9 @@ export class Labyrinth {
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
+
+  private readonly MAP_WIDTH = 50;
+  private readonly MAP_HEIGHT = 50;
 
   constructor() {
     this.map = [];
@@ -141,83 +144,113 @@ export class Labyrinth {
   }
 
   private initializeLabyrinth() {
-    const width = 50; // Increased map size
-    const height = 50; // Increased map size
-    this.map = Array(height)
+    // Initialize map with all walls
+    this.map = Array(this.MAP_HEIGHT)
       .fill(null)
-      .map(() => Array(width).fill(null));
+      .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    // Simple room generation
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const roomId = `room-${x}-${y}`;
-        const roomName = `Chamber ${x},${y}`;
-        let roomDescription = `You are in a dimly lit chamber at (${x},${y}). The air is heavy with the scent of damp earth and ancient magic.`;
+    // Carve out a path using a simple random walk
+    let currentX = 0;
+    let currentY = 0;
+    const path: Coordinate[] = [{ x: currentX, y: currentY }];
 
-        // Add some variety
-        if (x === 0 && y === 0) {
-          roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
-        } else if (x === width - 1 && y === height - 1) {
-          roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
-        } else if (Math.random() < 0.1) {
-          roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
-        } else if (Math.random() < 0.05) {
-          roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
-        } else if (Math.random() < 0.07) {
-          roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
-        }
+    while (currentX !== this.MAP_WIDTH - 1 || currentY !== this.MAP_HEIGHT - 1) {
+      const possibleMoves: { dx: number; dy: number }[] = [];
+      if (currentX < this.MAP_WIDTH - 1) possibleMoves.push({ dx: 1, dy: 0 }); // East
+      if (currentY < this.MAP_HEIGHT - 1) possibleMoves.push({ dx: 0, dy: 1 }); // South
+      if (currentX > 0) possibleMoves.push({ dx: -1, dy: 0 }); // West
+      if (currentY > 0) possibleMoves.push({ dx: 0, dy: -1 }); // North
 
-        this.map[y][x] = new LogicalRoom(roomId, roomName, roomDescription);
-      }
+      const move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+      currentX += move.dx;
+      currentY += move.dy;
+
+      // Ensure we don't go out of bounds (should be handled by possibleMoves, but as a safeguard)
+      currentX = Math.max(0, Math.min(currentX, this.MAP_WIDTH - 1));
+      currentY = Math.max(0, Math.min(currentY, this.MAP_HEIGHT - 1));
+
+      path.push({ x: currentX, y: currentY });
+
+      // Break if stuck (shouldn't happen with random walk to target, but for safety)
+      if (path.length > this.MAP_WIDTH * this.MAP_HEIGHT * 2) break;
     }
 
+    // Convert path coordinates to LogicalRooms
+    path.forEach(coord => {
+      const roomId = `room-${coord.x}-${coord.y}`;
+      const roomName = `Chamber ${coord.x},${coord.y}`;
+      let roomDescription = `You are in a dimly lit chamber at (${coord.x},${coord.y}). The air is heavy with the scent of damp earth and ancient magic.`;
+
+      if (coord.x === 0 && coord.y === 0) {
+        roomDescription = "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.";
+      } else if (coord.x === this.MAP_WIDTH - 1 && coord.y === this.MAP_HEIGHT - 1) {
+        roomDescription = "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!";
+      } else if (Math.random() < 0.1) {
+        roomDescription = "The walls here are adorned with grotesque carvings of forgotten beasts, their eyes seeming to follow your every move.";
+      } else if (Math.random() < 0.05) {
+        roomDescription = "An eerie, echoing silence fills this vast cavern, broken only by the drip of unseen water.";
+      } else if (Math.random() < 0.07) {
+        roomDescription = "Moss-covered stones line this narrow passage, leading deeper into the unknown.";
+      }
+      this.map[coord.y][coord.x] = new LogicalRoom(roomId, roomName, roomDescription);
+    });
+
     // Add some items, enemies, and puzzles
-    this.addGameElements(width, height);
+    this.addGameElements();
   }
 
-  private addGameElements(width: number, height: number) {
+  private addGameElements() {
     // Add a key
     const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.");
     this.items.set(key.id, key);
-    this.placeElementRandomly(key.id, this.itemLocations, width, height);
+    this.placeElementRandomly(key.id, this.itemLocations);
 
     // Add a potion
     const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.");
     this.items.set(potion.id, potion);
-    this.placeElementRandomly(potion.id, this.itemLocations, width, height);
+    this.placeElementRandomly(potion.id, this.itemLocations);
 
     // Add a static item (e.g., a broken lever)
     const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true);
     this.items.set(lever.id, lever);
-    this.placeElementRandomly(lever.id, this.staticItemLocations, width, height);
+    this.placeElementRandomly(lever.id, this.staticItemLocations);
 
     // Add some enemies
     const goblin = new Enemy("goblin-1", "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", 2);
     this.enemies.set(goblin.id, goblin);
-    this.placeElementRandomly(goblin.id, this.enemyLocations, width, height);
+    this.placeElementRandomly(goblin.id, this.enemyLocations);
 
     const skeleton = new Enemy("skeleton-1", "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", 3);
     this.enemies.set(skeleton.id, skeleton);
-    this.placeElementRandomly(skeleton.id, this.enemyLocations, width, height);
+    this.placeElementRandomly(skeleton.id, this.enemyLocations);
 
     const shadowBeast = new Enemy("shadow-beast-1", "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", 4);
     this.enemies.set(shadowBeast.id, shadowBeast);
-    this.placeElementRandomly(shadowBeast.id, this.enemyLocations, width, height);
+    this.placeElementRandomly(shadowBeast.id, this.enemyLocations);
 
     // Add a puzzle
     const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!"));
     this.puzzles.set(riddle.id, riddle);
-    this.placeElementRandomly(riddle.id, this.puzzleLocations, width, height);
+    this.placeElementRandomly(riddle.id, this.puzzleLocations);
   }
 
-  private placeElementRandomly(id: string, locationMap: Map<string, string>, width: number, height: number) {
+  private placeElementRandomly(id: string, locationMap: Map<string, string>) {
     let placed = false;
     while (!placed) {
-      const x = Math.floor(Math.random() * width);
-      const y = Math.floor(Math.random() * height);
+      const x = Math.floor(Math.random() * this.MAP_WIDTH);
+      const y = Math.floor(Math.random() * this.MAP_HEIGHT);
       const coordStr = `${x},${y}`;
-      // Ensure not placed at player start or on an existing element
-      if ((x !== 0 || y !== 0) && !locationMap.has(coordStr) && !this.enemyLocations.has(coordStr) && !this.puzzleLocations.has(coordStr) && !this.itemLocations.has(coordStr) && !this.staticItemLocations.has(coordStr)) {
+      // Ensure not placed at player start, exit, or on an existing element, and only in an open room
+      if (
+        (x !== 0 || y !== 0) &&
+        (x !== this.MAP_WIDTH - 1 || y !== this.MAP_HEIGHT - 1) &&
+        this.map[y][x] !== 'wall' && // Must be an open room
+        !locationMap.has(coordStr) &&
+        !this.enemyLocations.has(coordStr) &&
+        !this.puzzleLocations.has(coordStr) &&
+        !this.itemLocations.has(coordStr) &&
+        !this.staticItemLocations.has(coordStr)
+      ) {
         locationMap.set(coordStr, id);
         placed = true;
       }
@@ -255,7 +288,8 @@ export class Labyrinth {
       this.playerLocation.x >= 0 &&
       this.playerLocation.x < this.map[0].length
     ) {
-      return this.map[this.playerLocation.y][this.playerLocation.x];
+      const cell = this.map[this.playerLocation.y][this.playerLocation.x];
+      return typeof cell !== 'string' ? cell : undefined; // Return LogicalRoom if not 'wall'
     }
     return undefined;
   }
@@ -285,9 +319,15 @@ export class Labyrinth {
   }
 
   getMapGrid(): ('wall' | 'open')[][] {
-    const grid: ('wall' | 'open')[][] = Array(this.map.length)
+    const grid: ('wall' | 'open')[][] = Array(this.MAP_HEIGHT)
       .fill(null)
-      .map(() => Array(this.map[0].length).fill('open'));
+      .map(() => Array(this.MAP_WIDTH).fill('open')); // Initialize with 'open'
+
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+      for (let x = 0; x < this.MAP_WIDTH; x++) {
+        grid[y][x] = this.map[y][x] === 'wall' ? 'wall' : 'open';
+      }
+    }
     return grid;
   }
 
@@ -315,12 +355,18 @@ export class Labyrinth {
         break;
     }
 
+    // Check if new coordinates are within bounds and not a wall
     if (
       newX >= 0 &&
-      newX < this.map[0].length &&
+      newX < this.MAP_WIDTH &&
       newY >= 0 &&
-      newY < this.map.length
+      newY < this.MAP_HEIGHT
     ) {
+      if (this.map[newY][newX] === 'wall') {
+        this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
+        return; // Prevent movement into a wall
+      }
+
       this.playerLocation = { x: newX, y: newY };
       this.markVisited(this.playerLocation);
 
@@ -328,11 +374,12 @@ export class Labyrinth {
       if (currentRoom) {
         this.addMessage(`You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}`);
       } else {
+        // This case should ideally not be reached if map generation is correct
         this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
       }
 
       // Check for game over condition (e.g., reaching the exit)
-      if (newX === this.map[0].length - 1 && newY === this.map.length - 1) {
+      if (newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
         this.addMessage("A shimmering portal appears, bathed in ethereal light! You step through, escaping the Labyrinth's grasp! Congratulations, brave adventurer!");
         this.gameOver = true;
       }
@@ -346,7 +393,7 @@ export class Labyrinth {
         }
       }
     } else {
-      this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
+      this.addMessage("You cannot go that way. You've reached the edge of the known labyrinth.");
     }
   }
 

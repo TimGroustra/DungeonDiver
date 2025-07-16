@@ -380,8 +380,13 @@ export class Labyrinth {
 
       // Check for game over condition (e.g., reaching the exit)
       if (newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        this.addMessage("A shimmering portal, bathed in ethereal light! You step through, escaping the Labyrinth's grasp! Congratulations, brave adventurer!");
-        this.gameOver = true;
+        const hasArtifact = this.inventory.some(item => item.id === "gem-1");
+        if (hasArtifact) {
+          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Heart of the Labyrinth pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
+          this.gameOver = true;
+        } else {
+          this.addMessage("The shimmering portal hums with energy, but it seems to require a powerful artifact to activate fully. You cannot escape yet!");
+        }
       }
 
       // Check for enemy encounter
@@ -441,11 +446,11 @@ export class Labyrinth {
               this.inventory.push(puzzle.reward);
               this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
             }
-            foundSomething = true; // Corrected from 'interacted'
+            foundSomething = true;
           }
         } else {
           this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-          foundSomething = true; // Corrected from 'interacted'
+          foundSomething = true;
         }
       }
     }

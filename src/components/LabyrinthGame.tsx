@@ -377,27 +377,46 @@ const LabyrinthGame: React.FC = () => {
       <div className="mt-2">
         <p className="font-semibold text-base">Your Inventory:</p>
         <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
-          {inventoryItems.map(({ item, quantity }) => ( // Destructure item and quantity
-            <li key={item.id} className="flex items-center justify-between mb-1">
-              <div>
-                <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
-                {quantity > 1 && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
-                {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
-                {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
-              </div>
-              {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'artifact') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
-                  onClick={() => handleUseItem(item.id)}
-                  disabled={labyrinth.isGameOver() || showRPS}
-                >
-                  {item.type === 'consumable' ? 'Use' : (equippedWeapon?.id === item.id || equippedShield?.id === item.id ? 'Unequip' : 'Equip')}
-                </Button>
-              )}
-            </li>
-          ))}
+          {inventoryItems.map(({ item, quantity }) => {
+            let artifactStatus = "";
+            let isArtifactActivated = false;
+
+            if (item.type === 'artifact') {
+              if (item.id === "scholar-amulet-f0" && labyrinth.getScholarAmuletEffectApplied()) {
+                artifactStatus = "(Activated)";
+                isArtifactActivated = true;
+              } else if (item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied()) {
+                artifactStatus = "(Consumed)"; // Blessing is more like a consumable artifact
+                isArtifactActivated = true;
+              } else if (item.id === "true-compass-f2" && labyrinth.getTrueCompassEffectApplied()) {
+                artifactStatus = "(Attuned)";
+                isArtifactActivated = true;
+              }
+            }
+
+            return (
+              <li key={item.id} className="flex items-center justify-between mb-1">
+                <div>
+                  <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
+                  {quantity > 1 && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
+                  {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
+                  {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
+                  {artifactStatus && <span className="ml-2 text-blue-400 dark:text-blue-600">{artifactStatus}</span>}
+                </div>
+                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'artifact') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
+                    onClick={() => handleUseItem(item.id)}
+                    disabled={labyrinth.isGameOver() || showRPS || (item.type === 'artifact' && isArtifactActivated)}
+                  >
+                    {item.type === 'consumable' ? 'Use' : (item.type === 'artifact' ? (isArtifactActivated ? 'Activated' : 'Activate') : (equippedWeapon?.id === item.id || equippedShield?.id === item.id ? 'Unequip' : 'Equip'))}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </div>
     );

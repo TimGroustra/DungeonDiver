@@ -1147,7 +1147,7 @@ export class Labyrinth {
                 this.baseDefense += (item.effectValue || 0);
                 this.scholarAmuletEffectApplied = true;
                 this.addMessage(`You attune to the Scholar's Amulet! Your base attack and defense permanently increase by ${item.effectValue}!`);
-                this.inventory.delete(itemId); // Remove after use
+                // Do NOT delete the item from inventory
             } else {
                 this.addMessage(`The Scholar's Amulet has already granted its power.`);
             }
@@ -1156,7 +1156,7 @@ export class Labyrinth {
                 this.playerHealth = this.playerMaxHealth; // Full health restore
                 this.whisperingWellEffectApplied = true;
                 this.addMessage(`You drink from the Whispering Well's Blessing! Your health is fully restored!`);
-                this.inventory.delete(itemId); // Remove after use
+                // Do NOT delete the item from inventory
             } else {
                 this.addMessage(`The Whispering Well's Blessing has already been consumed.`);
             }
@@ -1165,7 +1165,7 @@ export class Labyrinth {
                 this.searchRadius += (item.effectValue || 0); // Increase search radius by 1
                 this.trueCompassEffectApplied = true;
                 this.addMessage(`You activate the True Compass! Your search radius is now ${this.searchRadius} blocks!`);
-                this.inventory.delete(itemId); // Remove after use
+                // Do NOT delete the item from inventory
             } else {
                 this.addMessage(`The True Compass has already been activated.`);
             }
@@ -1351,5 +1351,18 @@ export class Labyrinth {
 
   public getCombatQueue(): string[] {
     return this.combatQueue;
+  }
+
+  // Public getters for artifact effect applied status
+  public getScholarAmuletEffectApplied(): boolean {
+    return this.scholarAmuletEffectApplied;
+  }
+
+  public getWhisperingWellEffectApplied(): boolean {
+    return this.whisperingWellEffectApplied;
+  }
+
+  public getTrueCompassEffectApplied(): boolean {
+    return this.trueCompassEffectApplied;
   }
 }

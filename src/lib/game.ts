@@ -45,7 +45,7 @@ export class Item {
   name: string;
   description: string;
   isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
-  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic';
+  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest'; // Added 'quest' type
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
   stackable: boolean; // New: Can this item stack in inventory?
 
@@ -54,9 +54,9 @@ export class Item {
     name: string,
     description: string,
     isStatic: boolean = false,
-    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' = 'generic',
+    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' = 'generic',
     effectValue?: number,
-    stackable: boolean = false // Default to not stackable
+    stackable: boolean = false
   ) {
     this.id = id;
     this.name = name;
@@ -140,9 +140,17 @@ export class Labyrinth {
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
-  private leverActivated: boolean; // This might need to be per-floor if multiple levers exist
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
   private floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
+
+  // New quest-related states
+  private scholarAmuletQuestCompleted: boolean;
+  private scholarAmuletEffectApplied: boolean;
+  private whisperingWellQuestCompleted: boolean;
+  private whisperingWellEffectApplied: boolean;
+  private trueCompassQuestCompleted: boolean;
+  private trueCompassEffectApplied: boolean;
+  private searchRadius: number; // Initialized to 2
 
   private readonly MAP_WIDTH = 50;
   private readonly MAP_HEIGHT = 50;
@@ -172,9 +180,17 @@ export class Labyrinth {
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
-    this.leverActivated = false; // This will be global for now, consider making it per-floor if needed
     this.floorObjectives = new Map();
     this.floorExitStaircases = new Map();
+
+    // Initialize new quest states
+    this.scholarAmuletQuestCompleted = false;
+    this.scholarAmuletEffectApplied = false;
+    this.whisperingWellQuestCompleted = false;
+    this.whisperingWellEffectApplied = false;
+    this.trueCompassQuestCompleted = false;
+    this.trueCompassEffectApplied = false;
+    this.searchRadius = 2; // Initial search radius
 
     this.initializeLabyrinth();
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
@@ -300,23 +316,23 @@ export class Labyrinth {
     this.items.set(shield.id, shield);
     this.placeElementRandomly(shield.id, this.itemLocations, floor);
 
-    const oilCan = new Item(`oil-can-${floor}-1`, "Rusty Oil Can", "A small can filled with thick, dark oil. Might be useful for rusted mechanisms.", false, 'generic');
-    this.items.set(oilCan.id, oilCan);
-    this.placeElementRandomly(oilCan.id, this.itemLocations, floor);
-
     // Floor-specific elements and objectives
-    if (floor === 0) { // Floor 1
-      const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.", false, 'key');
-      this.items.set(key.id, key);
-      this.placeElementRandomly(key.id, this.itemLocations, floor);
+    if (floor === 0) { // Floor 1: The Echoes of the Lost Scholar
+      const journal = new Item("journal-f0", "Tattered Journal", "A water-damaged journal, its pages filled with cryptic notes about an ancient mechanism and a powerful amulet.", false, 'quest');
+      this.items.set(journal.id, journal);
+      this.placeElementRandomly(journal.id, this.itemLocations, floor);
 
-      const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!", false, 'artifact'));
-      this.puzzles.set(riddle.id, riddle);
-      this.placeElementRandomly(riddle.id, this.puzzleLocations, floor);
+      const chargedCrystal = new Item("charged-crystal-f0", "Pulsating Crystal", "A crystal humming with latent energy, it feels like it could power something ancient.", false, 'quest');
+      this.items.set(chargedCrystal.id, chargedCrystal);
+      this.placeElementRandomly(chargedCrystal.id, this.itemLocations, floor);
+
+      const ancientMechanism = new Item("ancient-mechanism-f0", "Ancient Mechanism", "A large, intricate device embedded in the wall, covered in strange symbols. It has a slot for a crystal.", true, 'static');
+      this.items.set(ancientMechanism.id, ancientMechanism);
+      this.placeElementRandomly(ancientMechanism.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Find the 'Heart of the Labyrinth' (a pulsating gem) to unlock the path to the next floor.",
-        isCompleted: () => this.inventory.has("gem-1") // Check if artifact is in inventory map
+        description: "Find the 'Tattered Journal', locate a 'Pulsating Crystal', and use them to activate the 'Ancient Mechanism' to obtain the Scholar's Amulet.",
+        isCompleted: () => this.scholarAmuletQuestCompleted
       });
 
       // Place staircase to next floor
@@ -325,14 +341,22 @@ export class Labyrinth {
       this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
       this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
 
-    } else if (floor === 1) { // Floor 2
-      const floorGuardian = new Enemy("floor-guardian-2", "Ancient Golem", "A towering construct of stone and moss, guarding the passage to the lower levels.", Math.floor(5 * enemyHealthMultiplier));
-      this.enemies.set(floorGuardian.id, floorGuardian);
-      this.placeElementRandomly(floorGuardian.id, this.enemyLocations, floor);
+    } else if (floor === 1) { // Floor 2: The Whispering Well's Thirst
+      const dryWell = new Item("dry-well-f1", "Whispering Well", "A stone well, completely dry, but you hear faint whispers emanating from its depths. It seems to yearn for water.", true, 'static');
+      this.items.set(dryWell.id, dryWell);
+      this.placeElementRandomly(dryWell.id, this.staticItemLocations, floor);
+
+      const hiddenSpring = new Item("hidden-spring-f1", "Hidden Spring", "A small, gurgling spring hidden behind some mossy rocks. The water here feels alive.", true, 'static');
+      this.items.set(hiddenSpring.id, hiddenSpring);
+      this.placeElementRandomly(hiddenSpring.id, this.staticItemLocations, floor);
+
+      const enchantedFlask = new Item("enchanted-flask-f1", "Enchanted Flask", "A small, empty flask that seems to shimmer faintly. Perfect for holding special liquids.", false, 'quest');
+      this.items.set(enchantedFlask.id, enchantedFlask);
+      this.placeElementRandomly(enchantedFlask.id, this.itemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Defeat the 'Ancient Golem' to unlock the path to the next floor.",
-        isCompleted: () => this.enemies.get("floor-guardian-2")?.defeated || false
+        description: "Find the 'Enchanted Flask', locate the 'Hidden Spring' to fill it with 'Living Water', then use the water to quench the 'Whispering Well'.",
+        isCompleted: () => this.whisperingWellQuestCompleted
       });
 
       // Place staircase to next floor
@@ -341,14 +365,26 @@ export class Labyrinth {
       this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
       this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
 
-    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 3)
-      const grandRiddle = new Puzzle("grand-riddle-3", "The Grand Riddle of Eternity", "I have cities, but no houses; forests, but no trees; and water, but no fish. What am I?", "map", new Item("final-artifact", "Orb of Aethel", "A shimmering orb, pulsating with immense power. This is the key to escaping the Labyrinth!", false, 'artifact'));
-      this.puzzles.set(grandRiddle.id, grandRiddle);
-      this.placeElementRandomly(grandRiddle.id, this.puzzleLocations, floor);
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 3): The Broken Compass's Secret
+      const brokenCompass = new Item("broken-compass-f2", "Broken Compass", "A beautiful but shattered compass. Its needle spins wildly, useless.", false, 'quest');
+      this.items.set(brokenCompass.id, brokenCompass);
+      this.placeElementRandomly(brokenCompass.id, this.itemLocations, floor);
+
+      const fineTools = new Item("fine-tools-f2", "Artisan's Fine Tools", "A collection of delicate, well-maintained tools, perfect for intricate repairs.", false, 'quest');
+      this.items.set(fineTools.id, fineTools);
+      this.placeElementRandomly(fineTools.id, this.itemLocations, floor);
+
+      const prismaticLens = new Item("prismatic-lens-f2", "Prismatic Lens", "A small, faceted lens that refracts light into a rainbow of colors. It seems to be a missing piece.", false, 'quest');
+      this.items.set(prismaticLens.id, prismaticLens);
+      this.placeElementRandomly(prismaticLens.id, this.itemLocations, floor);
+
+      const repairBench = new Item("repair-bench-f2", "Ancient Repair Bench", "A sturdy stone bench covered in arcane symbols and faint scorch marks. It looks like a place for crafting.", true, 'static');
+      this.items.set(repairBench.id, repairBench);
+      this.placeElementRandomly(repairBench.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Solve the 'Grand Riddle of Eternity' to reveal the final exit portal.",
-        isCompleted: () => this.puzzles.get("grand-riddle-3")?.solved || false
+        description: "Gather the 'Broken Compass', 'Artisan's Fine Tools', and a 'Prismatic Lens', then use them at the 'Ancient Repair Bench' to fix the compass.",
+        isCompleted: () => this.trueCompassQuestCompleted
       });
       // The exit portal is implicitly at the end of the main path for the last floor
     }
@@ -648,13 +684,12 @@ export class Labyrinth {
 
       // Check for game over condition (reaching the exit on the LAST floor)
       if (this.currentFloor === this.NUM_FLOORS - 1 && newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        const hasFinalArtifact = this.inventory.has("final-artifact"); // Check inventory map
         const finalObjective = this.floorObjectives.get(this.currentFloor);
-        if (finalObjective?.isCompleted() && hasFinalArtifact) {
-          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Orb of Aethel pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
+        if (finalObjective?.isCompleted()) {
+          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, escaping its grasp! Congratulations, brave adventurer!");
           this.gameOver = true;
         } else {
-          this.addMessage("The shimmering portal hums with energy, but it seems to require a powerful artifact and the completion of this floor's objective to activate fully. You cannot escape yet!");
+          this.addMessage("The shimmering portal hums with energy, but it seems to require the completion of this floor's objective to activate fully. You cannot escape yet!");
         }
       }
 
@@ -708,11 +743,12 @@ export class Labyrinth {
       } else {
         this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
       }
-    } else { // Generic, key, artifact items
+    } else { // Generic, key, artifact, quest items
       if (!this.inventory.has(foundItem.id)) {
         this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
         this.addMessage(`You found a ${foundItem.name}! It's a ${foundItem.description}`);
-        this.itemLocations.delete(coordStr);
+        this.itemLocations.delete(coordStr); // Remove from map once picked up
+        this.staticItemLocations.delete(coordStr); // If it was a static item that became an artifact
       } else {
         this.addMessage(`You already have the ${foundItem.name}.`);
       }
@@ -731,8 +767,8 @@ export class Labyrinth {
 
     this.addMessage("You carefully scan your surroundings...");
 
-    for (let dy = -2; dy <= 2; dy++) {
-        for (let dx = -2; dx <= 2; dx++) {
+    for (let dy = -this.searchRadius; dy <= this.searchRadius; dy++) {
+        for (let dx = -this.searchRadius; dx <= this.searchRadius; dx++) {
             const targetX = playerX + dx;
             const targetY = playerY + dy;
             const coordStr = `${targetX},${targetY},${this.currentFloor}`; // Include floor
@@ -776,23 +812,8 @@ export class Labyrinth {
                 if (puzzleId) {
                     const puzzle = this.puzzles.get(puzzleId);
                     if (puzzle && !puzzle.solved) {
-                        // Auto-solve logic for key (Floor 1 riddle)
-                        if (puzzle.id === "riddle-1" && this.inventory.has("key-1")) { // Check inventory map
-                            if (puzzle.solve("echo")) {
-                                this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
-                                if (puzzle.reward) {
-                                    this._handleFoundItem(puzzle.reward, coordStr); // Use the new handler for puzzle reward
-                                }
-                                foundSomethingInRadius = true;
-                            }
-                        } else if (puzzle.id === "grand-riddle-3") { // Grand Riddle on Floor 3
-                            // This puzzle requires explicit 'interact' to solve, not auto-solve on search
-                            this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}). It seems to be the Grand Riddle of Eternity.`);
-                            foundSomethingInRadius = true;
-                        } else {
-                            this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-                            foundSomethingInRadius = true;
-                        }
+                        this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}). It seems to be the ${puzzle.name}.`);
+                        foundSomethingInRadius = true;
                     }
                 }
             } else {
@@ -858,25 +879,97 @@ export class Labyrinth {
       interacted = true;
     }
 
-    // Check for puzzles to interact with
+    // Check for static items to interact with (including quest elements)
+    const staticItemId = this.staticItemLocations.get(currentCoord);
+    if (staticItemId) {
+      const staticItem = this.items.get(staticItemId);
+      if (staticItem) {
+        if (staticItem.id.startsWith("ancient-mechanism-")) { // Floor 1 Quest
+          const journalEntry = this.inventory.get("journal-f0");
+          const crystalEntry = this.inventory.get("charged-crystal-f0");
+          if (journalEntry && crystalEntry) {
+            this.inventory.delete("journal-f0");
+            this.inventory.delete("charged-crystal-f0");
+            this.scholarAmuletQuestCompleted = true;
+            const scholarAmulet = new Item("scholar-amulet-f0", "Scholar's Amulet", "A shimmering amulet that hums with ancient knowledge. It feels like it enhances your mind and body.", false, 'artifact', 5); // +5 to attack/defense
+            this.items.set(scholarAmulet.id, scholarAmulet);
+            this._handleFoundItem(scholarAmulet, currentCoord); // Add to inventory
+            this.addMessage("The Ancient Mechanism whirs to life, revealing the Scholar's Amulet! You feel a surge of power!");
+            interacted = true;
+          } else {
+            this.addMessage("The ancient mechanism requires both the Tattered Journal and a Pulsating Crystal to activate.");
+            interacted = true;
+          }
+        } else if (staticItem.id.startsWith("dry-well-")) { // Floor 2 Quest
+          const livingWaterEntry = this.inventory.get("living-water-f1");
+          if (livingWaterEntry) {
+            this.inventory.delete("living-water-f1"); // Water is consumed
+            this.whisperingWellQuestCompleted = true;
+            const blessing = new Item("well-blessing-f1", "Whispering Well's Blessing", "The well's water, now flowing freely, grants you vitality.", false, 'artifact', this.playerMaxHealth); // Full health restore
+            this.items.set(blessing.id, blessing);
+            this._handleFoundItem(blessing, currentCoord); // Add to inventory
+            this.addMessage("You pour the Living Water into the Whispering Well. It gurgles, then overflows with pure, shimmering liquid! You feel completely revitalized!");
+            interacted = true;
+          } else {
+            this.addMessage("The Whispering Well is dry. It needs a special kind of water to be quenched.");
+            interacted = true;
+          }
+        } else if (staticItem.id.startsWith("hidden-spring-")) { // Floor 2 Quest
+          const flaskEntry = this.inventory.get("enchanted-flask-f1");
+          if (flaskEntry) {
+            if (!this.inventory.has("living-water-f1")) { // Only get water once
+              const livingWater = new Item("living-water-f1", "Living Water", "Water from a hidden spring, shimmering with life. It feels potent.", false, 'quest');
+              this.items.set(livingWater.id, livingWater);
+              this._handleFoundItem(livingWater, currentCoord); // Add to inventory
+              this.addMessage("You fill your Enchanted Flask with the Living Water from the Hidden Spring!");
+            } else {
+              this.addMessage("Your Enchanted Flask is already filled with Living Water.");
+            }
+            interacted = true;
+          } else {
+            this.addMessage("You need an Enchanted Flask to collect the Living Water from this spring.");
+            interacted = true;
+          }
+        } else if (staticItem.id.startsWith("repair-bench-")) { // Floor 3 Quest
+          const brokenCompassEntry = this.inventory.get("broken-compass-f2");
+          const fineToolsEntry = this.inventory.get("fine-tools-f2");
+          const prismaticLensEntry = this.inventory.get("prismatic-lens-f2");
+          if (brokenCompassEntry && fineToolsEntry && prismaticLensEntry) {
+            this.inventory.delete("broken-compass-f2");
+            this.inventory.delete("fine-tools-f2");
+            this.inventory.delete("prismatic-lens-f2");
+            this.trueCompassQuestCompleted = true;
+            const trueCompass = new Item("true-compass-f2", "True Compass", "A perfectly repaired compass, its needle points unerringly. It feels like it expands your perception.", false, 'artifact', 1); // Effect value 1 for search radius increase
+            this.items.set(trueCompass.id, trueCompass);
+            this._handleFoundItem(trueCompass, currentCoord); // Add to inventory
+            this.addMessage("With careful work, you repair the Broken Compass! It now hums with a powerful directional magic!");
+            interacted = true;
+          } else {
+            this.addMessage("The Ancient Repair Bench requires the Broken Compass, Artisan's Fine Tools, and a Prismatic Lens to function.");
+            interacted = true;
+          }
+        } else if (staticItem.id.startsWith("staircase-")) {
+            // This is handled by the specific staircase check above, but good to have a fallback message
+            this.addMessage(`You stand before the ${staticItem.name}. It seems to be the way to the next floor.`);
+            interacted = true;
+        } else {
+          if (!this.revealedStaticItems.has(currentCoord)) {
+            this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
+            this.revealedStaticItems.add(currentCoord);
+          } else {
+            this.addMessage(`You examine the ${staticItem.name} again. It's still ${staticItem.description}`);
+          }
+          interacted = true;
+        }
+      }
+    }
+
+    // Check for puzzles to interact with (only Grand Riddle remains)
     const puzzleId = this.puzzleLocations.get(currentCoord);
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        if (puzzle.id === "riddle-1") { // Floor 1 riddle
-          if (this.inventory.has("key-1")) { // Check inventory map
-            if (puzzle.solve("echo")) {
-              this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
-              if (puzzle.reward) {
-                this._handleFoundItem(puzzle.reward, currentCoord); // Use the new handler for puzzle reward
-              }
-              interacted = true;
-            }
-          } else {
-            this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-            interacted = true;
-          }
-        } else if (puzzle.id === "grand-riddle-3") { // Floor 3 Grand Riddle
+        if (puzzle.id === "grand-riddle-3") { // Floor 3 Grand Riddle
             const attempt = prompt("The Grand Riddle of Eternity: I have cities, but no houses; forests, but no trees; and water, but no fish. What am I? (Type your answer)");
             if (attempt) {
                 if (puzzle.solve(attempt)) {
@@ -891,51 +984,6 @@ export class Labyrinth {
                 this.addMessage("You decide not to attempt the riddle for now.");
             }
             interacted = true;
-        }
-      }
-    }
-
-    // Also check for static items to interact with
-    const staticItemId = this.staticItemLocations.get(currentCoord);
-    if (staticItemId) {
-      const staticItem = this.items.get(staticItemId);
-      if (staticItem) {
-        if (staticItem.id.startsWith("lever-")) { // Generic lever interaction
-          const oilCanEntry = this.inventory.get("oil-can-" + this.currentFloor + "-1"); // Check for specific oil can
-          if (!this.leverActivated) { // Assuming one global lever for now
-            if (oilCanEntry && oilCanEntry.quantity > 0) {
-              oilCanEntry.quantity--;
-              if (oilCanEntry.quantity === 0) {
-                this.inventory.delete("oil-can-" + this.currentFloor + "-1");
-              } else {
-                this.inventory.set("oil-can-" + this.currentFloor + "-1", oilCanEntry);
-              }
-              this.leverActivated = true;
-              // Place a powerful consumable (e.g., Elixir of Might)
-              const elixir = new Item(`elixir-${this.currentFloor}-1`, "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100, true); // Make elixir stackable
-              this.items.set(elixir.id, elixir);
-              this.itemLocations.set(currentCoord, elixir.id); // Place at current location
-              this.addMessage(`You apply the oil to the rusty lever. With a mighty heave, it grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
-              this.addMessage(`The Elixir of Might has appeared at your current location. Use 'Search Area' to pick it up!`);
-            } else {
-              this.addMessage("The ancient lever is rusted solid. It seems to require something to loosen it.");
-            }
-          } else {
-            this.addMessage("The lever is already activated, but nothing more happens.");
-          }
-          interacted = true;
-        } else if (staticItem.id.startsWith("staircase-")) {
-            // This is handled by the specific staircase check above, but good to have a fallback message
-            this.addMessage(`You stand before the ${staticItem.name}. It seems to be the way to the next floor.`);
-            interacted = true;
-        } else {
-          if (!this.revealedStaticItems.has(currentCoord)) {
-            this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
-            this.revealedStaticItems.add(currentCoord);
-          } else {
-            this.addMessage(`You examine the ${staticItem.name} again. It's still ${staticItem.description}`);
-          }
-          interacted = true;
         }
       }
     }
@@ -997,7 +1045,6 @@ export class Labyrinth {
           } else {
             this.addMessage(`You equip the ${item.name}.`);
           }
-          this.equippedWeapon = item;
           this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
@@ -1022,11 +1069,43 @@ export class Labyrinth {
           } else {
             this.addMessage(`You equip the ${item.name}.`);
           }
-          this.equippedShield = item;
           this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
-      default:
+      case 'artifact': // Handle artifact usage
+        if (item.id === "scholar-amulet-f0") {
+            if (!this.scholarAmuletEffectApplied) {
+                this.baseAttackDamage += (item.effectValue || 0);
+                this.baseDefense += (item.effectValue || 0);
+                this.scholarAmuletEffectApplied = true;
+                this.addMessage(`You attune to the Scholar's Amulet! Your base attack and defense permanently increase by ${item.effectValue}!`);
+                this.inventory.delete(itemId); // Remove after use
+            } else {
+                this.addMessage(`The Scholar's Amulet has already granted its power.`);
+            }
+        } else if (item.id === "well-blessing-f1") {
+            if (!this.whisperingWellEffectApplied) {
+                this.playerHealth = this.playerMaxHealth; // Full health restore
+                this.whisperingWellEffectApplied = true;
+                this.addMessage(`You drink from the Whispering Well's Blessing! Your health is fully restored!`);
+                this.inventory.delete(itemId); // Remove after use
+            } else {
+                this.addMessage(`The Whispering Well's Blessing has already been consumed.`);
+            }
+        } else if (item.id === "true-compass-f2") {
+            if (!this.trueCompassEffectApplied) {
+                this.searchRadius += (item.effectValue || 0); // Increase search radius by 1
+                this.trueCompassEffectApplied = true;
+                this.addMessage(`You activate the True Compass! Your search radius is now ${this.searchRadius} blocks!`);
+                this.inventory.delete(itemId); // Remove after use
+            } else {
+                this.addMessage(`The True Compass has already been activated.`);
+            }
+        } else {
+            this.addMessage(`You can't seem to use the ${item.name} in this way.`);
+        }
+        break;
+      default: // Generic, key, quest items
         this.addMessage(`You can't seem to use the ${item.name} in this way.`);
         break;
     }

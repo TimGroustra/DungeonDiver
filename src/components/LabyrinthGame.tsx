@@ -73,7 +73,7 @@ const LabyrinthGame: React.FC = () => {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown); // Corrected from "change" to "keydown"
     };
   }, [labyrinth, showRPS]); // Re-run effect if labyrinth or showRPS state changes
 
@@ -311,10 +311,10 @@ const LabyrinthGame: React.FC = () => {
       <div
         className="grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
-          gridTemplateColumns: `repeat(${VIEWPORT_SIZE}, ${cellSize}px)`,
-          gridTemplateRows: `repeat(${VIEWPORT_SIZE}, ${cellSize}px)`,
-          width: `${mapDisplayWidth}px`,
-          height: `${mapDisplayHeight}px`,
+          gridTemplateColumns: "repeat(" + VIEWPORT_SIZE + ", " + cellSize + "px)",
+          gridTemplateRows: "repeat(" + VIEWPORT_SIZE + ", " + cellSize + "px)",
+          width: mapDisplayWidth + "px",
+          height: mapDisplayHeight + "px",
         }}
       >
         {visibleCells.map((row, rowIndex) => (
@@ -332,12 +332,12 @@ const LabyrinthGame: React.FC = () => {
     const equippedShield = labyrinth.getEquippedShield();
 
     if (inventoryItems.length === 0) {
-      return <p className="text-gray-600 dark:text-gray-400">Your inventory is empty. Perhaps you'll find something useful...</p>;
+      return <p className="text-gray-600 dark:text-gray-400 text-sm">Your inventory is empty. Perhaps you'll find something useful...</p>;
     }
     return (
       <div className="mt-2">
-        <p className="font-semibold text-lg">Your Inventory:</p>
-        <ul className="list-disc list-inside text-sm text-gray-700 dark:text-gray-300">
+        <p className="font-semibold text-base">Your Inventory:</p>
+        <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
           {inventoryItems.map((item) => (
             <li key={item.id} className="flex items-center justify-between mb-1">
               <div>
@@ -364,19 +364,19 @@ const LabyrinthGame: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-2"> {/* Reduced padding */}
       <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-4">
-          <CardTitle className="text-3xl sm:text-4xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
-          <CardDescription className="text-base sm:text-lg italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-3"> {/* Reduced padding */}
+          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle> {/* Reduced font size */}
+          <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription> {/* Reduced font size */}
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <CardContent className="pt-4"> {/* Reduced padding */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Reduced gap */}
             {/* Left Column: Map, Controls, and Game Log */}
             <div className="flex flex-col items-center">
-              <h3 className="text-2xl font-bold mb-3 text-orange-300 dark:text-orange-600">Ancient Map</h3>
+              <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3> {/* Reduced font size */}
               {renderMap()}
-              <div className="grid grid-cols-3 gap-2 mt-6 w-64">
+              <div className="grid grid-cols-3 gap-2 mt-4 w-64"> {/* Reduced margin */}
                 <div />
                 <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
                 <div />
@@ -387,16 +387,16 @@ const LabyrinthGame: React.FC = () => {
                 <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
                 <div />
               </div>
-              <div className="flex gap-4 mt-4">
+              <div className="flex gap-3 mt-3"> {/* Reduced gap and margin */}
                 <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
                 <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
               </div>
 
               {showRPS && currentEnemy && (
-                <div className="mt-6 mb-4 p-4 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900 w-full">
-                  <h3 className="text-2xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
-                  <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                  <p className="mb-3">Choose your move wisely, adventurer:</p>
+                <div className="mt-4 mb-3 p-3 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900 w-full"> {/* Reduced padding and margin */}
+                  <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3> {/* Reduced font size */}
+                  <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p> {/* Reduced font size */}
+                  <p className="mb-2">Choose your move wisely, adventurer:</p> {/* Reduced margin */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
                     <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
                     <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
@@ -405,11 +405,11 @@ const LabyrinthGame: React.FC = () => {
                 </div>
               )}
 
-              <Separator className="my-6 w-full bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" /> {/* Reduced margin */}
 
               <div className="w-full">
-                <h3 className="text-2xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
-                <ScrollArea className="h-64 w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
+                <h3 className="text-xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3> {/* Reduced font size */}
+                <ScrollArea className="h-48 w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono"> {/* Reduced height and padding */}
                   <div ref={logRef}>
                     {/* Reverse the gameLog array to show latest at top */}
                     {gameLog.slice().reverse().map((message, index) => (
@@ -422,50 +422,50 @@ const LabyrinthGame: React.FC = () => {
 
             {/* Right Column: Game Info */}
             <div className="flex flex-col">
-              <div className="mb-4">
-                <h2 className="text-3xl font-bold mb-2 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-gray-300 dark:text-gray-700 text-lg italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+              <div className="mb-3"> {/* Reduced margin */}
+                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2> {/* Reduced font size */}
+                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p> {/* Reduced font size */}
               </div>
 
-              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-3 bg-gray-700 dark:bg-gray-300" /> {/* Reduced margin */}
 
-              <div className="mb-4">
-                <h3 className="text-2xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
-                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
-                  <Heart className="mr-2 text-red-500" size={20} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
+              <div className="mb-3"> {/* Reduced margin */}
+                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3> {/* Reduced font size */}
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center"> {/* Reduced font size */}
+                  <Heart className="mr-2 text-red-500" size={18} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
                 </p>
-                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
-                  <Sword className="mr-2 text-gray-400" size={20} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center"> {/* Reduced font size */}
+                  <Sword className="mr-2 text-gray-400" size={18} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
                 </p>
-                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
-                  <Shield className="mr-2 text-gray-400" size={20} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center"> {/* Reduced font size */}
+                  <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
                 </p>
                 {labyrinth.getEquippedWeapon() && (
-                  <p className="text-sm text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p> {/* Reduced font size */}
                 )}
                 {labyrinth.getEquippedShield() && (
-                  <p className="text-sm text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p> {/* Reduced font size */}
                 )}
                 {renderInventory()}
               </div>
 
-              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-3 bg-gray-700 dark:bg-gray-300" /> {/* Reduced margin */}
 
-              <div className="mb-4">
-                <h3 className="text-2xl font-bold text-yellow-300 dark:text-yellow-600">Labyrinth Progress:</h3>
-                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
-                  <ArrowDownCircle className="mr-2 text-blue-500" size={20} /> Current Floor: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentFloor() + 1} / {labyrinth["NUM_FLOORS"]}</span>
+              <div className="mb-3"> {/* Reduced margin */}
+                <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600">Labyrinth Progress:</h3> {/* Reduced font size */}
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center"> {/* Reduced font size */}
+                  <ArrowDownCircle className="mr-2 text-blue-500" size={18} /> Current Floor: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentFloor() + 1} / {labyrinth["NUM_FLOORS"]}</span>
                 </p>
-                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
-                  <Target className="mr-2 text-green-500" size={20} /> Objective: <span className="font-bold text-green-400 ml-1">{labyrinth.getCurrentFloorObjective().description}</span>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center"> {/* Reduced font size */}
+                  <Target className="mr-2 text-green-500" size={18} /> Objective: <span className="font-bold text-green-400 ml-1">{labyrinth.getCurrentFloorObjective().description}</span>
                 </p>
               </div>
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-4">
+        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-3"> {/* Reduced padding */}
           {labyrinth.isGameOver() && (
-            <Button onClick={handleRestart} className="mt-4 bg-amber-500 hover:bg-amber-600 text-white text-lg px-6 py-3">
+            <Button onClick={handleRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2"> {/* Reduced font size and padding */}
               Restart Journey
             </Button>
           )}

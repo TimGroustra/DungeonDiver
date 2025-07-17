@@ -144,6 +144,7 @@ export class Labyrinth {
   private readonly MAP_WIDTH = 50;
   private readonly MAP_HEIGHT = 50;
   private readonly NUM_FLOORS = 3; // Let's start with 3 floors
+  private readonly MIN_ELEMENT_DISTANCE = 5; // Minimum distance between placed elements
 
   constructor() {
     this.floors = new Map();
@@ -381,9 +382,35 @@ export class Labyrinth {
     return undefined;
   }
 
+  private isTooClose(newX: number, newY: number, floor: number): boolean {
+    const checkMaps = [
+      this.enemyLocations,
+      this.puzzleLocations,
+      this.itemLocations,
+      this.staticItemLocations,
+      this.trapsLocations
+    ];
+
+    for (const map of checkMaps) {
+      for (const coordStr of map.keys()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === floor) { // Only check elements on the same floor
+          const distance = Math.max(Math.abs(newX - x), Math.abs(newY - y)); // Chebyshev distance
+          if (distance < this.MIN_ELEMENT_DISTANCE) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>, floor: number) {
     let placed = false;
-    while (!placed) {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 1000; // Prevent infinite loops in very dense maps
+
+    while (!placed && attempts < MAX_ATTEMPTS) {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
       const y = Math.floor(Math.random() * this.MAP_HEIGHT);
       const coordStr = `${x},${y},${floor}`; // Include floor in coordinate string
@@ -402,11 +429,17 @@ export class Labyrinth {
         !this.puzzleLocations.has(coordStr) &&
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
-        !this.trapsLocations.has(coordStr)
+        !this.trapsLocations.has(coordStr) &&
+        !this.isTooClose(x, y, floor) // Check for minimum distance to other elements
       ) {
         locationMap.set(coordStr, id);
         placed = true;
       }
+      attempts++;
+    }
+
+    if (!placed) {
+      console.warn(`Could not place element ${id} on floor ${floor} after ${MAX_ATTEMPTS} attempts. Map might be too dense or small.`);
     }
   }
 

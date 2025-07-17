@@ -238,6 +238,10 @@ const LabyrinthGame: React.FC = () => {
               cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
               cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
               cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+            } else if (labyrinth["trapsLocations"].has(cellCoord)) { // Check for traps
+              cellContentIndicator = <Dices size={12} className="animate-pulse" />; // Dice icon for traps
+              cellClasses = "bg-orange-900 text-orange-300 border-orange-600 dark:bg-orange-200 dark:text-orange-800 dark:border-orange-500";
+              cellTitle = `Explored (${mapX},${mapY}) (Hidden Trap!)`;
             } else if (hasStaticItemAtLocation && !isStaticItemCurrentlyRevealed) {
               cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
               cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
@@ -374,10 +378,10 @@ const LabyrinthGame: React.FC = () => {
                   <h3 className="text-2xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
                   <p className="text-lg mb-3">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
                   <p className="mb-3">Choose your move wisely, adventurer:</p>
-                  <div className="flex gap-3 justify-center">
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
-                    <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
                   </div>
                 </div>
               )}

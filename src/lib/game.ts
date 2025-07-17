@@ -147,11 +147,8 @@ export class Labyrinth {
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
-  // private scholarAmuletEffectApplied: boolean; // No longer needed, managed by equippedAmulet
   private whisperingWellQuestCompleted: boolean;
-  // private whisperingWellEffectApplied: boolean; // No longer needed, managed by consumable quantity
   private trueCompassQuestCompleted: boolean;
-  // private trueCompassEffectApplied: boolean; // No longer needed, managed by equippedCompass
   private labyrinthKeyFound: boolean; // New: For Floor 4 quest
   private mysteriousBoxOpened: boolean; // New: For Floor 4 quest
   private heartOfLabyrinthObtained: boolean; // New: For Floor 4 quest
@@ -196,11 +193,8 @@ export class Labyrinth {
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
-    // this.scholarAmuletEffectApplied = false; // No longer needed
     this.whisperingWellQuestCompleted = false;
-    // this.whisperingWellEffectApplied = false; // No longer needed
     this.trueCompassQuestCompleted = false;
-    // this.trueCompassEffectApplied = false; // No longer needed
     this.labyrinthKeyFound = false;
     this.mysteriousBoxOpened = false;
     this.heartOfLabyrinthObtained = false;
@@ -679,6 +673,23 @@ export class Labyrinth {
     this.addMessage(this.getCurrentFloorObjective().description);
   }
 
+  private _tryActivateWellBlessing(): boolean {
+    const blessingEntry = this.inventory.get("well-blessing-f1");
+    if (blessingEntry && blessingEntry.quantity > 0 && blessingEntry.item.effectValue) {
+      blessingEntry.quantity--;
+      this.playerHealth = Math.min(this.playerMaxHealth, this.playerHealth + blessingEntry.item.effectValue);
+      if (blessingEntry.quantity <= 0) {
+        this.inventory.delete("well-blessing-f1");
+        this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality as the last charge is consumed.`);
+      } else {
+        this.inventory.set("well-blessing-f1", blessingEntry);
+        this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality! (${blessingEntry.quantity} uses left)`);
+      }
+      return true;
+    }
+    return false;
+  }
+
   move(direction: "north" | "south" | "east" | "west") {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
@@ -729,11 +740,13 @@ export class Labyrinth {
       const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
       if (this.trapsLocations.has(trapTriggeredCoord)) {
           this.playerHealth -= 10;
+          this.trapsLocations.delete(trapTriggeredCoord); // Trap is consumed after triggering
           this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
-          this.trapsLocations.delete(trapTriggeredCoord);
           if (this.playerHealth <= 0) {
-              this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
-              this.gameOver = true;
+              if (!this._tryActivateWellBlessing()) {
+                  this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
+                  this.gameOver = true;
+              }
           }
       }
 
@@ -1217,11 +1230,6 @@ export class Labyrinth {
             this.addMessage(`You can't seem to use the ${item.name} in this way.`);
         }
         break;
-      case 'artifact': // Handle artifact usage (one-time effect, remains in inventory)
-        // The only artifact left is the Well Blessing, which is now a consumable.
-        // This case should ideally not be hit for any current items.
-        this.addMessage(`You can't seem to use the ${item.name} in this way.`);
-        break;
       default: // Generic, key, quest items
         this.addMessage(`You can't seem to use the ${item.name} in this way.`);
         break;
@@ -1324,8 +1332,10 @@ export class Labyrinth {
       this.playerHealth -= damageTaken;
       this.addMessage(`The ${enemy.name} strikes true! You wince as you take ${damageTaken} damage. Your health is now ${this.playerHealth}.`);
       if (this.playerHealth <= 0) {
-        this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
-        this.gameOver = true;
+        if (!this._tryActivateWellBlessing()) {
+            this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
+            this.gameOver = true;
+        }
       }
     }
   }
@@ -1401,10 +1411,4 @@ export class Labyrinth {
   public getCombatQueue(): string[] {
     return this.combatQueue;
   }
-
-  // Public getters for artifact effect applied status (only for Whispering Well now)
-  // These are no longer needed as the Well Blessing is now a consumable with quantity
-  // public getWhisperingWellEffectApplied(): boolean {
-  //   return this.whisperingWellEffectApplied;
-  // }
 }

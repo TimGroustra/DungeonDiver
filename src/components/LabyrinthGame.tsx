@@ -327,7 +327,7 @@ const LabyrinthGame: React.FC = () => {
   };
 
   const renderInventory = () => {
-    const inventoryItems = labyrinth.getInventoryItems();
+    const inventoryItems = labyrinth.getInventoryItems(); // Now returns { item: Item, quantity: number }[]
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
 
@@ -338,10 +338,11 @@ const LabyrinthGame: React.FC = () => {
       <div className="mt-2">
         <p className="font-semibold text-base">Your Inventory:</p>
         <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
-          {inventoryItems.map((item) => (
+          {inventoryItems.map(({ item, quantity }) => ( // Destructure item and quantity
             <li key={item.id} className="flex items-center justify-between mb-1">
               <div>
-                <span className="font-medium text-white dark:text-gray-950">{item.name}</span>: {item.description}
+                <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
+                {quantity > 1 && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
                 {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
                 {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
               </div>
@@ -441,10 +442,10 @@ const LabyrinthGame: React.FC = () => {
                   <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
                 </p>
                 {labyrinth.getEquippedWeapon() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name} (Equipped)</p>
                 )}
                 {labyrinth.getEquippedShield() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name} (Equipped)</p>
                 )}
                 {renderInventory()}
               </div>

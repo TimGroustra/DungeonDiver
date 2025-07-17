@@ -47,6 +47,7 @@ export class Item {
   isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
   type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic';
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
+  stackable: boolean; // New: Can this item stack in inventory?
 
   constructor(
     id: string,
@@ -54,7 +55,8 @@ export class Item {
     description: string,
     isStatic: boolean = false,
     type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' = 'generic',
-    effectValue?: number
+    effectValue?: number,
+    stackable: boolean = false // Default to not stackable
   ) {
     this.id = id;
     this.name = name;
@@ -62,6 +64,7 @@ export class Item {
     this.isStatic = isStatic;
     this.type = type;
     this.effectValue = effectValue;
+    this.stackable = stackable;
   }
 }
 
@@ -124,7 +127,7 @@ export class Labyrinth {
   private baseDefense: number;
   private equippedWeapon: Item | undefined;
   private equippedShield: Item | undefined;
-  private inventory: Item[];
+  private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
   private visitedCells: Map<number, Set<string>>; // Stores "x,y" strings of visited cells per floor
@@ -156,7 +159,7 @@ export class Labyrinth {
     this.baseDefense = 0;
     this.equippedWeapon = undefined;
     this.equippedShield = undefined;
-    this.inventory = [];
+    this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
     this.visitedCells = new Map();
@@ -285,7 +288,7 @@ export class Labyrinth {
     const enemyDamageMultiplier = 1 + (floor * 0.2); // +20% damage per floor
 
     // Common items (can be found on any floor)
-    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100);
+    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, floor);
 
@@ -313,7 +316,7 @@ export class Labyrinth {
 
       this.floorObjectives.set(floor, {
         description: "Find the 'Heart of the Labyrinth' (a pulsating gem) to unlock the path to the next floor.",
-        isCompleted: () => this.inventory.some(item => item.id === "gem-1")
+        isCompleted: () => this.inventory.has("gem-1") // Check if artifact is in inventory map
       });
 
       // Place staircase to next floor
@@ -489,8 +492,9 @@ export class Labyrinth {
     return this.equippedShield;
   }
 
-  getInventoryItems(): Item[] {
-    return this.inventory;
+  // Updated to return items with quantities
+  getInventoryItems(): { item: Item, quantity: number }[] {
+    return Array.from(this.inventory.values());
   }
 
   getCurrentLogicalRoom(): LogicalRoom | undefined {
@@ -644,7 +648,7 @@ export class Labyrinth {
 
       // Check for game over condition (reaching the exit on the LAST floor)
       if (this.currentFloor === this.NUM_FLOORS - 1 && newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        const hasFinalArtifact = this.inventory.some(item => item.id === "final-artifact");
+        const hasFinalArtifact = this.inventory.has("final-artifact"); // Check inventory map
         const finalObjective = this.floorObjectives.get(this.currentFloor);
         if (finalObjective?.isCompleted() && hasFinalArtifact) {
           this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Orb of Aethel pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
@@ -664,6 +668,54 @@ export class Labyrinth {
       }
     } else {
       this.addMessage("You cannot go that way. You've reached the edge of the known labyrinth.");
+    }
+  }
+
+  // New private method to handle picking up items
+  private _handleFoundItem(foundItem: Item, coordStr: string) {
+    if (foundItem.type === 'consumable' && foundItem.stackable) {
+      const existing = this.inventory.get(foundItem.id);
+      if (existing) {
+        existing.quantity++;
+        this.inventory.set(foundItem.id, existing);
+        this.addMessage(`You found another ${foundItem.name}! You now have ${existing.quantity}.`);
+      } else {
+        this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
+        this.addMessage(`You found a ${foundItem.name}! It's a ${foundItem.description}`);
+      }
+      this.itemLocations.delete(coordStr);
+    } else if (foundItem.type === 'weapon') {
+      if (!this.equippedWeapon || (foundItem.effectValue || 0) > (this.equippedWeapon.effectValue || 0)) {
+        if (this.equippedWeapon) {
+          this.addMessage(`You discard your old ${this.equippedWeapon.name} and equip the superior ${foundItem.name}!`);
+        } else {
+          this.addMessage(`You equip the ${foundItem.name}!`);
+        }
+        this.equippedWeapon = foundItem;
+        this.itemLocations.delete(coordStr);
+      } else {
+        this.addMessage(`You found a ${foundItem.name}, but your current weapon is stronger.`);
+      }
+    } else if (foundItem.type === 'shield') {
+      if (!this.equippedShield || (foundItem.effectValue || 0) > (this.equippedShield.effectValue || 0)) {
+        if (this.equippedShield) {
+          this.addMessage(`You discard your old ${this.equippedShield.name} and equip the superior ${foundItem.name}!`);
+        } else {
+          this.addMessage(`You equip the ${foundItem.name}!`);
+        }
+        this.equippedShield = foundItem;
+        this.itemLocations.delete(coordStr);
+      } else {
+        this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
+      }
+    } else { // Generic, key, artifact items
+      if (!this.inventory.has(foundItem.id)) {
+        this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
+        this.addMessage(`You found a ${foundItem.name}! It's a ${foundItem.description}`);
+        this.itemLocations.delete(coordStr);
+      } else {
+        this.addMessage(`You already have the ${foundItem.name}.`);
+      }
     }
   }
 
@@ -705,9 +757,7 @@ export class Labyrinth {
                 if (itemId) {
                     const item = this.items.get(itemId);
                     if (item && !item.isStatic) {
-                        this.inventory.push(item);
-                        this.itemLocations.delete(coordStr);
-                        this.addMessage(`You found a ${item.name} at your feet! It's a ${item.description}`);
+                        this._handleFoundItem(item, coordStr); // Use the new handler
                         foundSomethingInRadius = true;
                     }
                 }
@@ -727,12 +777,11 @@ export class Labyrinth {
                     const puzzle = this.puzzles.get(puzzleId);
                     if (puzzle && !puzzle.solved) {
                         // Auto-solve logic for key (Floor 1 riddle)
-                        if (puzzle.id === "riddle-1" && this.inventory.some(item => item.id === "key-1")) {
+                        if (puzzle.id === "riddle-1" && this.inventory.has("key-1")) { // Check inventory map
                             if (puzzle.solve("echo")) {
                                 this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
                                 if (puzzle.reward) {
-                                    this.inventory.push(puzzle.reward);
-                                    this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+                                    this._handleFoundItem(puzzle.reward, coordStr); // Use the new handler for puzzle reward
                                 }
                                 foundSomethingInRadius = true;
                             }
@@ -815,12 +864,11 @@ export class Labyrinth {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
         if (puzzle.id === "riddle-1") { // Floor 1 riddle
-          if (this.inventory.some(item => item.id === "key-1")) {
+          if (this.inventory.has("key-1")) { // Check inventory map
             if (puzzle.solve("echo")) {
               this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
               if (puzzle.reward) {
-                this.inventory.push(puzzle.reward);
-                this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+                this._handleFoundItem(puzzle.reward, currentCoord); // Use the new handler for puzzle reward
               }
               interacted = true;
             }
@@ -834,8 +882,7 @@ export class Labyrinth {
                 if (puzzle.solve(attempt)) {
                     this.addMessage(`A deep rumble echoes through the chamber as the riddle is solved! The path to escape is revealed!`);
                     if (puzzle.reward) {
-                        this.inventory.push(puzzle.reward);
-                        this.addMessage(`A shimmering Orb of Aethel appears! You add it to your inventory.`);
+                        this._handleFoundItem(puzzle.reward, currentCoord); // Use the new handler for puzzle reward
                     }
                 } else {
                     this.addMessage(`Your answer echoes, but the riddle remains unsolved. Try again.`);
@@ -854,13 +901,18 @@ export class Labyrinth {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
         if (staticItem.id.startsWith("lever-")) { // Generic lever interaction
-          const oilCanIndex = this.inventory.findIndex(item => item.id.startsWith("oil-can-")); // Check for any oil can
+          const oilCanEntry = this.inventory.get("oil-can-" + this.currentFloor + "-1"); // Check for specific oil can
           if (!this.leverActivated) { // Assuming one global lever for now
-            if (oilCanIndex !== -1) {
-              this.inventory.splice(oilCanIndex, 1);
+            if (oilCanEntry && oilCanEntry.quantity > 0) {
+              oilCanEntry.quantity--;
+              if (oilCanEntry.quantity === 0) {
+                this.inventory.delete("oil-can-" + this.currentFloor + "-1");
+              } else {
+                this.inventory.set("oil-can-" + this.currentFloor + "-1", oilCanEntry);
+              }
               this.leverActivated = true;
               // Place a powerful consumable (e.g., Elixir of Might)
-              const elixir = new Item(`elixir-${this.currentFloor}-1`, "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100);
+              const elixir = new Item(`elixir-${this.currentFloor}-1`, "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100, true); // Make elixir stackable
               this.items.set(elixir.id, elixir);
               this.itemLocations.set(currentCoord, elixir.id); // Place at current location
               this.addMessage(`You apply the oil to the rusty lever. With a mighty heave, it grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
@@ -899,19 +951,24 @@ export class Labyrinth {
       return;
     }
 
-    const itemIndex = this.inventory.findIndex(item => item.id === itemId);
-    if (itemIndex === -1) {
+    const inventoryEntry = this.inventory.get(itemId);
+    if (!inventoryEntry) {
       this.addMessage("You don't have that item in your inventory.");
       return;
     }
 
-    const item = this.inventory[itemIndex];
+    const item = inventoryEntry.item;
 
     switch (item.type) {
       case 'consumable':
         if (item.effectValue && this.playerHealth < this.playerMaxHealth) {
           this.playerHealth = Math.min(this.playerMaxHealth, this.playerHealth + item.effectValue);
-          this.inventory.splice(itemIndex, 1);
+          inventoryEntry.quantity--;
+          if (inventoryEntry.quantity <= 0) {
+            this.inventory.delete(itemId);
+          } else {
+            this.inventory.set(itemId, inventoryEntry);
+          }
           this.addMessage(`You consume the ${item.name}. Your health is restored to ${this.playerHealth} HP!`);
         } else if (this.playerHealth >= this.playerMaxHealth) {
           this.addMessage(`You are already at full health. No need to use the ${item.name} now.`);
@@ -923,26 +980,50 @@ export class Labyrinth {
         if (this.equippedWeapon?.id === item.id) {
           this.equippedWeapon = undefined;
           this.addMessage(`You unequip the ${item.name}.`);
+          // When unequipped, it goes back to inventory with quantity 1
+          this.inventory.set(item.id, { item: item, quantity: 1 });
         } else {
+          // If another weapon is equipped, put it back into inventory (if not already there)
           if (this.equippedWeapon) {
-            this.addMessage(`You unequip the ${this.equippedWeapon.name} and equip the ${item.name}.`);
+            const oldEquipped = this.equippedWeapon;
+            const oldEntry = this.inventory.get(oldEquipped.id);
+            if (oldEntry) {
+              oldEntry.quantity++;
+              this.inventory.set(oldEquipped.id, oldEntry);
+            } else {
+              this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+            }
+            this.addMessage(`You unequip the ${oldEquipped.name} and equip the ${item.name}.`);
           } else {
             this.addMessage(`You equip the ${item.name}.`);
           }
           this.equippedWeapon = item;
+          this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
       case 'shield':
         if (this.equippedShield?.id === item.id) {
           this.equippedShield = undefined;
           this.addMessage(`You unequip the ${item.name}.`);
+          // When unequipped, it goes back to inventory with quantity 1
+          this.inventory.set(item.id, { item: item, quantity: 1 });
         } else {
+          // If another shield is equipped, put it back into inventory (if not already there)
           if (this.equippedShield) {
-            this.addMessage(`You unequip the ${this.equippedShield.name} and equip the ${item.name}.`);
+            const oldEquipped = this.equippedShield;
+            const oldEntry = this.inventory.get(oldEquipped.id);
+            if (oldEntry) {
+              oldEntry.quantity++;
+              this.inventory.set(oldEquipped.id, oldEntry);
+            } else {
+              this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+            }
+            this.addMessage(`You unequip the ${oldEquipped.name} and equip the ${item.name}.`);
           } else {
             this.addMessage(`You equip the ${item.name}.`);
           }
           this.equippedShield = item;
+          this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
       default:

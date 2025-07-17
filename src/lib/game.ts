@@ -149,7 +149,7 @@ export class Labyrinth {
   private scholarAmuletQuestCompleted: boolean;
   // private scholarAmuletEffectApplied: boolean; // No longer needed, managed by equippedAmulet
   private whisperingWellQuestCompleted: boolean;
-  private whisperingWellEffectApplied: boolean;
+  // private whisperingWellEffectApplied: boolean; // No longer needed, managed by consumable quantity
   private trueCompassQuestCompleted: boolean;
   // private trueCompassEffectApplied: boolean; // No longer needed, managed by equippedCompass
   private labyrinthKeyFound: boolean; // New: For Floor 4 quest
@@ -198,7 +198,7 @@ export class Labyrinth {
     this.scholarAmuletQuestCompleted = false;
     // this.scholarAmuletEffectApplied = false; // No longer needed
     this.whisperingWellQuestCompleted = false;
-    this.whisperingWellEffectApplied = false;
+    // this.whisperingWellEffectApplied = false; // No longer needed
     this.trueCompassQuestCompleted = false;
     // this.trueCompassEffectApplied = false; // No longer needed
     this.labyrinthKeyFound = false;
@@ -974,10 +974,18 @@ export class Labyrinth {
           if (livingWaterEntry) {
             this.inventory.delete("living-water-f1"); // Water is consumed
             this.whisperingWellQuestCompleted = true;
-            const blessing = new Item("well-blessing-f1", "Whispering Well's Blessing", "The well's water, now flowing freely, grants you vitality.", false, 'artifact', this.playerMaxHealth); // Full health restore
+            // Well Blessing is now a consumable, not an artifact
+            const blessing = new Item("well-blessing-f1", "Whispering Well's Blessing", "The well's water, now flowing freely, grants you vitality. Has 5 uses.", false, 'consumable', 20, true); // 20 HP restore, 5 uses, stackable
             this.items.set(blessing.id, blessing);
-            this._handleFoundItem(blessing, currentCoord); // Add to inventory
-            this.addMessage("You pour the Living Water into the Whispering Well. It gurgles, then overflows with pure, shimmering liquid! You feel completely revitalized!");
+            // Add to inventory with 5 quantity
+            const existingBlessing = this.inventory.get(blessing.id);
+            if (existingBlessing) {
+                existingBlessing.quantity += 5; // Add 5 uses if already exists
+                this.inventory.set(blessing.id, existingBlessing);
+            } else {
+                this.inventory.set(blessing.id, { item: blessing, quantity: 5 });
+            }
+            this.addMessage("You pour the Living Water into the Whispering Well. It gurgles, then overflows with pure, shimmering liquid! You obtain the Whispering Well's Blessing (5 uses)!");
             interacted = true;
           } else {
             this.addMessage("The Whispering Well is dry. It needs a special kind of water to be quenched.");
@@ -1106,15 +1114,18 @@ export class Labyrinth {
 
     switch (item.type) {
       case 'consumable':
-        if (item.effectValue && this.playerHealth < this.playerMaxHealth) {
+        if (item.effectValue && inventoryEntry.quantity > 0) {
           this.playerHealth = Math.min(this.playerMaxHealth, this.playerHealth + item.effectValue);
           inventoryEntry.quantity--;
           if (inventoryEntry.quantity <= 0) {
             this.inventory.delete(itemId);
+            this.addMessage(`You consume the last charge of ${item.name}. Your health is restored to ${this.playerHealth} HP!`);
           } else {
             this.inventory.set(itemId, inventoryEntry);
+            this.addMessage(`You consume a charge of ${item.name}. Your health is restored to ${this.playerHealth} HP! (${inventoryEntry.quantity} uses left)`);
           }
-          this.addMessage(`You consume the ${item.name}. Your health is restored to ${this.playerHealth} HP!`);
+        } else if (inventoryEntry.quantity === 0) {
+          this.addMessage(`You are out of charges for the ${item.name}.`);
         } else if (this.playerHealth >= this.playerMaxHealth) {
           this.addMessage(`You are already at full health. No need to use the ${item.name} now.`);
         } else {
@@ -1207,17 +1218,9 @@ export class Labyrinth {
         }
         break;
       case 'artifact': // Handle artifact usage (one-time effect, remains in inventory)
-        if (item.id === "well-blessing-f1") {
-            if (!this.whisperingWellEffectApplied) {
-                this.playerHealth = this.playerMaxHealth; // Full health restore
-                this.whisperingWellEffectApplied = true;
-                this.addMessage(`You drink from the Whispering Well's Blessing! Your health is fully restored!`);
-            } else {
-                this.addMessage(`The Whispering Well's Blessing has already been consumed.`);
-            }
-        } else {
-            this.addMessage(`You can't seem to use the ${item.name} in this way.`);
-        }
+        // The only artifact left is the Well Blessing, which is now a consumable.
+        // This case should ideally not be hit for any current items.
+        this.addMessage(`You can't seem to use the ${item.name} in this way.`);
         break;
       default: // Generic, key, quest items
         this.addMessage(`You can't seem to use the ${item.name} in this way.`);
@@ -1400,7 +1403,8 @@ export class Labyrinth {
   }
 
   // Public getters for artifact effect applied status (only for Whispering Well now)
-  public getWhisperingWellEffectApplied(): boolean {
-    return this.whisperingWellEffectApplied;
-  }
+  // These are no longer needed as the Well Blessing is now a consumable with quantity
+  // public getWhisperingWellEffectApplied(): boolean {
+  //   return this.whisperingWellEffectApplied;
+  // }
 }

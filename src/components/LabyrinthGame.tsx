@@ -397,29 +397,28 @@ const LabyrinthGame: React.FC = () => {
                 equippedStatus = "(Equipped Compass)";
                 isEquipped = true;
               }
-            } else if (item.type === 'artifact' && item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied()) {
-                equippedStatus = "(Consumed)"; // Blessing is still a one-time use artifact
             }
 
+            const isConsumableWithUses = item.type === 'consumable' && item.stackable;
+            const canUse = !labyrinth.isGameOver() && !showRPS && (isConsumableWithUses ? quantity > 0 : true);
+            const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
 
             return (
               <li key={item.id} className="flex items-center justify-between mb-1">
                 <div>
                   <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
-                  {quantity > 1 && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
+                  {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
                   {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
                 </div>
-                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory' || (item.type === 'artifact' && item.id === "well-blessing-f1")) && (
+                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
                     onClick={() => handleUseItem(item.id)}
-                    disabled={labyrinth.isGameOver() || showRPS || (item.type === 'artifact' && item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied())}
+                    disabled={!canUse}
                   >
-                    {item.type === 'consumable' ? 'Use' :
-                     item.type === 'artifact' ? (labyrinth.getWhisperingWellEffectApplied() ? 'Consumed' : 'Use') :
-                     (isEquipped ? 'Unequip' : 'Equip')}
+                    {buttonText}
                   </Button>
                 )}
               </li>

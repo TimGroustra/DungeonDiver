@@ -115,153 +115,149 @@ export class Puzzle {
 }
 
 export class Labyrinth {
-  private map: (LogicalRoom | 'wall')[][]; // Map can now contain walls
+  private floors: Map<number, (LogicalRoom | 'wall')[][]>; // Map of floor number to its grid
   private playerLocation: Coordinate;
+  private currentFloor: number; // New: Current floor the player is on
   private playerHealth: number;
-  private playerMaxHealth: number; // New: Max health for potion
-  private baseAttackDamage: number; // New: Base attack damage
-  private baseDefense: number; // New: Base defense
-  private equippedWeapon: Item | undefined; // New: Equipped weapon
-  private equippedShield: Item | undefined; // New: Equipped shield
+  private playerMaxHealth: number;
+  private baseAttackDamage: number;
+  private baseDefense: number;
+  private equippedWeapon: Item | undefined;
+  private equippedShield: Item | undefined;
   private inventory: Item[];
   private messages: string[];
   private gameOver: boolean;
-  private visitedCells: Set<string>; // Stores "x,y" strings of visited cells
-  private enemyLocations: Map<string, string>; // "x,y" -> enemyId
-  private puzzleLocations: Map<string, string>; // "x,y" -> puzzleId
-  private itemLocations: Map<string, string>; // "x,y" -> itemId (for visible items)
-  private staticItemLocations: Map<string, string>; // "x,y" -> itemId (for hidden/static items)
-  private revealedStaticItems: Set<string>; // New: Stores "x,y" strings of revealed static items
-  private trapsLocations: Map<string, boolean>; // New: Stores "x,y" strings for trap locations
+  private visitedCells: Map<number, Set<string>>; // Stores "x,y" strings of visited cells per floor
+  private enemyLocations: Map<string, string>; // "x,y,floor" -> enemyId
+  private puzzleLocations: Map<string, string>; // "x,y,floor" -> puzzleId
+  private itemLocations: Map<string, string>; // "x,y,floor" -> itemId (for visible items)
+  private staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
+  private revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
+  private trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
-  private leverActivated: boolean; // New property
+  private leverActivated: boolean; // This might need to be per-floor if multiple levers exist
+  private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
+  private floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
 
   private readonly MAP_WIDTH = 50;
   private readonly MAP_HEIGHT = 50;
+  private readonly NUM_FLOORS = 3; // Let's start with 3 floors
 
   constructor() {
-    this.map = [];
+    this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
+    this.currentFloor = 0; // Start on floor 0
     this.playerHealth = 100;
-    this.playerMaxHealth = 100; // Initialize max health
-    this.baseAttackDamage = 10; // Initialize base attack
-    this.baseDefense = 0; // Initialize base defense
+    this.playerMaxHealth = 100;
+    this.baseAttackDamage = 10;
+    this.baseDefense = 0;
     this.equippedWeapon = undefined;
     this.equippedShield = undefined;
     this.inventory = [];
     this.messages = [];
     this.gameOver = false;
-    this.visitedCells = new Set<string>();
+    this.visitedCells = new Map();
     this.enemyLocations = new Map();
     this.puzzleLocations = new Map();
     this.itemLocations = new Map();
     this.staticItemLocations = new Map();
-    this.revealedStaticItems = new Set<string>(); // Initialize new set
-    this.trapsLocations = new Map(); // Initialize new map for traps
+    this.revealedStaticItems = new Set<string>();
+    this.trapsLocations = new Map();
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
-    this.leverActivated = false; // Initialize new property
+    this.leverActivated = false; // This will be global for now, consider making it per-floor if needed
+    this.floorObjectives = new Map();
+    this.floorExitStaircases = new Map();
 
     this.initializeLabyrinth();
-    this.addMessage("Welcome, brave adventurer, to the Labyrinth of Whispers! Find the ancient artifact and escape!");
+    this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
+    this.addMessage(this.getCurrentFloorObjective().description);
     this.markVisited(this.playerLocation);
   }
 
   private initializeLabyrinth() {
-    // 1. Initialize map with all walls
-    this.map = Array(this.MAP_HEIGHT)
-      .fill(null)
-      .map(() => Array(this.MAP_WIDTH).fill('wall'));
+    for (let floor = 0; floor < this.NUM_FLOORS; floor++) {
+      const floorMap: (LogicalRoom | 'wall')[][] = Array(this.MAP_HEIGHT)
+        .fill(null)
+        .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-    // Helper to get valid neighbors
-    const getValidNeighbors = (x: number, y: number) => {
-      const neighbors: Coordinate[] = [];
-      const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
-      for (const dir of directions) {
-        const nx = x + dir.dx;
-        const ny = y + dir.dy;
-        if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
-          neighbors.push({ x: nx, y: ny });
-        }
-      }
-      return neighbors;
-    };
+      // Carve a main path for each floor
+      let currentX = 0;
+      let currentY = 0;
+      const endX = this.MAP_WIDTH - 1;
+      const endY = this.MAP_HEIGHT - 1;
 
-    // 2. Carve a guaranteed main path from start (0,0) to end (MAP_WIDTH-1, MAP_HEIGHT-1)
-    let currentX = 0;
-    let currentY = 0;
-    const endX = this.MAP_WIDTH - 1;
-    const endY = this.MAP_HEIGHT - 1;
+      // Simple path carving for now, can be improved later
+      while (currentX !== endX || currentY !== endY) {
+        floorMap[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}-f${floor}`, `Winding Passage ${currentX},${currentY} (Floor ${floor + 1})`, this.getRandomRoomDescription());
 
-    while (currentX !== endX || currentY !== endY) {
-      this.map[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}`, `Winding Passage ${currentX},${currentY}`, this.getRandomRoomDescription());
+        const possibleMoves: { x: number, y: number }[] = [];
+        if (currentX < endX) possibleMoves.push({ x: currentX + 1, y: currentY });
+        if (currentY < endY) possibleMoves.push({ x: currentX, y: currentY + 1 });
+        if (currentX > 0) possibleMoves.push({ x: currentX - 1, y: currentY });
+        if (currentY > 0) possibleMoves.push({ x: currentX, y: currentY - 1 });
 
-      const possibleMoves: { x: number, y: number }[] = [];
-
-      // Prioritize moves towards the end
-      if (currentX < endX) possibleMoves.push({ x: currentX + 1, y: currentY });
-      if (currentY < endY) possibleMoves.push({ x: currentX, y: currentY + 1 });
-      if (currentX > 0) possibleMoves.push({ x: currentX - 1, y: currentY }); // Allow backtracking for more winding paths
-      if (currentY > 0) possibleMoves.push({ x: currentX, y: currentY - 1 });
-
-      // Filter out moves that are out of bounds (already handled by getValidNeighbors implicitly)
-      // and ensure we don't go too far back if we have forward options
-      const validMoves = possibleMoves.filter(move =>
-        move.x >= 0 && move.x < this.MAP_WIDTH &&
-        move.y >= 0 && move.y < this.MAP_HEIGHT
-      );
-
-      let nextMove: Coordinate;
-      if (validMoves.length > 0) {
-        // Add a bias towards moving towards the end
-        const preferredMoves = validMoves.filter(move =>
-          (move.x > currentX && move.x <= endX) || (move.y > currentY && move.y <= endY)
+        const validMoves = possibleMoves.filter(move =>
+          move.x >= 0 && move.x < this.MAP_WIDTH &&
+          move.y >= 0 && move.y < this.MAP_HEIGHT
         );
 
-        if (preferredMoves.length > 0 && Math.random() < 0.8) { // 80% chance to take a preferred move
-          nextMove = preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
-        } else { // 20% chance to take any valid move (including slight backtracking)
-          nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        let nextMove: Coordinate;
+        if (validMoves.length > 0) {
+          const preferredMoves = validMoves.filter(move =>
+            (move.x > currentX && move.x <= endX) || (move.y > currentY && move.y <= endY)
+          );
+          if (preferredMoves.length > 0 && Math.random() < 0.8) {
+            nextMove = preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
+          } else {
+            nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+          }
+        } else {
+          break;
         }
-      } else {
-        // Should not happen if map is large enough and path is always possible
-        break;
+        currentX = nextMove.x;
+        currentY = nextMove.y;
       }
+      // Ensure the last cell of the main path is a room
+      floorMap[endY][endX] = new LogicalRoom(`room-${endX}-${endY}-f${floor}`, `Floor ${floor + 1} End Chamber`, this.getRandomRoomDescription());
 
-      currentX = nextMove.x;
-      currentY = nextMove.y;
-    }
-    // Ensure the very last cell is a room
-    this.map[endY][endX] = new LogicalRoom(`room-${endX}-${endY}`, `The Exit Portal Chamber`, "A shimmering portal, bathed in ethereal light, beckons from the far end of this grand hall. This must be the way out!");
+      // Set start room description for each floor
+      floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
 
-    // Set start room description
-    this.map[0][0] = new LogicalRoom(`room-0-0`, `The Labyrinth Entrance`, "You stand at the crumbling entrance of the Labyrinth. A cold, foreboding draft whispers from the darkness ahead.");
-
-
-    // 3. Add branching paths, loops, and open areas
-    // Iterate multiple times to allow paths to grow and connect
-    for (let i = 0; i < 5; i++) { // Run multiple passes for better connectivity
-      for (let y = 0; y < this.MAP_HEIGHT; y++) {
-        for (let x = 0; x < this.MAP_WIDTH; x++) {
-          if (this.map[y][x] === 'wall') {
-            const neighbors = getValidNeighbors(x, y);
-            const numOpenNeighbors = neighbors.filter(n => this.map[n.y][n.x] !== 'wall').length;
-
-            // If a wall is adjacent to at least one open room, there's a chance to open it
-            // Higher chance for more open neighbors to create larger areas
-            if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) { // Adjust probability as needed
-              this.map[y][x] = new LogicalRoom(`room-${x}-${y}`, `Hidden Nook ${x},${y}`, this.getRandomRoomDescription());
+      // Add branching paths, loops, and open areas for each floor
+      for (let i = 0; i < 5; i++) {
+        for (let y = 0; y < this.MAP_HEIGHT; y++) {
+          for (let x = 0; x < this.MAP_WIDTH; x++) {
+            if (floorMap[y][x] === 'wall') {
+              const neighbors = this.getValidNeighbors(x, y); // Use the new private method
+              const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
+              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) {
+                floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+              }
             }
           }
         }
       }
+      this.floors.set(floor, floorMap);
+      this.visitedCells.set(floor, new Set<string>()); // Initialize visited cells for each floor
+      this.addGameElements(floor);
     }
+  }
 
-    // Add game elements after the map is fully generated
-    this.addGameElements();
+  private getValidNeighbors(x: number, y: number): Coordinate[] {
+    const neighbors: Coordinate[] = [];
+    const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
+    for (const dir of directions) {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
+      if (nx >= 0 && nx < this.MAP_WIDTH && ny >= 0 && ny < this.MAP_HEIGHT) {
+        neighbors.push({ x: nx, y: ny });
+      }
+    }
+    return neighbors;
   }
 
   private getRandomRoomDescription(): string {
@@ -280,84 +276,133 @@ export class Labyrinth {
     return descriptions[Math.floor(Math.random() * descriptions.length)];
   }
 
-  private addGameElements() {
-    // Add a key
-    const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.", false, 'key');
-    this.items.set(key.id, key);
-    this.placeElementRandomly(key.id, this.itemLocations);
+  private addGameElements(floor: number) {
+    const currentFloorMap = this.floors.get(floor)!; // Get the map for the current floor
 
-    // Add a potion (now consumable)
-    const potion = new Item("potion-1", "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100);
+    // Difficulty scaling for enemies
+    const enemyHealthMultiplier = 1 + (floor * 0.5); // +50% health per floor
+    const enemyDamageMultiplier = 1 + (floor * 0.2); // +20% damage per floor
+
+    // Common items (can be found on any floor)
+    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100);
     this.items.set(potion.id, potion);
-    this.placeElementRandomly(potion.id, this.itemLocations);
+    this.placeElementRandomly(potion.id, this.itemLocations, floor);
 
-    // Add a sword
-    const sword = new Item("sword-1", "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15);
+    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
     this.items.set(sword.id, sword);
-    this.placeElementRandomly(sword.id, this.itemLocations);
+    this.placeElementRandomly(sword.id, this.itemLocations, floor);
 
-    // Add a shield
-    const shield = new Item("shield-1", "Aegis of the Guardian", "A sturdy shield emblazoned with a forgotten crest. Increases your defense.", false, 'shield', 5);
+    const shield = new Item(`shield-${floor}-1`, "Aegis of the Guardian", "A sturdy shield emblazoned with a forgotten crest. Increases your defense.", false, 'shield', 5 + (floor * 2)); // Shield gets stronger
     this.items.set(shield.id, shield);
-    this.placeElementRandomly(shield.id, this.itemLocations);
+    this.placeElementRandomly(shield.id, this.itemLocations, floor);
 
-    // Add a static item (e.g., a broken lever)
-    const lever = new Item("lever-1", "Ancient Lever", "A rusted lever, part of a larger, defunct mechanism. It seems stuck.", true, 'static');
-    this.items.set(lever.id, lever);
-    this.placeElementRandomly(lever.id, this.staticItemLocations);
-
-    // Add the new Oil Can item
-    const oilCan = new Item("oil-can-1", "Rusty Oil Can", "A small can filled with thick, dark oil. Might be useful for rusted mechanisms.", false, 'generic');
+    const oilCan = new Item(`oil-can-${floor}-1`, "Rusty Oil Can", "A small can filled with thick, dark oil. Might be useful for rusted mechanisms.", false, 'generic');
     this.items.set(oilCan.id, oilCan);
-    this.placeElementRandomly(oilCan.id, this.itemLocations);
+    this.placeElementRandomly(oilCan.id, this.itemLocations, floor);
 
-    // Add a new powerful consumable item to be revealed by the lever
-    const elixir = new Item("elixir-1", "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100); // 100 for full health
-    this.items.set(elixir.id, elixir); // Add to global items map, but don't place randomly yet
+    // Floor-specific elements and objectives
+    if (floor === 0) { // Floor 1
+      const key = new Item("key-1", "Ornate Skeleton Key", "A heavy, intricately carved key, rumored to unlock ancient mechanisms.", false, 'key');
+      this.items.set(key.id, key);
+      this.placeElementRandomly(key.id, this.itemLocations, floor);
 
-    // Add some enemies
-    const goblin = new Enemy("goblin-1", "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", 2);
-    this.enemies.set(goblin.id, goblin);
-    this.placeElementRandomly(goblin.id, this.enemyLocations);
+      const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!", false, 'artifact'));
+      this.puzzles.set(riddle.id, riddle);
+      this.placeElementRandomly(riddle.id, this.puzzleLocations, floor);
 
-    const skeleton = new Enemy("skeleton-1", "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", 3);
-    this.enemies.set(skeleton.id, skeleton);
-    this.placeElementRandomly(skeleton.id, this.enemyLocations);
+      this.floorObjectives.set(floor, {
+        description: "Find the 'Heart of the Labyrinth' (a pulsating gem) to unlock the path to the next floor.",
+        isCompleted: () => this.inventory.some(item => item.id === "gem-1")
+      });
 
-    const shadowBeast = new Enemy("shadow-beast-1", "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", 4);
-    this.enemies.set(shadowBeast.id, shadowBeast);
-    this.placeElementRandomly(shadowBeast.id, this.enemyLocations);
+      // Place staircase to next floor
+      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
+      this.items.set(staircase.id, staircase);
+      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
+      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
 
-    // Add traps (half as many as enemies)
-    const numEnemies = this.enemies.size;
-    const numTraps = Math.floor(numEnemies / 2);
-    for (let i = 0; i < numTraps; i++) {
-      this.placeElementRandomly(`trap-${i}`, this.trapsLocations); // Use a placeholder ID, value can be true
+    } else if (floor === 1) { // Floor 2
+      const floorGuardian = new Enemy("floor-guardian-2", "Ancient Golem", "A towering construct of stone and moss, guarding the passage to the lower levels.", Math.floor(5 * enemyHealthMultiplier));
+      this.enemies.set(floorGuardian.id, floorGuardian);
+      this.placeElementRandomly(floorGuardian.id, this.enemyLocations, floor);
+
+      this.floorObjectives.set(floor, {
+        description: "Defeat the 'Ancient Golem' to unlock the path to the next floor.",
+        isCompleted: () => this.enemies.get("floor-guardian-2")?.defeated || false
+      });
+
+      // Place staircase to next floor
+      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Dark Chasm", "A gaping chasm with a faint glow at its bottom. A path seems to open only when the guardian is defeated.", true, 'static');
+      this.items.set(staircase.id, staircase);
+      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
+      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
+
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 3)
+      const grandRiddle = new Puzzle("grand-riddle-3", "The Grand Riddle of Eternity", "I have cities, but no houses; forests, but no trees; and water, but no fish. What am I?", "map", new Item("final-artifact", "Orb of Aethel", "A shimmering orb, pulsating with immense power. This is the key to escaping the Labyrinth!", false, 'artifact'));
+      this.puzzles.set(grandRiddle.id, grandRiddle);
+      this.placeElementRandomly(grandRiddle.id, this.puzzleLocations, floor);
+
+      this.floorObjectives.set(floor, {
+        description: "Solve the 'Grand Riddle of Eternity' to reveal the final exit portal.",
+        isCompleted: () => this.puzzles.get("grand-riddle-3")?.solved || false
+      });
+      // The exit portal is implicitly at the end of the main path for the last floor
     }
 
-    // Add a puzzle
-    const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!", false, 'artifact'));
-    this.puzzles.set(riddle.id, riddle);
-    this.placeElementRandomly(riddle.id, this.puzzleLocations);
+    // Add generic enemies (scaled)
+    const goblin = new Enemy(`goblin-${floor}-1`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(2 * enemyHealthMultiplier));
+    this.enemies.set(goblin.id, goblin);
+    this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
+
+    const skeleton = new Enemy(`skeleton-${floor}-1`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(3 * enemyHealthMultiplier));
+    this.enemies.set(skeleton.id, skeleton);
+    this.placeElementRandomly(skeleton.id, this.enemyLocations, floor);
+
+    const shadowBeast = new Enemy(`shadow-beast-${floor}-1`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(4 * enemyHealthMultiplier));
+    this.enemies.set(shadowBeast.id, shadowBeast);
+    this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor);
+
+    // Add traps (half as many as enemies, scaled damage)
+    const numEnemies = 3; // Fixed number of generic enemies per floor
+    const numTraps = Math.floor(numEnemies / 2);
+    for (let i = 0; i < numTraps; i++) {
+      this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor);
+    }
   }
 
-  private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>) { // Updated type for locationMap
+  // Helper to get coordinates of an element (used for staircase)
+  private getCoordForElement(id: string, locationMap: Map<string, string | boolean>, floor: number): Coordinate | undefined {
+    for (const [coordStr, elementId] of locationMap.entries()) {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (elementId === id && f === floor) {
+        return { x, y };
+      }
+    }
+    return undefined;
+  }
+
+  private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>, floor: number) {
     let placed = false;
     while (!placed) {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
       const y = Math.floor(Math.random() * this.MAP_HEIGHT);
-      const coordStr = `${x},${y}`;
-      // Ensure not placed at player start, exit, or on an existing element, and only in an open room
+      const coordStr = `${x},${y},${floor}`; // Include floor in coordinate string
+      const currentFloorMap = this.floors.get(floor)!;
+
+      // Ensure not placed at player start (0,0) of this floor, or on an existing element, and only in an open room
+      // The exit portal for the *last* floor is special, so we don't place other elements there.
+      const isExitPortalForLastFloor = (floor === this.NUM_FLOORS - 1) && (x === this.MAP_WIDTH - 1 && y === this.MAP_HEIGHT - 1);
+
       if (
-        (x !== 0 || y !== 0) &&
-        (x !== this.MAP_WIDTH - 1 || y !== this.MAP_HEIGHT - 1) &&
-        this.map[y][x] !== 'wall' && // Must be an open room
+        (x !== 0 || y !== 0) && // Not at floor entrance
+        !isExitPortalForLastFloor && // Not at the final exit portal
+        currentFloorMap[y][x] !== 'wall' && // Must be an open room
         !locationMap.has(coordStr) && // Check if the *current* locationMap already has something here
         !this.enemyLocations.has(coordStr) &&
         !this.puzzleLocations.has(coordStr) &&
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
-        !this.trapsLocations.has(coordStr) // NEW: Check for traps
+        !this.trapsLocations.has(coordStr)
       ) {
         locationMap.set(coordStr, id);
         placed = true;
@@ -381,6 +426,10 @@ export class Labyrinth {
     return this.playerLocation;
   }
 
+  getCurrentFloor(): number {
+    return this.currentFloor;
+  }
+
   getPlayerHealth(): number {
     return this.playerHealth;
   }
@@ -397,11 +446,13 @@ export class Labyrinth {
     return this.baseDefense + (this.equippedShield?.effectValue || 0);
   }
 
-  getEquippedWeapon(): Item | undefined {
+  // Made public for LabyrinthGame component
+  public getEquippedWeapon(): Item | undefined {
     return this.equippedWeapon;
   }
 
-  getEquippedShield(): Item | undefined {
+  // Made public for LabyrinthGame component
+  public getEquippedShield(): Item | undefined {
     return this.equippedShield;
   }
 
@@ -410,17 +461,20 @@ export class Labyrinth {
   }
 
   getCurrentLogicalRoom(): LogicalRoom | undefined {
+    const currentMap = this.floors.get(this.currentFloor);
+    if (!currentMap) return undefined;
+
     if (
       this.playerLocation.y >= 0 &&
-      this.playerLocation.y < this.map.length &&
+      this.playerLocation.y < currentMap.length &&
       this.playerLocation.x >= 0 &&
-      this.playerLocation.x < this.map[0].length
+      this.playerLocation.x < currentMap[0].length
     ) {
-      const cell = this.map[this.playerLocation.y][this.playerLocation.x];
-      return typeof cell !== 'string' ? cell : undefined; // Return LogicalRoom if not 'wall'
+      const cell = currentMap[this.playerLocation.y][this.playerLocation.x];
+      return typeof cell !== 'string' ? cell : undefined;
     }
     return undefined;
-    }
+  }
 
   getEnemy(id: string): Enemy | undefined {
     return this.enemies.get(id);
@@ -443,24 +497,58 @@ export class Labyrinth {
   }
 
   private markVisited(coord: Coordinate) {
-    this.visitedCells.add(`${coord.x},${coord.y}`);
+    let floorVisited = this.visitedCells.get(this.currentFloor);
+    if (!floorVisited) {
+      floorVisited = new Set<string>();
+      this.visitedCells.set(this.currentFloor, floorVisited);
+    }
+    floorVisited.add(`${coord.x},${coord.y}`);
   }
 
   getVisitedCells(): Set<string> {
-    return this.visitedCells;
+    return this.visitedCells.get(this.currentFloor) || new Set<string>();
   }
 
   getMapGrid(): ('wall' | 'open')[][] {
+    const currentMap = this.floors.get(this.currentFloor);
+    if (!currentMap) {
+      // Should not happen if initialization is correct
+      return Array(this.MAP_HEIGHT).fill(null).map(() => Array(this.MAP_WIDTH).fill('wall'));
+    }
+
     const grid: ('wall' | 'open')[][] = Array(this.MAP_HEIGHT)
       .fill(null)
-      .map(() => Array(this.MAP_WIDTH).fill('open')); // Initialize with 'open'
+      .map(() => Array(this.MAP_WIDTH).fill('open'));
 
     for (let y = 0; y < this.MAP_HEIGHT; y++) {
       for (let x = 0; x < this.MAP_WIDTH; x++) {
-        grid[y][x] = this.map[y][x] === 'wall' ? 'wall' : 'open';
+        grid[y][x] = currentMap[y][x] === 'wall' ? 'wall' : 'open';
       }
     }
     return grid;
+  }
+
+  getCurrentFloorObjective(): { description: string; isCompleted: () => boolean; } {
+    return this.floorObjectives.get(this.currentFloor)!; // Should always exist
+  }
+
+  ascendFloor() {
+    if (this.currentFloor >= this.NUM_FLOORS - 1) {
+      this.addMessage("You are already on the deepest floor. There's no way further down.");
+      return;
+    }
+
+    const currentObjective = this.getCurrentFloorObjective();
+    if (!currentObjective.isCompleted()) {
+      this.addMessage(`You cannot proceed to the next floor yet. Objective: ${currentObjective.description}`);
+      return;
+    }
+
+    this.currentFloor++;
+    this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
+    this.markVisited(this.playerLocation);
+    this.addMessage(`You successfully descended to Floor ${this.currentFloor + 1}!`);
+    this.addMessage(this.getCurrentFloorObjective().description);
   }
 
   move(direction: "north" | "south" | "east" | "west") {
@@ -468,6 +556,8 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+
+    const currentMap = this.floors.get(this.currentFloor)!; // Get current floor map
 
     let newX = this.playerLocation.x;
     let newY = this.playerLocation.y;
@@ -487,16 +577,15 @@ export class Labyrinth {
         break;
     }
 
-    // Check if new coordinates are within bounds and not a wall
     if (
       newX >= 0 &&
       newX < this.MAP_WIDTH &&
       newY >= 0 &&
       newY < this.MAP_HEIGHT
     ) {
-      if (this.map[newY][newX] === 'wall') {
+      if (currentMap[newY][newX] === 'wall') {
         this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
-        return; // Prevent movement into a wall
+        return;
       }
 
       this.playerLocation = { x: newX, y: newY };
@@ -506,35 +595,34 @@ export class Labyrinth {
       if (currentRoom) {
         this.addMessage(`You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}`);
       } else {
-        // This case should ideally not be reached if map generation is correct
         this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
       }
 
-      // Check for traps at the new location
-      const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+      const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
       if (this.trapsLocations.has(trapTriggeredCoord)) {
           this.playerHealth -= 10;
           this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
-          this.trapsLocations.delete(trapTriggeredCoord); // Trap is consumed
+          this.trapsLocations.delete(trapTriggeredCoord);
           if (this.playerHealth <= 0) {
               this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
               this.gameOver = true;
           }
       }
 
-      // Check for game over condition (e.g., reaching the exit)
-      if (newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        const hasArtifact = this.inventory.some(item => item.id === "gem-1");
-        if (hasArtifact) {
-          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Heart of the Labyrinth pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
+      // Check for game over condition (reaching the exit on the LAST floor)
+      if (this.currentFloor === this.NUM_FLOORS - 1 && newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
+        const hasFinalArtifact = this.inventory.some(item => item.id === "final-artifact");
+        const finalObjective = this.floorObjectives.get(this.currentFloor);
+        if (finalObjective?.isCompleted() && hasFinalArtifact) {
+          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, the Orb of Aethel pulsating in your hand, escaping its grasp! Congratulations, brave adventurer!");
           this.gameOver = true;
         } else {
-          this.addMessage("The shimmering portal hums with energy, but it seems to require a powerful artifact to activate fully. You cannot escape yet!");
+          this.addMessage("The shimmering portal hums with energy, but it seems to require a powerful artifact and the completion of this floor's objective to activate fully. You cannot escape yet!");
         }
       }
 
       // Check for enemy encounter
-      const enemyId = this.enemyLocations.get(`${newX},${newY}`);
+      const enemyId = this.enemyLocations.get(`${newX},${newY},${this.currentFloor}`);
       if (enemyId) {
         const enemy = this.enemies.get(enemyId);
         if (enemy && !enemy.defeated) {
@@ -562,15 +650,16 @@ export class Labyrinth {
         for (let dx = -2; dx <= 2; dx++) {
             const targetX = playerX + dx;
             const targetY = playerY + dy;
-            const coordStr = `${targetX},${targetY}`;
+            const coordStr = `${targetX},${targetY},${this.currentFloor}`; // Include floor
 
             // Check bounds
             if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT) {
                 continue;
             }
 
+            const currentMap = this.floors.get(this.currentFloor)!;
             // Check if it's a wall
-            if (this.map[targetY][targetX] === 'wall') {
+            if (currentMap[targetY][targetX] === 'wall') {
                 continue;
             }
 
@@ -579,7 +668,6 @@ export class Labyrinth {
 
             // If it's the player's current location, perform full interaction
             if (dx === 0 && dy === 0) {
-                // Existing logic for current cell
                 const itemId = this.itemLocations.get(coordStr);
                 if (itemId) {
                     const item = this.items.get(itemId);
@@ -605,8 +693,8 @@ export class Labyrinth {
                 if (puzzleId) {
                     const puzzle = this.puzzles.get(puzzleId);
                     if (puzzle && !puzzle.solved) {
-                        // Auto-solve logic for key
-                        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
+                        // Auto-solve logic for key (Floor 1 riddle)
+                        if (puzzle.id === "riddle-1" && this.inventory.some(item => item.id === "key-1")) {
                             if (puzzle.solve("echo")) {
                                 this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
                                 if (puzzle.reward) {
@@ -615,6 +703,10 @@ export class Labyrinth {
                                 }
                                 foundSomethingInRadius = true;
                             }
+                        } else if (puzzle.id === "grand-riddle-3") { // Grand Riddle on Floor 3
+                            // This puzzle requires explicit 'interact' to solve, not auto-solve on search
+                            this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}). It seems to be the Grand Riddle of Eternity.`);
+                            foundSomethingInRadius = true;
                         } else {
                             this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
                             foundSomethingInRadius = true;
@@ -637,7 +729,7 @@ export class Labyrinth {
                     const staticItem = this.items.get(staticItemId);
                     if (staticItem && !this.revealedStaticItems.has(coordStr)) {
                         this.addMessage(`You discern a hidden ${staticItem.name} at (${targetX},${targetY}).`);
-                        this.revealedStaticItems.add(coordStr); // Mark as revealed for map
+                        this.revealedStaticItems.add(coordStr);
                         foundSomethingInRadius = true;
                     }
                 }
@@ -674,27 +766,51 @@ export class Labyrinth {
       return;
     }
 
-    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
     let interacted = false;
+
+    // Check for floor exit staircase
+    const staircaseCoord = this.floorExitStaircases.get(this.currentFloor);
+    if (staircaseCoord && staircaseCoord.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
+      this.ascendFloor();
+      interacted = true;
+    }
 
     // Check for puzzles to interact with
     const puzzleId = this.puzzleLocations.get(currentCoord);
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        // For simplicity, we'll auto-solve if the player has the "key" and it's the "echo" puzzle
-        if (this.inventory.some(item => item.id === "key-1") && puzzle.solution === "echo") {
-          if (puzzle.solve("echo")) {
-            this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
-            if (puzzle.reward) {
-              this.inventory.push(puzzle.reward);
-              this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+        if (puzzle.id === "riddle-1") { // Floor 1 riddle
+          if (this.inventory.some(item => item.id === "key-1")) {
+            if (puzzle.solve("echo")) {
+              this.addMessage(`With a click and a grind, the ancient mechanism yields! You used the Ornate Skeleton Key and solved the puzzle: "${puzzle.name}"!`);
+              if (puzzle.reward) {
+                this.inventory.push(puzzle.reward);
+                this.addMessage(`A hidden compartment opens, revealing a ${puzzle.reward.name}! You add it to your inventory.`);
+              }
+              interacted = true;
             }
+          } else {
+            this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
             interacted = true;
           }
-        } else {
-          this.addMessage(`You attempt to interact with the ancient device, but it remains stubbornly inert. Perhaps a missing piece or a forgotten word is needed.`);
-            interacted = true; // Mark as interacted even if not solved, to prevent "nothing responds"
+        } else if (puzzle.id === "grand-riddle-3") { // Floor 3 Grand Riddle
+            const attempt = prompt("The Grand Riddle of Eternity: I have cities, but no houses; forests, but no trees; and water, but no fish. What am I? (Type your answer)");
+            if (attempt) {
+                if (puzzle.solve(attempt)) {
+                    this.addMessage(`A deep rumble echoes through the chamber as the riddle is solved! The path to escape is revealed!`);
+                    if (puzzle.reward) {
+                        this.inventory.push(puzzle.reward);
+                        this.addMessage(`A shimmering Orb of Aethel appears! You add it to your inventory.`);
+                    }
+                } else {
+                    this.addMessage(`Your answer echoes, but the riddle remains unsolved. Try again.`);
+                }
+            } else {
+                this.addMessage("You decide not to attempt the riddle for now.");
+            }
+            interacted = true;
         }
       }
     }
@@ -703,15 +819,17 @@ export class Labyrinth {
     const staticItemId = this.staticItemLocations.get(currentCoord);
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
-      if (staticItem) { // Always allow interaction with static items, even if already revealed
-        if (staticItem.id === "lever-1") {
-          const oilCanIndex = this.inventory.findIndex(item => item.id === "oil-can-1");
-          if (!this.leverActivated) {
+      if (staticItem) {
+        if (staticItem.id.startsWith("lever-")) { // Generic lever interaction
+          const oilCanIndex = this.inventory.findIndex(item => item.id.startsWith("oil-can-")); // Check for any oil can
+          if (!this.leverActivated) { // Assuming one global lever for now
             if (oilCanIndex !== -1) {
-              this.inventory.splice(oilCanIndex, 1); // Consume the oil can
+              this.inventory.splice(oilCanIndex, 1);
               this.leverActivated = true;
-              // Place the elixir at the current location for pickup
-              this.itemLocations.set(currentCoord, "elixir-1");
+              // Place a powerful consumable (e.g., Elixir of Might)
+              const elixir = new Item(`elixir-${this.currentFloor}-1`, "Elixir of Might", "A potent concoction that temporarily boosts your strength and fully restores health.", false, 'consumable', 100);
+              this.items.set(elixir.id, elixir);
+              this.itemLocations.set(currentCoord, elixir.id); // Place at current location
               this.addMessage(`You apply the oil to the rusty lever. With a mighty heave, it grinds into place! A hidden compartment opens, revealing a shimmering Elixir of Might!`);
               this.addMessage(`The Elixir of Might has appeared at your current location. Use 'Search Area' to pick it up!`);
             } else {
@@ -721,11 +839,14 @@ export class Labyrinth {
             this.addMessage("The lever is already activated, but nothing more happens.");
           }
           interacted = true;
+        } else if (staticItem.id.startsWith("staircase-")) {
+            // This is handled by the specific staircase check above, but good to have a fallback message
+            this.addMessage(`You stand before the ${staticItem.name}. It seems to be the way to the next floor.`);
+            interacted = true;
         } else {
-          // Default behavior for other static items (just reveal message)
           if (!this.revealedStaticItems.has(currentCoord)) {
             this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
-            this.revealedStaticItems.add(currentCoord); // Mark as revealed
+            this.revealedStaticItems.add(currentCoord);
           } else {
             this.addMessage(`You examine the ${staticItem.name} again. It's still ${staticItem.description}`);
           }
@@ -757,7 +878,7 @@ export class Labyrinth {
       case 'consumable':
         if (item.effectValue && this.playerHealth < this.playerMaxHealth) {
           this.playerHealth = Math.min(this.playerMaxHealth, this.playerHealth + item.effectValue);
-          this.inventory.splice(itemIndex, 1); // Remove consumed item
+          this.inventory.splice(itemIndex, 1);
           this.addMessage(`You consume the ${item.name}. Your health is restored to ${this.playerHealth} HP!`);
         } else if (this.playerHealth >= this.playerMaxHealth) {
           this.addMessage(`You are already at full health. No need to use the ${item.name} now.`);
@@ -803,7 +924,7 @@ export class Labyrinth {
       return;
     }
 
-    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
     const enemyId = this.enemyLocations.get(currentCoord);
 
     if (!enemyId) {
@@ -825,7 +946,6 @@ export class Labyrinth {
     let playerWins = false;
     let enemyWins = false;
 
-    // Define winning conditions for Attack Left/Center/Right
     const winningMoves = {
       "left": "right",
       "center": "left",
@@ -840,15 +960,19 @@ export class Labyrinth {
       enemyWins = true;
     }
 
+    // Enemy damage scales with floor
+    const enemyBaseDamage = 10;
+    const enemyDamageMultiplier = 1 + (this.currentFloor * 0.2); // +20% damage per floor
+    const actualEnemyDamage = Math.floor(enemyBaseDamage * enemyDamageMultiplier);
+
     if (playerWins) {
-      enemy.takeDamage(this.getCurrentAttackDamage()); // Use player's current attack damage
+      enemy.takeDamage(this.getCurrentAttackDamage());
       this.addMessage(`A decisive blow! You hit the ${enemy.name} for ${this.getCurrentAttackDamage()} damage! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
         this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
       }
     } else if (enemyWins) {
-      const enemyBaseDamage = 10; // Assuming a base damage for enemies
-      const damageTaken = Math.max(0, enemyBaseDamage - this.getCurrentDefense()); // Reduce damage by player's defense
+      const damageTaken = Math.max(0, actualEnemyDamage - this.getCurrentDefense());
       this.playerHealth -= damageTaken;
       this.addMessage(`The ${enemy.name} strikes true! You wince as you take ${damageTaken} damage. Your health is now ${this.playerHealth}.`);
       if (this.playerHealth <= 0) {

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target } from "lucide-react"; // Importing new icons and aliasing Puzzle
 
 const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
 
@@ -87,7 +87,7 @@ const LabyrinthGame: React.FC = () => {
 
     // Check for enemy at current player location
     const playerLoc = labyrinth.getPlayerLocation();
-    const enemyIdAtLocation = labyrinth["enemyLocations"].get(`${playerLoc.x},${playerLoc.y}`);
+    const enemyIdAtLocation = labyrinth["enemyLocations"].get(`${playerLoc.x},${playerLoc.y},${labyrinth.getCurrentFloor()}`); // Include floor
     if (enemyIdAtLocation) {
       const enemy = labyrinth.getEnemy(enemyIdAtLocation);
       if (enemy && !enemy.defeated) {
@@ -160,10 +160,12 @@ const LabyrinthGame: React.FC = () => {
   const renderMap = () => {
     const mapGrid = labyrinth.getMapGrid();
     const playerLoc = labyrinth.getPlayerLocation();
-    const visitedCells = labyrinth.getVisitedCells();
-    const revealedStaticItems = labyrinth.getRevealedStaticItems(); // Get the new set
+    const visitedCells = labyrinth.getVisitedCells(); // This now gets visited cells for the current floor
+    const revealedStaticItems = labyrinth.getRevealedStaticItems();
     const fullGridWidth = mapGrid[0]?.length || 0;
     const fullGridHeight = mapGrid.length;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const numFloors = labyrinth["NUM_FLOORS"]; // Access private property for display
 
     const halfViewport = Math.floor(VIEWPORT_SIZE / 2);
 
@@ -190,75 +192,92 @@ const LabyrinthGame: React.FC = () => {
 
         // Check if the map coordinates are within the actual labyrinth bounds
         if (mapX >= 0 && mapX < fullGridWidth && mapY >= 0 && mapY < fullGridHeight) {
-          const cellCoord = `${mapX},${mapY}`;
+          const cellCoord = `${mapX},${mapY}`; // For visitedCells set
+          const fullCoordStr = `${mapX},${mapY},${currentFloor}`; // For element locations
           const isVisited = visitedCells.has(cellCoord);
           const isWall = mapGrid[mapY][mapX] === 'wall';
 
           if (isPlayerHere) {
-            cellContentIndicator = <PersonStanding size={12} />; // Player icon
+            cellContentIndicator = <PersonStanding size={12} />;
             cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
-            cellContentIndicator = "█"; // Wall character
+            cellContentIndicator = "█";
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
           } else if (isVisited) { // Only show special indicators on visited cells
-            const enemyId = labyrinth["enemyLocations"].get(cellCoord);
+            const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
             const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
             const hasUndefeatedEnemy = enemy && !enemy.defeated;
 
-            const puzzleId = labyrinth["puzzleLocations"].get(cellCoord);
+            const puzzleId = labyrinth["puzzleLocations"].get(fullCoordStr);
             const puzzle = puzzleId ? labyrinth.getPuzzle(puzzleId) : undefined;
             const hasUnsolvedPuzzle = puzzle && !puzzle.solved;
             const hasSolvedPuzzle = puzzle && puzzle.solved;
 
-            const hasUnpickedItem = labyrinth["itemLocations"].has(cellCoord);
+            const hasUnpickedItem = labyrinth["itemLocations"].has(fullCoordStr);
 
-            const staticItemId = labyrinth["staticItemLocations"].get(cellCoord);
-            const hasStaticItemAtLocation = !!staticItemId; // Check if a static item exists at this coord
-            const isStaticItemCurrentlyRevealed = revealedStaticItems.has(cellCoord);
+            const staticItemId = labyrinth["staticItemLocations"].get(fullCoordStr);
+            const hasStaticItemAtLocation = !!staticItemId;
+            const isStaticItemCurrentlyRevealed = revealedStaticItems.has(fullCoordStr);
 
-            // Determine content based on activation status
-            if (hasUndefeatedEnemy) {
-              // If player is currently fighting this specific enemy, show sword. Otherwise, question mark.
-              if (currentEnemy && currentEnemy.id === enemyId && showRPS) {
-                cellContentIndicator = <Sword size={12} />;
-                cellClasses = "bg-red-800 text-red-200";
-                cellTitle = `Explored (${mapX},${mapY}) (Combat Active!)`;
-              } else {
+            // Check for staircase to next floor
+            const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
+            const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
+
+            // Check for final exit portal
+            const isFinalExit = (currentFloor === numFloors - 1) && (mapX === fullGridWidth - 1 && mapY === fullGridHeight - 1);
+
+            if (isPlayerHere) {
+                cellContentIndicator = <PersonStanding size={12} />;
+                cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
+                cellTitle = "You are here";
+            } else if (isWall) {
+                cellContentIndicator = "█";
+                cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
+                cellTitle = "Solid Wall";
+            } else if (isFinalExit) {
+                cellContentIndicator = "◎"; // Portal icon
+                cellClasses = "bg-purple-600 text-white animate-pulse";
+                cellTitle = `Exit Portal (Floor ${currentFloor + 1})`;
+            } else if (isStaircase) {
+                cellContentIndicator = <ArrowDownCircle size={12} />; // Staircase icon
+                cellClasses = "bg-indigo-600 text-white";
+                cellTitle = `Staircase to Floor ${currentFloor + 2}`;
+            } else if (hasUndefeatedEnemy) {
+                if (currentEnemy && currentEnemy.id === enemyId && showRPS) {
+                    cellContentIndicator = <Sword size={12} />;
+                    cellClasses = "bg-red-800 text-red-200";
+                    cellTitle = `Explored (${mapX},${mapY}) (Combat Active!)`;
+                } else {
+                    cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+                    cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+                    cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
+                }
+            } else if (hasUnsolvedPuzzle) {
                 cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
                 cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
-                cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
-              }
-            } else if (hasUnsolvedPuzzle) {
-              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
-              cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
+                cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
-              cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
-            } else if (labyrinth["trapsLocations"].has(cellCoord)) { // Check for traps
-              cellContentIndicator = <Dices size={12} className="animate-pulse" />; // Dice icon for traps
-              cellClasses = "bg-orange-900 text-orange-300 border-orange-600 dark:bg-orange-200 dark:text-orange-800 dark:border-orange-500";
-              cellTitle = `Explored (${mapX},${mapY}) (Hidden Trap!)`;
-            } else if (hasStaticItemAtLocation && !isStaticItemCurrentlyRevealed) {
-              cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-              cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
-              cellTitle = `Explored (${mapX},${mapY}) (Hidden Feature!)`;
-            } else if (hasSolvedPuzzle) { // Show solved puzzle icon
-              cellContentIndicator = <PuzzleIcon size={12} />;
-              cellClasses = "bg-purple-800 text-purple-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
-            } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) { // Show revealed static item icon
-              cellContentIndicator = <BookOpen size={12} />;
-              cellClasses = "bg-green-700 text-green-200";
-              cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
+                cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
+                cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+                cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+            } else if (labyrinth["trapsLocations"].has(fullCoordStr)) {
+                cellContentIndicator = <Dices size={12} className="animate-pulse" />;
+                cellClasses = "bg-orange-900 text-orange-300 border-orange-600 dark:bg-orange-200 dark:text-orange-800 dark:border-orange-500";
+                cellTitle = `Explored (${mapX},${mapY}) (Hidden Trap!)`;
+            } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
+                cellContentIndicator = <BookOpen size={12} />;
+                cellClasses = "bg-green-700 text-green-200";
+                cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
+            } else if (hasSolvedPuzzle) {
+                cellContentIndicator = <PuzzleIcon size={12} />;
+                cellClasses = "bg-purple-800 text-purple-200";
+                cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
             } else {
-              // Visited path with no special elements or all elements activated/removed
-              cellContentIndicator = "·"; // Explored path
-              cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
-              cellTitle = `Explored (${mapX},${mapY})`;
+                cellContentIndicator = "·";
+                cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
+                cellTitle = `Explored (${mapX},${mapY})`;
             }
           } else { // Unvisited open path
             cellContentIndicator = "·";
@@ -267,8 +286,8 @@ const LabyrinthGame: React.FC = () => {
           }
         } else {
           // Out of bounds - render as void
-          cellContentIndicator = " "; // Empty space for void
-          cellClasses = "bg-gray-950 dark:bg-gray-100 border-gray-900 dark:border-gray-200"; // Darker/lighter background for void
+          cellContentIndicator = " ";
+          cellClasses = "bg-gray-950 dark:bg-gray-100 border-gray-900 dark:border-gray-200";
           cellTitle = "The Void";
         }
         rowCells.push(
@@ -428,6 +447,18 @@ const LabyrinthGame: React.FC = () => {
                   <p className="text-sm text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
                 )}
                 {renderInventory()}
+              </div>
+
+              <Separator className="my-4 bg-gray-700 dark:bg-gray-300" />
+
+              <div className="mb-4">
+                <h3 className="text-2xl font-bold text-yellow-300 dark:text-yellow-600">Labyrinth Progress:</h3>
+                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
+                  <ArrowDownCircle className="mr-2 text-blue-500" size={20} /> Current Floor: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentFloor() + 1} / {labyrinth["NUM_FLOORS"]}</span>
+                </p>
+                <p className="text-lg text-gray-300 dark:text-gray-700 flex items-center">
+                  <Target className="mr-2 text-green-500" size={20} /> Objective: <span className="font-bold text-green-400 ml-1">{labyrinth.getCurrentFloorObjective().description}</span>
+                </p>
               </div>
             </div>
           </div>

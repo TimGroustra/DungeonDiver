@@ -132,6 +132,7 @@ export class Labyrinth {
   private itemLocations: Map<string, string>; // "x,y" -> itemId (for visible items)
   private staticItemLocations: Map<string, string>; // "x,y" -> itemId (for hidden/static items)
   private revealedStaticItems: Set<string>; // New: Stores "x,y" strings of revealed static items
+  private trapsLocations: Map<string, boolean>; // New: Stores "x,y" strings for trap locations
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
@@ -158,6 +159,7 @@ export class Labyrinth {
     this.itemLocations = new Map();
     this.staticItemLocations = new Map();
     this.revealedStaticItems = new Set<string>(); // Initialize new set
+    this.trapsLocations = new Map(); // Initialize new map for traps
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
@@ -326,13 +328,20 @@ export class Labyrinth {
     this.enemies.set(shadowBeast.id, shadowBeast);
     this.placeElementRandomly(shadowBeast.id, this.enemyLocations);
 
+    // Add traps (half as many as enemies)
+    const numEnemies = this.enemies.size;
+    const numTraps = Math.floor(numEnemies / 2);
+    for (let i = 0; i < numTraps; i++) {
+      this.placeElementRandomly(`trap-${i}`, this.trapsLocations); // Use a placeholder ID, value can be true
+    }
+
     // Add a puzzle
     const riddle = new Puzzle("riddle-1", "Riddle of the Echoing Chamber", "I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?", "echo", new Item("gem-1", "Heart of the Labyrinth", "A pulsating, radiant gem. It feels incredibly powerful and might be the artifact you seek!", false, 'artifact'));
     this.puzzles.set(riddle.id, riddle);
     this.placeElementRandomly(riddle.id, this.puzzleLocations);
   }
 
-  private placeElementRandomly(id: string, locationMap: Map<string, string>) {
+  private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>) { // Updated type for locationMap
     let placed = false;
     while (!placed) {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
@@ -343,11 +352,12 @@ export class Labyrinth {
         (x !== 0 || y !== 0) &&
         (x !== this.MAP_WIDTH - 1 || y !== this.MAP_HEIGHT - 1) &&
         this.map[y][x] !== 'wall' && // Must be an open room
-        !locationMap.has(coordStr) &&
+        !locationMap.has(coordStr) && // Check if the *current* locationMap already has something here
         !this.enemyLocations.has(coordStr) &&
         !this.puzzleLocations.has(coordStr) &&
         !this.itemLocations.has(coordStr) &&
-        !this.staticItemLocations.has(coordStr)
+        !this.staticItemLocations.has(coordStr) &&
+        !this.trapsLocations.has(coordStr) // NEW: Check for traps
       ) {
         locationMap.set(coordStr, id);
         placed = true;
@@ -498,6 +508,18 @@ export class Labyrinth {
       } else {
         // This case should ideally not be reached if map generation is correct
         this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
+      }
+
+      // Check for traps at the new location
+      const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y}`;
+      if (this.trapsLocations.has(trapTriggeredCoord)) {
+          this.playerHealth -= 10;
+          this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
+          this.trapsLocations.delete(trapTriggeredCoord); // Trap is consumed
+          if (this.playerHealth <= 0) {
+              this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
+              this.gameOver = true;
+          }
       }
 
       // Check for game over condition (e.g., reaching the exit)

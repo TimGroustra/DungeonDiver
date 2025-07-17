@@ -405,10 +405,10 @@ const LabyrinthGame: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1 sm:p-2">
-      <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[90vh]">
+      <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
         <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 sm:pb-3">
-          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
-          <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
+          <img src="/banner.png" alt="Eldoria Labyrinth Banner" className="w-full h-auto object-cover rounded-t-lg mb-2" />
+          {/* Removed CardTitle and CardDescription as the image contains the title */}
         </CardHeader>
         <CardContent className="pt-2 sm:pt-4">
           {/* Reverted to grid for md and larger screens, flex column for smaller */}
@@ -466,6 +466,22 @@ const LabyrinthGame: React.FC = () => {
                 {gameLog.slice(-3).reverse().map((message, index) => (
                   <p key={index} className="mb-1 last:mb-0">{message}</p>
                 ))}
+              </div>
+
+              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+
+              {/* Quest Objective */}
+              <div className="mb-3 w-full text-center">
+                  <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600 mb-2">Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
+                  <p className="text-base text-gray-300 dark:text-gray-700 italic">
+                      {labyrinth.getCurrentFloorObjective().description}
+                  </p>
+                  <p className={cn(
+                      "text-sm font-semibold mt-1",
+                      labyrinth.getCurrentFloorObjective().isCompleted() ? "text-green-400 dark:text-green-500" : "text-red-400 dark:text-red-500"
+                  )}>
+                      Status: {labyrinth.getCurrentFloorObjective().isCompleted() ? "Completed!" : "In Progress"}
+                  </p>
               </div>
 
               <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />

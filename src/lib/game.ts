@@ -314,8 +314,8 @@ export class Labyrinth {
     const currentFloorMap = this.floors.get(floor)!; // Get the map for the current floor
 
     // Difficulty scaling for enemies
-    const enemyHealthMultiplier = 1 + (floor * 0.5); // +50% health per floor
-    const enemyDamageMultiplier = 1 + (floor * 0.2); // +20% damage per floor
+    const enemyHealthMultiplier = 1 + (floor * 0.7); // Increased from 0.5
+    const enemyDamageMultiplier = 1 + (floor * 0.3); // Increased from 0.2
 
     // Common items (can be found on any floor)
     const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
@@ -428,15 +428,15 @@ export class Labyrinth {
     }
 
     // Add generic enemies (scaled)
-    const goblin = new Enemy(`goblin-${floor}-1`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(2 * enemyHealthMultiplier));
+    const goblin = new Enemy(`goblin-${floor}-1`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
     this.enemies.set(goblin.id, goblin);
     this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
 
-    const skeleton = new Enemy(`skeleton-${floor}-1`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(3 * enemyHealthMultiplier));
+    const skeleton = new Enemy(`skeleton-${floor}-1`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier));
     this.enemies.set(skeleton.id, skeleton);
     this.placeElementRandomly(skeleton.id, this.enemyLocations, floor);
 
-    const shadowBeast = new Enemy(`shadow-beast-${floor}-1`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(4 * enemyHealthMultiplier));
+    const shadowBeast = new Enemy(`shadow-beast-${floor}-1`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier));
     this.enemies.set(shadowBeast.id, shadowBeast);
     this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor);
 
@@ -1235,8 +1235,8 @@ export class Labyrinth {
     }
 
     // Enemy damage scales with floor
-    const enemyBaseDamage = 10;
-    const enemyDamageMultiplier = 1 + (this.currentFloor * 0.2); // +20% damage per floor
+    const enemyBaseDamage = 12; // Increased from 10
+    const enemyDamageMultiplier = 1 + (this.currentFloor * 0.3); // Increased from 0.2
     const actualEnemyDamage = Math.floor(enemyBaseDamage * enemyDamageMultiplier);
 
     if (playerWins) {

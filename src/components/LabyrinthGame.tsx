@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 // Removed DropdownMenu imports as they are no longer needed
 
@@ -369,6 +369,8 @@ const LabyrinthGame: React.FC = () => {
     const inventoryItems = labyrinth.getInventoryItems(); // Now returns { item: Item, quantity: number }[]
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
+    const equippedAmulet = labyrinth.getEquippedAmulet();
+    const equippedCompass = labyrinth.getEquippedCompass();
 
     if (inventoryItems.length === 0) {
       return <p className="text-gray-600 dark:text-gray-400 text-sm">Your inventory is empty. Perhaps you'll find something useful...</p>;
@@ -378,40 +380,46 @@ const LabyrinthGame: React.FC = () => {
         <p className="font-semibold text-base">Your Inventory:</p>
         <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
           {inventoryItems.map(({ item, quantity }) => {
-            let artifactStatus = "";
-            let isArtifactActivated = false;
+            let equippedStatus = "";
+            let isEquipped = false;
 
-            if (item.type === 'artifact') {
-              if (item.id === "scholar-amulet-f0" && labyrinth.getScholarAmuletEffectApplied()) {
-                artifactStatus = "(Activated)";
-                isArtifactActivated = true;
-              } else if (item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied()) {
-                artifactStatus = "(Consumed)"; // Blessing is more like a consumable artifact
-                isArtifactActivated = true;
-              } else if (item.id === "true-compass-f2" && labyrinth.getTrueCompassEffectApplied()) {
-                artifactStatus = "(Attuned)";
-                isArtifactActivated = true;
+            if (item.type === 'weapon' && equippedWeapon?.id === item.id) {
+              equippedStatus = "(Equipped Weapon)";
+              isEquipped = true;
+            } else if (item.type === 'shield' && equippedShield?.id === item.id) {
+              equippedStatus = "(Equipped Shield)";
+              isEquipped = true;
+            } else if (item.type === 'accessory') {
+              if (item.id === "scholar-amulet-f0" && equippedAmulet?.id === item.id) {
+                equippedStatus = "(Equipped Amulet)";
+                isEquipped = true;
+              } else if (item.id === "true-compass-f2" && equippedCompass?.id === item.id) {
+                equippedStatus = "(Equipped Compass)";
+                isEquipped = true;
               }
+            } else if (item.type === 'artifact' && item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied()) {
+                equippedStatus = "(Consumed)"; // Blessing is still a one-time use artifact
             }
+
 
             return (
               <li key={item.id} className="flex items-center justify-between mb-1">
                 <div>
                   <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
                   {quantity > 1 && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
-                  {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
-                  {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
-                  {artifactStatus && <span className="ml-2 text-blue-400 dark:text-blue-600">{artifactStatus}</span>}
+                  {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
                 </div>
-                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'artifact') && (
+                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory' || (item.type === 'artifact' && item.id === "well-blessing-f1")) && (
                   <Button
                     variant="outline"
                     size="sm"
                     className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
                     onClick={() => handleUseItem(item.id)}
-                    disabled={labyrinth.isGameOver() || showRPS || (item.type === 'artifact' && isArtifactActivated)}
+                    disabled={labyrinth.isGameOver() || showRPS || (item.type === 'artifact' && item.id === "well-blessing-f1" && labyrinth.getWhisperingWellEffectApplied())}
                   >
-                    {item.type === 'consumable' ? 'Use' : (item.type === 'artifact' ? (isArtifactActivated ? 'Activated' : 'Activate') : (equippedWeapon?.id === item.id || equippedShield?.id === item.id ? 'Unequip' : 'Equip'))}
+                    {item.type === 'consumable' ? 'Use' :
+                     item.type === 'artifact' ? (labyrinth.getWhisperingWellEffectApplied() ? 'Consumed' : 'Use') :
+                     (isEquipped ? 'Unequip' : 'Equip')}
                   </Button>
                 )}
               </li>
@@ -517,11 +525,20 @@ const LabyrinthGame: React.FC = () => {
                 <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
                   <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
                 </p>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
+                  <Target className="mr-2 text-gray-400" size={18} /> Search Radius: <span className="font-bold text-purple-400 ml-1">{labyrinth.getSearchRadius()}</span>
+                </p>
                 {labyrinth.getEquippedWeapon() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name} (Equipped)</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
                 )}
                 {labyrinth.getEquippedShield() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name} (Equipped)</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
+                )}
+                {labyrinth.getEquippedAmulet() && (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Accessory: {labyrinth.getEquippedAmulet()?.name}</p>
+                )}
+                {labyrinth.getEquippedCompass() && (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Accessory: {labyrinth.getEquippedCompass()?.name}</p>
                 )}
                 {renderInventory()}
               </div>

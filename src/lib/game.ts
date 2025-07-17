@@ -45,7 +45,7 @@ export class Item {
   name: string;
   description: string;
   isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
-  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest'; // Added 'quest' type
+  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory'; // Added 'accessory' type
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
   stackable: boolean; // New: Can this item stack in inventory?
 
@@ -54,7 +54,7 @@ export class Item {
     name: string,
     description: string,
     isStatic: boolean = false,
-    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' = 'generic',
+    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' = 'generic',
     effectValue?: number,
     stackable: boolean = false
   ) {
@@ -127,6 +127,8 @@ export class Labyrinth {
   private baseDefense: number;
   private equippedWeapon: Item | undefined;
   private equippedShield: Item | undefined;
+  private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
+  private equippedCompass: Item | undefined; // New: For True Compass
   private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
@@ -145,17 +147,17 @@ export class Labyrinth {
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
-  private scholarAmuletEffectApplied: boolean;
+  // private scholarAmuletEffectApplied: boolean; // No longer needed, managed by equippedAmulet
   private whisperingWellQuestCompleted: boolean;
   private whisperingWellEffectApplied: boolean;
   private trueCompassQuestCompleted: boolean;
-  private trueCompassEffectApplied: boolean;
+  // private trueCompassEffectApplied: boolean; // No longer needed, managed by equippedCompass
   private labyrinthKeyFound: boolean; // New: For Floor 4 quest
   private mysteriousBoxOpened: boolean; // New: For Floor 4 quest
   private heartOfLabyrinthObtained: boolean; // New: For Floor 4 quest
   private heartSacrificed: boolean; // New: For Floor 4 quest
 
-  private searchRadius: number; // Initialized to 2
+  private baseSearchRadius: number; // Base search radius
   private combatQueue: string[]; // Stores enemy IDs for queued combat
   private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
@@ -174,6 +176,8 @@ export class Labyrinth {
     this.baseDefense = 0;
     this.equippedWeapon = undefined;
     this.equippedShield = undefined;
+    this.equippedAmulet = undefined; // Initialize new equipped slot
+    this.equippedCompass = undefined; // Initialize new equipped slot
     this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
@@ -192,17 +196,17 @@ export class Labyrinth {
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
-    this.scholarAmuletEffectApplied = false;
+    // this.scholarAmuletEffectApplied = false; // No longer needed
     this.whisperingWellQuestCompleted = false;
     this.whisperingWellEffectApplied = false;
     this.trueCompassQuestCompleted = false;
-    this.trueCompassEffectApplied = false;
+    // this.trueCompassEffectApplied = false; // No longer needed
     this.labyrinthKeyFound = false;
     this.mysteriousBoxOpened = false;
     this.heartOfLabyrinthObtained = false;
     this.heartSacrificed = false;
 
-    this.searchRadius = 2; // Initial search radius
+    this.baseSearchRadius = 2; // Initial base search radius
     this.combatQueue = [];
     this.lastEnemyMoveTimestamp = 0;
 
@@ -549,11 +553,15 @@ export class Labyrinth {
   }
 
   getCurrentAttackDamage(): number {
-    return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0);
+    return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
   }
 
   getCurrentDefense(): number {
-    return this.baseDefense + (this.equippedShield?.effectValue || 0);
+    return this.baseDefense + (this.equippedShield?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
+  }
+
+  public getSearchRadius(): number {
+    return this.baseSearchRadius + (this.equippedCompass?.effectValue || 0);
   }
 
   // Made public for LabyrinthGame component
@@ -564,6 +572,15 @@ export class Labyrinth {
   // Made public for LabyrinthGame component
   public getEquippedShield(): Item | undefined {
     return this.equippedShield;
+  }
+
+  // New public getters for equipped accessories
+  public getEquippedAmulet(): Item | undefined {
+    return this.equippedAmulet;
+  }
+
+  public getEquippedCompass(): Item | undefined {
+    return this.equippedCompass;
   }
 
   // Updated to return items with quantities
@@ -784,7 +801,17 @@ export class Labyrinth {
       } else {
         this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
       }
-    } else { // Generic, key, artifact, quest items
+    } else if (foundItem.type === 'accessory') { // Handle accessories like amulet/compass
+      if (!this.inventory.has(foundItem.id)) {
+        this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
+        this.addMessage(`You found a ${foundItem.name}! It's a ${foundItem.description}`);
+        this.itemLocations.delete(coordStr); // Remove from map once picked up
+        this.staticItemLocations.delete(coordStr); // If it was a static item that became an artifact
+      } else {
+        this.addMessage(`You already have the ${foundItem.name}.`);
+      }
+    }
+    else { // Generic, key, artifact, quest items
       if (!this.inventory.has(foundItem.id)) {
         this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
         this.addMessage(`You found a ${foundItem.name}! It's a ${foundItem.description}`);
@@ -808,8 +835,8 @@ export class Labyrinth {
 
     this.addMessage("You carefully scan your surroundings...");
 
-    for (let dy = -this.searchRadius; dy <= this.searchRadius; dy++) {
-        for (let dx = -this.searchRadius; dx <= this.searchRadius; dx++) {
+    for (let dy = -this.getSearchRadius(); dy <= this.getSearchRadius(); dy++) {
+        for (let dx = -this.getSearchRadius(); dx <= this.getSearchRadius(); dx++) {
             const targetX = playerX + dx;
             const targetY = playerY + dy;
             const coordStr = `${targetX},${targetY},${this.currentFloor}`; // Include floor
@@ -932,7 +959,8 @@ export class Labyrinth {
             this.inventory.delete("journal-f0");
             this.inventory.delete("charged-crystal-f0");
             this.scholarAmuletQuestCompleted = true;
-            const scholarAmulet = new Item("scholar-amulet-f0", "Scholar's Amulet", "A shimmering amulet that hums with ancient knowledge. It feels like it enhances your mind and body.", false, 'artifact', 5); // +5 to attack/defense
+            // Scholar's Amulet is now an accessory, not an artifact from this interaction
+            const scholarAmulet = new Item("scholar-amulet-f0", "Scholar's Amulet", "A shimmering amulet that hums with ancient knowledge. It feels like it enhances your mind and body.", false, 'accessory', 5); // +5 to attack/defense
             this.items.set(scholarAmulet.id, scholarAmulet);
             this._handleFoundItem(scholarAmulet, currentCoord); // Add to inventory
             this.addMessage("The Ancient Mechanism whirs to life, revealing the Scholar's Amulet! You feel a surge of power!");
@@ -980,7 +1008,8 @@ export class Labyrinth {
             this.inventory.delete("fine-tools-f2");
             this.inventory.delete("prismatic-lens-f2");
             this.trueCompassQuestCompleted = true;
-            const trueCompass = new Item("true-compass-f2", "True Compass", "A perfectly repaired compass, its needle points unerringly. It feels like it expands your perception.", false, 'artifact', 1); // Effect value 1 for search radius increase
+            // True Compass is now an accessory
+            const trueCompass = new Item("true-compass-f2", "True Compass", "A perfectly repaired compass, its needle points unerringly. It feels like it expands your perception.", false, 'accessory', 1); // Effect value 1 for search radius increase
             this.items.set(trueCompass.id, trueCompass);
             this._handleFoundItem(trueCompass, currentCoord); // Add to inventory
             this.addMessage("With careful work, you repair the Broken Compass! It now hums with a powerful directional magic!");
@@ -1140,34 +1169,51 @@ export class Labyrinth {
           this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
-      case 'artifact': // Handle artifact usage
+      case 'accessory': // Handle accessory usage (equip/unequip)
         if (item.id === "scholar-amulet-f0") {
-            if (!this.scholarAmuletEffectApplied) {
-                this.baseAttackDamage += (item.effectValue || 0);
-                this.baseDefense += (item.effectValue || 0);
-                this.scholarAmuletEffectApplied = true;
-                this.addMessage(`You attune to the Scholar's Amulet! Your base attack and defense permanently increase by ${item.effectValue}!`);
-                // Do NOT delete the item from inventory
+            if (this.equippedAmulet?.id === item.id) {
+                this.equippedAmulet = undefined;
+                this.addMessage(`You unequip the Scholar's Amulet.`);
+                this.inventory.set(item.id, { item: item, quantity: 1 }); // Put back to inventory
             } else {
-                this.addMessage(`The Scholar's Amulet has already granted its power.`);
+                if (this.equippedAmulet) {
+                    const oldEquipped = this.equippedAmulet;
+                    this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+                    this.addMessage(`You unequip the ${oldEquipped.name} and equip the Scholar's Amulet.`);
+                } else {
+                    this.addMessage(`You equip the Scholar's Amulet.`);
+                }
+                this.equippedAmulet = item;
+                this.inventory.delete(itemId); // Remove from inventory as it's now equipped
             }
-        } else if (item.id === "well-blessing-f1") {
+        } else if (item.id === "true-compass-f2") {
+            if (this.equippedCompass?.id === item.id) {
+                this.equippedCompass = undefined;
+                this.addMessage(`You unequip the True Compass.`);
+                this.inventory.set(item.id, { item: item, quantity: 1 }); // Put back to inventory
+            } else {
+                if (this.equippedCompass) {
+                    const oldEquipped = this.equippedCompass;
+                    this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+                    this.addMessage(`You unequip the ${oldEquipped.name} and equip the True Compass.`);
+                } else {
+                    this.addMessage(`You equip the True Compass.`);
+                }
+                this.equippedCompass = item;
+                this.inventory.delete(itemId); // Remove from inventory as it's now equipped
+            }
+        } else {
+            this.addMessage(`You can't seem to use the ${item.name} in this way.`);
+        }
+        break;
+      case 'artifact': // Handle artifact usage (one-time effect, remains in inventory)
+        if (item.id === "well-blessing-f1") {
             if (!this.whisperingWellEffectApplied) {
                 this.playerHealth = this.playerMaxHealth; // Full health restore
                 this.whisperingWellEffectApplied = true;
                 this.addMessage(`You drink from the Whispering Well's Blessing! Your health is fully restored!`);
-                // Do NOT delete the item from inventory
             } else {
                 this.addMessage(`The Whispering Well's Blessing has already been consumed.`);
-            }
-        } else if (item.id === "true-compass-f2") {
-            if (!this.trueCompassEffectApplied) {
-                this.searchRadius += (item.effectValue || 0); // Increase search radius by 1
-                this.trueCompassEffectApplied = true;
-                this.addMessage(`You activate the True Compass! Your search radius is now ${this.searchRadius} blocks!`);
-                // Do NOT delete the item from inventory
-            } else {
-                this.addMessage(`The True Compass has already been activated.`);
             }
         } else {
             this.addMessage(`You can't seem to use the ${item.name} in this way.`);
@@ -1353,16 +1399,8 @@ export class Labyrinth {
     return this.combatQueue;
   }
 
-  // Public getters for artifact effect applied status
-  public getScholarAmuletEffectApplied(): boolean {
-    return this.scholarAmuletEffectApplied;
-  }
-
+  // Public getters for artifact effect applied status (only for Whispering Well now)
   public getWhisperingWellEffectApplied(): boolean {
     return this.whisperingWellEffectApplied;
-  }
-
-  public getTrueCompassEffectApplied(): boolean {
-    return this.trueCompassEffectApplied;
   }
 }

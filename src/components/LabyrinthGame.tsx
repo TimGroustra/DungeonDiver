@@ -413,16 +413,8 @@ const LabyrinthGame: React.FC = () => {
         <CardContent className="pt-2 sm:pt-4">
           {/* Reverted to grid for md and larger screens, flex column for smaller */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Left Column: Room Info, Map, Controls, Combat */}
+            {/* Left Column: Map, Controls, Combat */}
             <div className="flex flex-col items-center">
-              {/* Current Room Info */}
-              <div className="mb-3 w-full text-center">
-                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
-              </div>
-
-              <Separator className="my-3 w-full bg-gray-700 dark:bg-gray-300" />
-
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
               {/* Adjusted width for fluidity */}
@@ -456,9 +448,18 @@ const LabyrinthGame: React.FC = () => {
               )}
             </div>
 
-            {/* Right Column: Game Log, Adventurer Status, Inventory */}
+            {/* Right Column: Room Info, Game Log, Adventurer Status, Inventory */}
             <div className="flex flex-col">
               <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" /> {/* Separator for mobile */}
+
+              {/* Current Room Info (moved here) */}
+              <div className="mb-3 w-full text-center">
+                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+              </div>
+
+              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+
               <h3 className="text-xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
               {/* Removed ScrollArea, showing only last 3 logs */}
               <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono overflow-hidden">

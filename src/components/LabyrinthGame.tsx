@@ -9,8 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
 import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target } from "lucide-react"; // Importing new icons and aliasing Puzzle
-
-const VIEWPORT_SIZE = 10; // 10x10 blocks for the map display
+import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 
 const LabyrinthGame: React.FC = () => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
@@ -20,6 +19,10 @@ const LabyrinthGame: React.FC = () => {
   const [showRPS, setShowRPS] = useState<boolean>(false);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | undefined>(undefined);
   const logRef = useRef<HTMLDivElement>(null);
+
+  const isMobile = useIsMobile(); // Determine if on mobile
+  const dynamicViewportSize = isMobile ? 7 : 10; // Smaller map for mobile
+  const cellSize = isMobile ? 18 : 20; // Slightly smaller cells for mobile
 
   useEffect(() => {
     updateGameDisplay();
@@ -167,21 +170,20 @@ const LabyrinthGame: React.FC = () => {
     const currentFloor = labyrinth.getCurrentFloor();
     const numFloors = labyrinth["NUM_FLOORS"]; // Access private property for display
 
-    const halfViewport = Math.floor(VIEWPORT_SIZE / 2);
+    const halfViewport = Math.floor(dynamicViewportSize / 2);
 
     // Calculate the top-left corner of the viewport in map coordinates
     // This ensures the player is at (halfViewport, halfViewport) relative to this start
     const viewportMapStartX = playerLoc.x - halfViewport;
     const viewportMapStartY = playerLoc.y - halfViewport;
 
-    const cellSize = 20; // Adjust cell size for a 25x25 display
-    const mapDisplayWidth = VIEWPORT_SIZE * cellSize;
-    const mapDisplayHeight = VIEWPORT_SIZE * cellSize;
+    const mapDisplayWidth = dynamicViewportSize * cellSize;
+    const mapDisplayHeight = dynamicViewportSize * cellSize;
 
     const visibleCells = [];
-    for (let viewportY = 0; viewportY < VIEWPORT_SIZE; viewportY++) {
+    for (let viewportY = 0; viewportY < dynamicViewportSize; viewportY++) {
       const rowCells = [];
-      for (let viewportX = 0; viewportX < VIEWPORT_SIZE; viewportX++) {
+      for (let viewportX = 0; viewportX < dynamicViewportSize; viewportX++) {
         const mapX = viewportMapStartX + viewportX;
         const mapY = viewportMapStartY + viewportY;
 
@@ -311,8 +313,8 @@ const LabyrinthGame: React.FC = () => {
       <div
         className="grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
-          gridTemplateColumns: "repeat(" + VIEWPORT_SIZE + ", " + cellSize + "px)",
-          gridTemplateRows: "repeat(" + VIEWPORT_SIZE + ", " + cellSize + "px)",
+          gridTemplateColumns: "repeat(" + dynamicViewportSize + ", " + cellSize + "px)",
+          gridTemplateRows: "repeat(" + dynamicViewportSize + ", " + cellSize + "px)",
           width: mapDisplayWidth + "px",
           height: mapDisplayHeight + "px",
         }}
@@ -365,13 +367,13 @@ const LabyrinthGame: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-2">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1 sm:p-2">
       <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-3">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 sm:pb-3">
           <CardTitle className="text-2xl sm:text-3xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
-        <CardContent className="pt-4">
+        <CardContent className="pt-2 sm:pt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, and Game Log */}
             <div className="flex flex-col items-center">
@@ -410,7 +412,7 @@ const LabyrinthGame: React.FC = () => {
 
               <div className="w-full">
                 <h3 className="text-xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
-                <ScrollArea className="h-48 w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono">
+                <ScrollArea className={cn("w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono", isMobile ? "h-32" : "h-48")}>
                   <div ref={logRef}>
                     {/* Reverse the gameLog array to show latest at top */}
                     {gameLog.slice().reverse().map((message, index) => (
@@ -464,7 +466,7 @@ const LabyrinthGame: React.FC = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-3">
+        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
           {labyrinth.isGameOver() && (
             <Button onClick={handleRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
               Restart Journey

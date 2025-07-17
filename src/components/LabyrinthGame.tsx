@@ -8,8 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Menu } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 
 const LabyrinthGame: React.FC = () => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
@@ -21,8 +23,8 @@ const LabyrinthGame: React.FC = () => {
   const logRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile(); // Determine if on mobile
-  const dynamicViewportSize = isMobile ? 7 : 10; // Smaller map for mobile
-  const cellSize = isMobile ? 18 : 20; // Slightly smaller cells for mobile
+  const dynamicViewportSize = 10; // Restored to fixed size
+  const cellSize = 20; // Restored to fixed size
 
   useEffect(() => {
     updateGameDisplay();
@@ -391,8 +393,21 @@ const LabyrinthGame: React.FC = () => {
                 <div />
               </div>
               <div className="flex gap-3 mt-3">
-                <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
-                <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="bg-purple-700 hover:bg-purple-800 text-white" disabled={labyrinth.isGameOver() || showRPS}>
+                      <Menu className="mr-2 h-4 w-4" /> Actions
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-48 bg-gray-700 text-white border-gray-600 dark:bg-gray-200 dark:text-gray-900 dark:border-gray-300">
+                    <DropdownMenuItem onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS} className="cursor-pointer hover:bg-gray-600 dark:hover:bg-gray-300">
+                      Search Area
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS} className="cursor-pointer hover:bg-gray-600 dark:hover:bg-gray-300">
+                      Interact
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
 
               {showRPS && currentEnemy && (

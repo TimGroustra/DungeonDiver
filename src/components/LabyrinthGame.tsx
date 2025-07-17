@@ -378,6 +378,37 @@ const LabyrinthGame: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, and Game Log */}
             <div className="flex flex-col items-center">
+              {/* Moved Current Room Info here */}
+              <div className="mb-3 w-full text-center">
+                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+              </div>
+
+              <Separator className="my-3 w-full bg-gray-700 dark:bg-gray-300" />
+
+              {/* Moved Adventurer's Status here */}
+              <div className="mb-3 w-full text-center">
+                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
+                  <Heart className="mr-2 text-red-500" size={18} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
+                </p>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
+                  <Sword className="mr-2 text-gray-400" size={18} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
+                </p>
+                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
+                  <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
+                </p>
+                {labyrinth.getEquippedWeapon() && (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name} (Equipped)</p>
+                )}
+                {labyrinth.getEquippedShield() && (
+                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name} (Equipped)</p>
+                )}
+                {renderInventory()}
+              </div>
+
+              <Separator className="my-3 w-full bg-gray-700 dark:bg-gray-300" />
+
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
               <div className="grid grid-cols-3 gap-2 mt-4 w-64">
@@ -424,38 +455,9 @@ const LabyrinthGame: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Column: Game Info */}
+            {/* Right Column: Now empty, or can be used for future expansions */}
             <div className="flex flex-col">
-              <div className="mb-3">
-                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
-              </div>
-
-              <Separator className="my-3 bg-gray-700 dark:bg-gray-300" />
-
-              <div className="mb-3">
-                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center">
-                  <Heart className="mr-2 text-red-500" size={18} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center">
-                  <Sword className="mr-2 text-gray-400" size={18} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center">
-                  <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
-                </p>
-                {labyrinth.getEquippedWeapon() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name} (Equipped)</p>
-                )}
-                {labyrinth.getEquippedShield() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name} (Equipped)</p>
-                )}
-                {renderInventory()}
-              </div>
-
-              <Separator className="my-3 bg-gray-700 dark:bg-gray-300" />
-
-              {/* Removed Labyrinth Progress Section */}
+              {/* This column is now empty as requested */}
             </div>
           </div>
         </CardContent>

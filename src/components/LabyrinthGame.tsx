@@ -449,7 +449,7 @@ const LabyrinthGame: React.FC = () => {
             </div>
 
             {/* Right Column: Room Info, Game Log, Adventurer Status, Inventory */}
-            <div className="flex flex-col">
+            <div className="flex flex-col items-center"> {/* Added items-center here */}
               <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" /> {/* Separator for mobile */}
 
               {/* Current Room Info (moved here) */}

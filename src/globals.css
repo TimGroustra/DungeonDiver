@@ -97,10 +97,5 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: url('https://source.unsplash.com/random/1920x1080/?fantasy,dungeon,forest'); /* Placeholder: Replace with your image URL */
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
   }
 }

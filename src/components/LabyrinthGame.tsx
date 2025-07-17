@@ -81,6 +81,25 @@ const LabyrinthGame: React.FC = () => {
     };
   }, [labyrinth, showRPS]); // Re-run effect if labyrinth or showRPS state changes
 
+  // useEffect for enemy movement on Floor 4
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | undefined;
+    const hasHeart = labyrinth.getInventoryItems().some(i => i.item.id === "heart-of-labyrinth-f3");
+
+    if (labyrinth.getCurrentFloor() === 3 && hasHeart && !labyrinth.isGameOver()) {
+        intervalId = setInterval(() => {
+            labyrinth.processEnemyMovement();
+            setGameVersion(prev => prev + 1); // Trigger re-render
+        }, 2000);
+    }
+
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    };
+  }, [labyrinth, gameVersion]); // Depend on labyrinth and gameVersion to re-evaluate conditions
+
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());
     const newMessages = labyrinth.getMessages();
@@ -89,10 +108,27 @@ const LabyrinthGame: React.FC = () => {
       labyrinth.clearMessages();
     }
 
-    // Check for enemy at current player location
     const playerLoc = labyrinth.getPlayerLocation();
-    const enemyIdAtLocation = labyrinth["enemyLocations"].get(`${playerLoc.x},${playerLoc.y},${labyrinth.getCurrentFloor()}`); // Include floor
-    if (enemyIdAtLocation) {
+    const enemyIdAtLocation = labyrinth["enemyLocations"].get(`${playerLoc.x},${playerLoc.y},${labyrinth.getCurrentFloor()}`);
+    const combatQueue = labyrinth.getCombatQueue();
+
+    // Prioritize combat queue
+    if (combatQueue.length > 0) {
+      const nextEnemyId = combatQueue[0];
+      const enemyInQueue = labyrinth.getEnemy(nextEnemyId);
+      if (enemyInQueue && !enemyInQueue.defeated) {
+        setCurrentEnemy(enemyInQueue);
+        setShowRPS(true);
+      } else {
+        // If the enemy at the head of the queue is defeated or invalid, remove it
+        // This should ideally be handled by fight() in game.ts, but as a fallback
+        if (enemyInQueue?.defeated) {
+            labyrinth.getCombatQueue().shift(); // Remove defeated enemy
+        }
+        // Re-evaluate after removing, might have another enemy in queue
+        setGameVersion(prev => prev + 1); // Force re-render to re-check queue
+      }
+    } else if (enemyIdAtLocation) { // If no combat in queue, check current cell
       const enemy = labyrinth.getEnemy(enemyIdAtLocation);
       if (enemy && !enemy.defeated) {
         setCurrentEnemy(enemy);
@@ -101,7 +137,7 @@ const LabyrinthGame: React.FC = () => {
         setShowRPS(false);
         setCurrentEnemy(undefined);
       }
-    } else {
+    } else { // No enemies at all
       setShowRPS(false);
       setCurrentEnemy(undefined);
     }
@@ -228,8 +264,8 @@ const LabyrinthGame: React.FC = () => {
             const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
-            // Check for final exit portal
-            const isFinalExit = (currentFloor === numFloors - 1) && (mapX === fullGridWidth - 1 && mapY === fullGridHeight - 1);
+            // Check for final exit portal (now the Altar on Floor 4)
+            const isFinalExit = (currentFloor === numFloors - 1) && (staticItemId === "ancient-altar-f3");
 
             if (isPlayerHere) {
                 cellContentIndicator = <PersonStanding size={12} />;
@@ -240,9 +276,9 @@ const LabyrinthGame: React.FC = () => {
                 cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
                 cellTitle = "Solid Wall";
             } else if (isFinalExit) {
-                cellContentIndicator = "◎"; // Portal icon
+                cellContentIndicator = "◎"; // Portal/Altar icon
                 cellClasses = "bg-purple-600 text-white animate-pulse";
-                cellTitle = `Exit Portal (Floor ${currentFloor + 1})`;
+                cellTitle = `Ancient Altar (Final Objective)`;
             } else if (isStaircase) {
                 cellContentIndicator = <ArrowDownCircle size={12} />; // Staircase icon
                 cellClasses = "bg-indigo-600 text-white";
@@ -349,7 +385,7 @@ const LabyrinthGame: React.FC = () => {
                 {equippedWeapon?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Weapon)</span>}
                 {equippedShield?.id === item.id && <span className="ml-2 text-green-400 dark:text-green-600">(Equipped Shield)</span>}
               </div>
-              {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield') && (
+              {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'artifact') && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -378,7 +414,7 @@ const LabyrinthGame: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, and Game Log */}
             <div className="flex flex-col items-center">
-              {/* Moved Current Room Info here */}
+              {/* Current Room Info */}
               <div className="mb-3 w-full text-center">
                 <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
                 <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
@@ -386,7 +422,7 @@ const LabyrinthGame: React.FC = () => {
 
               <Separator className="my-3 w-full bg-gray-700 dark:bg-gray-300" />
 
-              {/* Moved Adventurer's Status here */}
+              {/* Adventurer's Status */}
               <div className="mb-3 w-full text-center">
                 <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
                 <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">

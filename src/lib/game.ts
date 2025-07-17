@@ -150,11 +150,18 @@ export class Labyrinth {
   private whisperingWellEffectApplied: boolean;
   private trueCompassQuestCompleted: boolean;
   private trueCompassEffectApplied: boolean;
+  private labyrinthKeyFound: boolean; // New: For Floor 4 quest
+  private mysteriousBoxOpened: boolean; // New: For Floor 4 quest
+  private heartOfLabyrinthObtained: boolean; // New: For Floor 4 quest
+  private heartSacrificed: boolean; // New: For Floor 4 quest
+
   private searchRadius: number; // Initialized to 2
+  private combatQueue: string[]; // Stores enemy IDs for queued combat
+  private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
   private readonly MAP_WIDTH = 50;
   private readonly MAP_HEIGHT = 50;
-  private readonly NUM_FLOORS = 3; // Let's start with 3 floors
+  private readonly NUM_FLOORS = 4; // Increased to 4 floors
   private readonly MIN_ELEMENT_DISTANCE = 5; // Minimum distance between placed elements
 
   constructor() {
@@ -190,7 +197,14 @@ export class Labyrinth {
     this.whisperingWellEffectApplied = false;
     this.trueCompassQuestCompleted = false;
     this.trueCompassEffectApplied = false;
+    this.labyrinthKeyFound = false;
+    this.mysteriousBoxOpened = false;
+    this.heartOfLabyrinthObtained = false;
+    this.heartSacrificed = false;
+
     this.searchRadius = 2; // Initial search radius
+    this.combatQueue = [];
+    this.lastEnemyMoveTimestamp = 0;
 
     this.initializeLabyrinth();
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
@@ -365,7 +379,7 @@ export class Labyrinth {
       this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
       this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
 
-    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 3): The Broken Compass's Secret
+    } else if (floor === 2) { // Floor 3: The Broken Compass's Secret
       const brokenCompass = new Item("broken-compass-f2", "Broken Compass", "A beautiful but shattered compass. Its needle spins wildly, useless.", false, 'quest');
       this.items.set(brokenCompass.id, brokenCompass);
       this.placeElementRandomly(brokenCompass.id, this.itemLocations, floor);
@@ -386,7 +400,31 @@ export class Labyrinth {
         description: "Gather the 'Broken Compass', 'Artisan's Fine Tools', and a 'Prismatic Lens', then use them at the 'Ancient Repair Bench' to fix the compass.",
         isCompleted: () => this.trueCompassQuestCompleted
       });
-      // The exit portal is implicitly at the end of the main path for the last floor
+
+      // Place staircase to next floor (to Floor 4)
+      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Descent to the Core", "A dark, foreboding staircase leading to the deepest floor of the Labyrinth.", true, 'static');
+      this.items.set(staircase.id, staircase);
+      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
+      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
+
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
+      const labyrinthKey = new Item("labyrinth-key-f3", "Labyrinth Key", "A heavy, ornate key, pulsating with a faint, dark energy.", false, 'key');
+      this.items.set(labyrinthKey.id, labyrinthKey);
+      this.placeElementRandomly(labyrinthKey.id, this.itemLocations, floor);
+
+      const mysteriousBox = new Item("mysterious-box-f3", "Mysterious Box", "A sturdy, iron-bound box, locked tight. It seems to hum with a hidden power.", true, 'static');
+      this.items.set(mysteriousBox.id, mysteriousBox);
+      this.placeElementRandomly(mysteriousBox.id, this.staticItemLocations, floor);
+
+      const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
+      this.items.set(ancientAltar.id, ancientAltar);
+      this.placeElementRandomly(ancientAltar.id, this.staticItemLocations, floor);
+
+      this.floorObjectives.set(floor, {
+        description: "Find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
+        isCompleted: () => this.heartSacrificed
+      });
+      // The exit portal is implicitly at the end of the main path for the last floor, but the objective is to sacrifice the heart.
     }
 
     // Add generic enemies (scaled)
@@ -457,11 +495,11 @@ export class Labyrinth {
 
       // Ensure not placed at player start (0,0) of this floor, or on an existing element, and only in an open room
       // The exit portal for the *last* floor is special, so we don't place other elements there.
-      const isExitPortalForLastFloor = (floor === this.NUM_FLOORS - 1) && (x === this.MAP_WIDTH - 1 && y === this.MAP_HEIGHT - 1);
+      const isFinalExitPortal = (floor === this.NUM_FLOORS - 1) && (x === this.MAP_WIDTH - 1 && y === this.MAP_HEIGHT - 1);
 
       if (
         (x !== 0 || y !== 0) && // Not at floor entrance
-        !isExitPortalForLastFloor && // Not at the final exit portal
+        !isFinalExitPortal && // Not at the final exit portal (which is now the altar location)
         currentFloorMap[y][x] !== 'wall' && // Must be an open room
         !locationMap.has(coordStr) && // Check if the *current* locationMap already has something here
         !this.enemyLocations.has(coordStr) &&
@@ -693,12 +731,15 @@ export class Labyrinth {
         }
       }
 
-      // Check for enemy encounter
-      const enemyId = this.enemyLocations.get(`${newX},${newY},${this.currentFloor}`);
-      if (enemyId) {
-        const enemy = this.enemies.get(enemyId);
-        if (enemy && !enemy.defeated) {
-          this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
+      // Check for enemy encounter (only if no combat is queued)
+      if (this.combatQueue.length === 0) {
+        const enemyId = this.enemyLocations.get(`${newX},${newY},${this.currentFloor}`);
+        if (enemyId) {
+          const enemy = this.enemies.get(enemyId);
+          if (enemy && !enemy.defeated) {
+            this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
+            this.combatQueue.push(enemyId); // Add to queue for immediate combat
+          }
         }
       }
     } else {
@@ -948,6 +989,33 @@ export class Labyrinth {
             this.addMessage("The Ancient Repair Bench requires the Broken Compass, Artisan's Fine Tools, and a Prismatic Lens to function.");
             interacted = true;
           }
+        } else if (staticItem.id.startsWith("mysterious-box-")) { // Floor 4 Quest
+            const labyrinthKeyEntry = this.inventory.get("labyrinth-key-f3");
+            if (labyrinthKeyEntry) {
+                this.inventory.delete("labyrinth-key-f3");
+                this.mysteriousBoxOpened = true;
+                const heartOfLabyrinth = new Item("heart-of-labyrinth-f3", "Heart of the Labyrinth", "A pulsating, dark orb. It feels like the very essence of this place.", false, 'quest');
+                this.items.set(heartOfLabyrinth.id, heartOfLabyrinth);
+                this._handleFoundItem(heartOfLabyrinth, currentCoord);
+                this.heartOfLabyrinthObtained = true; // Set state that heart is obtained
+                this.addMessage("The Mysterious Box clicks open, revealing the throbbing Heart of the Labyrinth!");
+                interacted = true;
+            } else {
+                this.addMessage("The Mysterious Box is locked. It requires a special key.");
+                interacted = true;
+            }
+        } else if (staticItem.id.startsWith("ancient-altar-")) { // Floor 4 Quest
+            const heartEntry = this.inventory.get("heart-of-labyrinth-f3");
+            if (heartEntry) {
+                this.inventory.delete("heart-of-labyrinth-f3");
+                this.heartSacrificed = true;
+                this.gameOver = true; // Game over condition
+                this.addMessage("You place the Heart of the Labyrinth upon the Ancient Altar. A blinding flash of light erupts, followed by a deafening roar as the Labyrinth crumbles around you! You have destroyed it and escaped!");
+                interacted = true;
+            } else {
+                this.addMessage("The Ancient Altar demands a sacrifice, but you have nothing worthy to offer.");
+                interacted = true;
+            }
         } else if (staticItem.id.startsWith("staircase-")) {
             // This is handled by the specific staircase check above, but good to have a fallback message
             this.addMessage(`You stand before the ${staticItem.name}. It seems to be the way to the next floor.`);
@@ -1117,8 +1185,16 @@ export class Labyrinth {
       return;
     }
 
-    const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-    const enemyId = this.enemyLocations.get(currentCoord);
+    let enemyId: string | undefined;
+
+    // If combat queue is active, fight the first enemy in the queue
+    if (this.combatQueue.length > 0) {
+        enemyId = this.combatQueue[0];
+    } else {
+        // Otherwise, check for an enemy at the current location
+        const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+        enemyId = this.enemyLocations.get(currentCoord);
+    }
 
     if (!enemyId) {
       this.addMessage("There's no enemy here to fight.");
@@ -1127,6 +1203,11 @@ export class Labyrinth {
 
     const enemy = this.enemies.get(enemyId);
     if (!enemy || enemy.defeated) {
+      // This case should ideally not happen if combatQueue is managed well
+      // but as a safeguard, if the enemy is already defeated, remove from queue
+      if (this.combatQueue.length > 0 && this.combatQueue[0] === enemyId) {
+          this.combatQueue.shift();
+      }
       this.addMessage("The enemy here has already been defeated.");
       return;
     }
@@ -1163,6 +1244,31 @@ export class Labyrinth {
       this.addMessage(`A decisive blow! You hit the ${enemy.name} for ${this.getCurrentAttackDamage()} damage! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
         this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
+        // Find and remove the defeated enemy from enemyLocations
+        let enemyLocationKey: string | undefined;
+        for (const [key, id] of this.enemyLocations.entries()) {
+            if (id === enemyId) {
+                enemyLocationKey = key;
+                break;
+            }
+        }
+        if (enemyLocationKey) {
+            this.enemyLocations.delete(enemyLocationKey);
+        }
+
+        // Remove from combat queue
+        const queueIndex = this.combatQueue.indexOf(enemyId);
+        if (queueIndex > -1) {
+            this.combatQueue.splice(queueIndex, 1);
+        }
+
+        // If there are more enemies in the queue, add a message
+        if (this.combatQueue.length > 0) {
+            const nextEnemyInQueue = this.enemies.get(this.combatQueue[0]);
+            if (nextEnemyInQueue) {
+                this.addMessage(`Another ${nextEnemyInQueue.name} is ready to attack!`);
+            }
+        }
       }
     } else if (enemyWins) {
       const damageTaken = Math.max(0, actualEnemyDamage - this.getCurrentDefense());
@@ -1173,5 +1279,77 @@ export class Labyrinth {
         this.gameOver = true;
       }
     }
+  }
+
+  public processEnemyMovement() {
+    // Only move enemies on Floor 4 (index 3) if player has the Heart and game is not over
+    if (this.gameOver || this.currentFloor !== 3 || !this.inventory.has("heart-of-labyrinth-f3")) {
+        return;
+    }
+
+    // Check if 2 seconds have passed since last enemy move
+    if (Date.now() - this.lastEnemyMoveTimestamp < 2000) {
+        return;
+    }
+
+    this.lastEnemyMoveTimestamp = Date.now();
+    const playerX = this.playerLocation.x;
+    const playerY = this.playerLocation.y;
+    const currentFloorMap = this.floors.get(this.currentFloor)!;
+
+    const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
+    for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === this.currentFloor) {
+            const enemy = this.enemies.get(enemyId);
+            if (enemy && !enemy.defeated) {
+                enemiesToMove.push({ id: enemyId, coordStr, enemy });
+            }
+        }
+    }
+
+    for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
+        const [oldX, oldY] = coordStr.split(',').map(Number);
+        let newX = oldX;
+        let newY = oldY;
+
+        // Simple pathfinding: move one step closer to player
+        // Prioritize moving along the axis with greater distance
+        if (Math.abs(playerX - oldX) > Math.abs(playerY - oldY)) {
+            if (playerX > oldX) newX++;
+            else if (playerX < oldX) newX--;
+        } else if (Math.abs(playerY - oldY) > Math.abs(playerX - oldX)) {
+            if (playerY > oldY) newY++;
+            else if (playerY < oldY) newY--;
+        } else { // Equal distance, pick randomly or prioritize X
+            if (Math.random() < 0.5) {
+                if (playerX > oldX) newX++;
+                else if (playerX < oldX) newX--;
+            } else {
+                if (playerY > oldY) newY++;
+                else if (playerY < oldY) newY--;
+            }
+        }
+
+        // Ensure new position is valid and not a wall
+        if (newX >= 0 && newX < this.MAP_WIDTH && newY >= 0 && newY < this.MAP_HEIGHT && currentFloorMap[newY][newX] !== 'wall') {
+            // Check if the new position is the player's current location
+            if (newX === playerX && newY === playerY) {
+                if (!this.combatQueue.includes(enemyId)) {
+                    this.combatQueue.push(enemyId);
+                    this.addMessage(`A ${enemy.name} has caught up to you at your location! Prepare for combat!`);
+                }
+            } else {
+                // Move enemy to new position
+                this.enemyLocations.delete(coordStr); // Remove old location
+                this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
+                this.addMessage(`The ${enemy.name} moves closer...`);
+            }
+        }
+    }
+  }
+
+  public getCombatQueue(): string[] {
+    return this.combatQueue;
   }
 }

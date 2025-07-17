@@ -493,12 +493,15 @@ const LabyrinthGame: React.FC = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
+        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
           {labyrinth.isGameOver() && (
             <Button onClick={handleRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
               Restart Journey
             </Button>
           )}
+          <p className="text-xs text-gray-400 dark:text-gray-600 mt-2 text-center">
+            Please consider supporting this project. Donations can be received at this ETN wallet address: <span className="font-mono text-gray-300 dark:text-gray-700 break-all">0x3Ab5cBFfa0C2A3f15641DCA0fbEEBa1EFb166EE8</span>
+          </p>
         </CardFooter>
       </Card>
     </div>

@@ -376,7 +376,7 @@ const LabyrinthGame: React.FC = () => {
     return (
       <div className="mt-2">
         <p className="font-semibold text-base">Your Inventory:</p>
-        <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
+        <ul className="list-disc list-inside text-xs text-gray-300 dark:text-gray-700">
           {inventoryItems.map(({ item, quantity }) => ( // Destructure item and quantity
             <li key={item.id} className="flex items-center justify-between mb-1">
               <div>
@@ -406,14 +406,14 @@ const LabyrinthGame: React.FC = () => {
   return (
     <div 
       className="flex flex-col items-center justify-center min-h-screen p-1 sm:p-2 bg-cover bg-center"
-      style={{ backgroundImage: "url('/background.png')" }} // Placeholder for your background image
+      style={{ backgroundImage: "url('/game-background.png')" }}
     >
       <Card className="w-full max-w-5xl shadow-2xl text-gray-100 dark:text-gray-900 min-h-[90vh]">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 sm:pb-3">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 sm:pb-3 bg-gray-900/70 dark:bg-gray-100/70">
           <CardTitle className="text-2xl sm:text-3xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
-        <CardContent className="pt-2 sm:pt-4">
+        <CardContent className="pt-2 sm:pt-4 bg-gray-900/70 dark:bg-gray-100/70">
           {/* Reverted to grid for md and larger screens, flex column for smaller */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, Combat */}
@@ -496,7 +496,7 @@ const LabyrinthGame: React.FC = () => {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
+        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3 bg-gray-900/70 dark:bg-gray-100/70">
           {labyrinth.isGameOver() && (
             <Button onClick={handleRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
               Restart Journey

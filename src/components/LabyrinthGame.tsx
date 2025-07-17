@@ -455,15 +455,7 @@ const LabyrinthGame: React.FC = () => {
 
               <Separator className="my-3 bg-gray-700 dark:bg-gray-300" />
 
-              <div className="mb-3">
-                <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600">Labyrinth Progress:</h3>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center">
-                  <ArrowDownCircle className="mr-2 text-blue-500" size={18} /> Current Floor: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentFloor() + 1} / {labyrinth["NUM_FLOORS"]}</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center">
-                  <Target className="mr-2 text-green-500" size={18} /> Objective: <span className="font-bold text-green-400 ml-1">{labyrinth.getCurrentFloorObjective().description}</span>
-                </p>
-              </div>
+              {/* Removed Labyrinth Progress Section */}
             </div>
           </div>
         </CardContent>

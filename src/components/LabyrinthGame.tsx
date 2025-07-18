@@ -378,7 +378,7 @@ const LabyrinthGame: React.FC = () => {
     return (
       <div className="mt-2">
         <p className="font-semibold text-base">Your Inventory:</p>
-        <ul className="list-disc list-inside text-sm text-gray-300 dark:text-gray-700">
+        <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
           {inventoryItems.map(({ item, quantity }) => {
             let equippedStatus = "";
             let isEquipped = false;
@@ -406,9 +406,9 @@ const LabyrinthGame: React.FC = () => {
             return (
               <li key={item.id} className="flex items-center justify-between mb-1">
                 <div>
-                  <span className="font-semibold text-gray-100 dark:text-gray-900">{item.name}</span>
-                  {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: <span className="text-gray-300 dark:text-gray-700">{item.description}</span>
-                  {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-500">{equippedStatus}</span>}
+                  <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
+                  {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
+                  {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
                 </div>
                 {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
                   <Button

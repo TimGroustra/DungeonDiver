@@ -1340,19 +1340,18 @@ export class Labyrinth {
     }
   }
 
-  public processEnemyMovement() {
-    console.log("processEnemyMovement called.");
-    console.log(`Current Floor: ${this.currentFloor}, Game Over: ${this.gameOver}, Has Heart: ${this.inventory.has("heart-of-labyrinth-f3")}`);
+  private _isValidEnemyMove(x: number, y: number, currentFloorMap: (LogicalRoom | 'wall')[][]): boolean {
+    return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
+  }
 
+  public processEnemyMovement() {
     // Only move enemies on Floor 4 (index 3) if player has the Heart and game is not over
     if (this.gameOver || this.currentFloor !== 3 || !this.inventory.has("heart-of-labyrinth-f3")) {
-        console.log("Enemy movement conditions not met. Returning.");
         return;
     }
 
     // Check if 2 seconds have passed since last enemy move
     if (Date.now() - this.lastEnemyMoveTimestamp < 2000) {
-        console.log("Less than 2 seconds since last enemy move. Skipping.");
         return;
     }
 
@@ -1372,7 +1371,6 @@ export class Labyrinth {
         }
     }
 
-    console.log(`Found ${enemiesToMove.length} undefeated enemies on current floor.`);
     if (enemiesToMove.length === 0) {
         this.addMessage("The air is still; no enemies stir nearby.");
     }
@@ -1382,42 +1380,61 @@ export class Labyrinth {
         let newX = oldX;
         let newY = oldY;
 
-        // Simple pathfinding: move one step closer to player
-        // Prioritize moving along the axis with greater distance
-        if (Math.abs(playerX - oldX) > Math.abs(playerY - oldY)) {
-            if (playerX > oldX) newX++;
-            else if (playerX < oldX) newX--;
-        } else if (Math.abs(playerY - oldY) > Math.abs(playerX - oldX)) {
-            if (playerY > oldY) newY++;
-            else if (playerY < oldY) newY--;
-        } else { // Equal distance, pick randomly or prioritize X
-            if (Math.random() < 0.5) {
-                if (playerX > oldX) newX++;
-                else if (playerX < oldX) newX--;
+        const targetX = playerX;
+        const targetY = playerY;
+
+        const dx = targetX - oldX;
+        const dy = targetY - oldY;
+
+        let movedThisTurn = false;
+
+        // Determine preferred move direction based on greater distance
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // Try moving horizontally
+            const potentialX = oldX + Math.sign(dx);
+            if (this._isValidEnemyMove(potentialX, oldY, currentFloorMap)) {
+                newX = potentialX;
+                movedThisTurn = true;
             } else {
-                if (playerY > oldY) newY++;
-                else if (playerY < oldY) newY--;
+                // If horizontal blocked, try vertical
+                const potentialY = oldY + Math.sign(dy);
+                if (this._isValidEnemyMove(oldX, potentialY, currentFloorMap)) {
+                    newY = potentialY;
+                    movedThisTurn = true;
+                }
+            }
+        } else {
+            // Try moving vertically
+            const potentialY = oldY + Math.sign(dy);
+            if (this._isValidEnemyMove(oldX, potentialY, currentFloorMap)) {
+                newY = potentialY;
+                movedThisTurn = true;
+            } else {
+                // If vertical blocked, try horizontal
+                const potentialX = oldX + Math.sign(dx);
+                if (this._isValidEnemyMove(potentialX, oldY, currentFloorMap)) {
+                    newX = potentialX;
+                    movedThisTurn = true;
+                }
             }
         }
 
-        // Ensure new position is valid and not a wall
-        if (newX >= 0 && newX < this.MAP_WIDTH && newY >= 0 && newY < this.MAP_HEIGHT && currentFloorMap[newY][newX] !== 'wall') {
-            // Check if the new position is the player's current location
-            if (newX === playerX && newY === playerY) {
-                if (!this.combatQueue.includes(enemyId)) {
-                    this.combatQueue.push(enemyId);
-                    this.addMessage(`A ${enemy.name} has caught up to you at your location! Prepare for combat!`);
-                    console.log(`Enemy ${enemy.name} at (${oldX},${oldY}) moved to player location (${newX},${newY}). Added to combat queue.`);
-                }
-            } else {
-                // Move enemy to new position
-                this.enemyLocations.delete(coordStr); // Remove old location
-                this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
-                this.addMessage(`The ${enemy.name} moves closer...`);
-                console.log(`Enemy ${enemy.name} moved from (${oldX},${oldY}) to (${newX},${newY}).`);
+        if (!movedThisTurn) {
+            this.addMessage(`The ${enemy.name} seems to be stuck, unable to find a path.`);
+            continue; // Skip to next enemy
+        }
+
+        // Check if the new position is the player's current location
+        if (newX === playerX && newY === playerY) {
+            if (!this.combatQueue.includes(enemyId)) {
+                this.combatQueue.push(enemyId);
+                this.addMessage(`A ${enemy.name} has caught up to you at your location! Prepare for combat!`);
             }
         } else {
-            console.log(`Enemy ${enemy.name} at (${oldX},${oldY}) could not move to (${newX},${newY}) - invalid or wall.`);
+            // Move enemy to new position
+            this.enemyLocations.delete(coordStr); // Remove old location
+            this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
+            this.addMessage(`The ${enemy.name} moves closer...`);
         }
     }
   }

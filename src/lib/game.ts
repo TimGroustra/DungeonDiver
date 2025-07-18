@@ -955,7 +955,13 @@ export class Labyrinth {
                         foundSomethingInRadius = true;
                     }
                 }
-                // Traps are no longer revealed by search
+                // New: Reveal traps in the log
+                const hasTrap = this.trapsLocations.has(coordStr);
+                const isTrapTriggered = this.triggeredTraps.has(coordStr);
+                if (hasTrap && !isTrapTriggered) {
+                    this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
+                    foundSomethingInRadius = true;
+                }
             }
         }
     }

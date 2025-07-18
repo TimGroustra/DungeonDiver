@@ -81,16 +81,18 @@ const LabyrinthGame: React.FC = () => {
     };
   }, [labyrinth, showRPS]); // Re-run effect if labyrinth or showRPS state changes
 
-  // useEffect for enemy movement on Floor 4
+  // useEffect for enemy movement based on floor objective completion
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
-    const hasHeart = labyrinth.getInventoryItems().some(i => i.item.id === "heart-of-labyrinth-f3");
+    // Check if the current floor's objective is completed and the game is not over
+    const isObjectiveCompleted = labyrinth.getCurrentFloorObjective().isCompleted();
+    const isGameOver = labyrinth.isGameOver();
 
-    if (labyrinth.getCurrentFloor() === 3 && hasHeart && !labyrinth.isGameOver()) {
+    if (isObjectiveCompleted && !isGameOver) {
         intervalId = setInterval(() => {
             labyrinth.processEnemyMovement();
             setGameVersion(prev => prev + 1); // Trigger re-render
-        }, 2000);
+        }, 2000); // Move every 2 seconds
     }
 
     return () => {
@@ -98,7 +100,7 @@ const LabyrinthGame: React.FC = () => {
             clearInterval(intervalId);
         }
     };
-  }, [labyrinth, gameVersion]); // Depend on labyrinth and gameVersion to re-evaluate conditions
+  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.getCurrentFloorObjective().isCompleted()]); // Depend on labyrinth, gameVersion, current floor, and objective completion status
 
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());

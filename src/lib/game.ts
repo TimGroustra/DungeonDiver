@@ -1352,8 +1352,8 @@ export class Labyrinth {
   }
 
   public processEnemyMovement() {
-    // Only move enemies on Floor 4 (index 3) if player has the Heart and game is not over
-    if (this.gameOver || this.currentFloor !== 3 || !this.inventory.has("heart-of-labyrinth-f3")) {
+    // Enemies only move if the current floor's objective is completed and game is not over
+    if (this.gameOver || !this.getCurrentFloorObjective().isCompleted()) {
         return;
     }
 
@@ -1370,7 +1370,7 @@ export class Labyrinth {
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === this.currentFloor) {
+        if (f === this.currentFloor) { // Only consider enemies on the current floor
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated) {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
@@ -1379,7 +1379,7 @@ export class Labyrinth {
     }
 
     if (enemiesToMove.length === 0) {
-        this.addMessage("The air is still; no enemies stir nearby.");
+        return;
     }
 
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
@@ -1427,7 +1427,6 @@ export class Labyrinth {
         }
 
         if (!movedThisTurn) {
-            this.addMessage(`The ${enemy.name} seems to be stuck, unable to find a path.`);
             continue; // Skip to next enemy
         }
 
@@ -1441,7 +1440,6 @@ export class Labyrinth {
             // Move enemy to new position
             this.enemyLocations.delete(coordStr); // Remove old location
             this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
-            this.addMessage(`The ${enemy.name} moves closer...`);
         }
     }
   }

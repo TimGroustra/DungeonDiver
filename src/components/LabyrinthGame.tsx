@@ -12,7 +12,15 @@ import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCirc
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 // Removed DropdownMenu imports as they are no longer needed
 
-const LabyrinthGame: React.FC = () => {
+interface LabyrinthGameProps {
+  playerName: string;
+  gameStarted: boolean;
+  elapsedTime: number;
+  onGameOver: (result: { type: 'victory' | 'defeat', name: string, time: number }) => void;
+  onGameRestart: () => void;
+}
+
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, elapsedTime, onGameOver, onGameRestart }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
@@ -25,9 +33,26 @@ const LabyrinthGame: React.FC = () => {
   const dynamicViewportSize = 10; // Restored to fixed size
   const cellSize = 20; // Restored to fixed size
 
+  // Initialize labyrinth on component mount or game restart
+  useEffect(() => {
+    if (gameStarted) {
+      setLabyrinth(new Labyrinth());
+      setGameVersion(0);
+      setGameLog(["Game started!"]);
+      setShowRPS(false);
+      setCurrentEnemy(undefined);
+    }
+  }, [gameStarted]); // Only re-initialize when gameStarted changes (e.g., from false to true)
+
   useEffect(() => {
     updateGameDisplay();
-  }, [gameVersion]); // Depend on gameVersion to trigger updates
+    if (labyrinth.isGameOver()) {
+      const result = labyrinth.getGameResult();
+      if (result) {
+        onGameOver(result);
+      }
+    }
+  }, [gameVersion, labyrinth, onGameOver]); // Depend on gameVersion to trigger updates
 
   useEffect(() => {
     // Scroll to bottom of log (only relevant if log is scrollable, but keeping ref for consistency)
@@ -39,8 +64,8 @@ const LabyrinthGame: React.FC = () => {
   // New useEffect for keyboard controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (labyrinth.isGameOver() || showRPS) {
-        // Do not allow actions if game is over or in combat
+      if (!gameStarted || labyrinth.isGameOver() || showRPS) {
+        // Do not allow actions if game is not started, game is over, or in combat
         return;
       }
 
@@ -79,7 +104,7 @@ const LabyrinthGame: React.FC = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [labyrinth, showRPS]); // Re-run effect if labyrinth or showRPS state changes
+  }, [gameStarted, labyrinth, showRPS, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
 
   // useEffect for enemy movement based on floor objective completion
   useEffect(() => {
@@ -150,7 +175,7 @@ const LabyrinthGame: React.FC = () => {
       toast.info("Cannot move right now.");
       return;
     }
-    labyrinth.move(direction);
+    labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
@@ -168,13 +193,13 @@ const LabyrinthGame: React.FC = () => {
       toast.info("Cannot interact right now.");
       return;
     }
-    labyrinth.interact();
+    labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
   const handleRPSChoice = (choice: "left" | "center" | "right") => {
     if (!currentEnemy) return;
-    labyrinth.fight(choice);
+    labyrinth.fight(choice, playerName, elapsedTime);
     setGameVersion(prev => prev + 1); // Increment version to force re-render
     // The updateGameDisplay useEffect will handle showing/hiding RPS based on enemy status
   };
@@ -184,19 +209,8 @@ const LabyrinthGame: React.FC = () => {
       toast.info("Cannot use items right now.");
       return;
     }
-    labyrinth.useItem(itemId);
+    labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
-  };
-
-  const handleRestart = () => {
-    const newLabyrinth = new Labyrinth();
-    setLabyrinth(newLabyrinth);
-    setGameVersion(0); // Reset version on restart
-    setCurrentLogicalRoom(newLabyrinth.getCurrentLogicalRoom());
-    setGameLog(["Game restarted!"]);
-    setShowRPS(false);
-    setCurrentEnemy(undefined);
-    toast.success("Game restarted!");
   };
 
   const renderMap = () => {
@@ -426,6 +440,10 @@ const LabyrinthGame: React.FC = () => {
     );
   };
 
+  if (!gameStarted) {
+    return null; // Don't render game content until game starts
+  }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1 sm:p-2">
       <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
@@ -543,7 +561,7 @@ const LabyrinthGame: React.FC = () => {
         </CardContent>
         <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
           {labyrinth.isGameOver() && (
-            <Button onClick={handleRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
+            <Button onClick={onGameRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
               Restart Journey
             </Button>
           )}

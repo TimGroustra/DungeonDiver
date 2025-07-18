@@ -164,6 +164,8 @@ export class Labyrinth {
   private readonly NUM_FLOORS = 4; // Increased to 4 floors
   private readonly MIN_ELEMENT_DISTANCE = 3; // Decreased minimum distance between placed elements
 
+  private gameResult: { type: 'victory' | 'defeat', name: string, time: number } | null = null; // New: Stores game result
+
   constructor() {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
@@ -626,6 +628,16 @@ export class Labyrinth {
     return this.gameOver;
   }
 
+  // New method to get game result
+  getGameResult(): { type: 'victory' | 'defeat', name: string, time: number } | null {
+    return this.gameResult;
+  }
+
+  private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number) {
+    this.gameOver = true;
+    this.gameResult = { type, name: playerName, time };
+  }
+
   private markVisited(coord: Coordinate) {
     let floorVisited = this.visitedCells.get(this.currentFloor);
     if (!floorVisited) {
@@ -662,7 +674,7 @@ export class Labyrinth {
     return this.floorObjectives.get(this.currentFloor)!; // Should always exist
   }
 
-  ascendFloor() {
+  ascendFloor(playerName: string, time: number) {
     if (this.currentFloor >= this.NUM_FLOORS - 1) {
       this.addMessage("You are already on the deepest floor. There's no way further down.");
       return;
@@ -681,7 +693,7 @@ export class Labyrinth {
     this.addMessage(this.getCurrentFloorObjective().description);
   }
 
-  private _tryActivateWellBlessing(): boolean {
+  private _tryActivateWellBlessing(playerName: string, time: number): boolean {
     const blessingEntry = this.inventory.get("well-blessing-f1");
     if (blessingEntry && blessingEntry.quantity > 0 && blessingEntry.item.effectValue) {
       blessingEntry.quantity--;
@@ -698,7 +710,7 @@ export class Labyrinth {
     return false;
   }
 
-  move(direction: "north" | "south" | "east" | "west") {
+  move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -751,9 +763,9 @@ export class Labyrinth {
           this.triggeredTraps.add(trapTriggeredCoord); // Mark trap as triggered
           this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
           if (this.playerHealth <= 0) {
-              if (!this._tryActivateWellBlessing()) {
+              if (!this._tryActivateWellBlessing(playerName, time)) {
                   this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
-                  this.gameOver = true;
+                  this.setGameOver('defeat', playerName, time);
               }
           }
       }
@@ -763,7 +775,7 @@ export class Labyrinth {
         const finalObjective = this.floorObjectives.get(this.currentFloor);
         if (finalObjective?.isCompleted()) {
           this.addMessage("A shimmering portal, bathed in ethereal light! You step through, escaping its grasp! Congratulations, brave adventurer!");
-          this.gameOver = true;
+          this.setGameOver('victory', playerName, time);
         } else {
           this.addMessage("The shimmering portal hums with energy, but it seems to require the completion of this floor's objective to activate fully. You cannot escape yet!");
         }
@@ -953,7 +965,7 @@ export class Labyrinth {
     }
   }
 
-  interact() {
+  interact(playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -965,7 +977,7 @@ export class Labyrinth {
     // Check for floor exit staircase
     const staircaseCoord = this.floorExitStaircases.get(this.currentFloor);
     if (staircaseCoord && staircaseCoord.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
-      this.ascendFloor();
+      this.ascendFloor(playerName, time);
       interacted = true;
     }
 
@@ -1068,7 +1080,7 @@ export class Labyrinth {
             if (heartEntry) {
                 this.inventory.delete("heart-of-labyrinth-f3");
                 this.heartSacrificed = true;
-                this.gameOver = true; // Game over condition
+                this.setGameOver('victory', playerName, time); // Game over condition
                 this.addMessage("You place the Heart of the Labyrinth upon the Ancient Altar. A blinding flash of light erupts, followed by a deafening roar as the Labyrinth crumbles around you! You have destroyed it and escaped!");
                 interacted = true;
             } else {
@@ -1120,7 +1132,7 @@ export class Labyrinth {
     }
   }
 
-  useItem(itemId: string) {
+  useItem(itemId: string, playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1245,7 +1257,7 @@ export class Labyrinth {
     }
   }
 
-  fight(playerChoice: "left" | "center" | "right") {
+  fight(playerChoice: "left" | "center" | "right", playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1341,9 +1353,9 @@ export class Labyrinth {
       this.playerHealth -= damageTaken;
       this.addMessage(`The ${enemy.name} strikes true! You wince as you take ${damageTaken} damage. Your health is now ${this.playerHealth}.`);
       if (this.playerHealth <= 0) {
-        if (!this._tryActivateWellBlessing()) {
+        if (!this._tryActivateWellBlessing(playerName, time)) {
             this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
-            this.gameOver = true;
+            this.setGameOver('defeat', playerName, time);
         }
       }
     }

@@ -373,7 +373,7 @@ const LabyrinthGame: React.FC = () => {
     const equippedCompass = labyrinth.getEquippedCompass();
 
     if (inventoryItems.length === 0) {
-      return <p className="text-gray-600 dark:text-gray-400 text-sm">Your inventory is empty. Perhaps you'll find something useful...</p>;
+      return <p className="text-gray-300 dark:text-gray-700 text-sm italic">Your inventory is empty. Perhaps you'll find something useful...</p>;
     }
     return (
       <div className="mt-2">

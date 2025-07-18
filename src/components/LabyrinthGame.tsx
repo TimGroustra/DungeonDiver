@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 // Removed DropdownMenu imports as they are no longer needed
 
@@ -305,7 +305,7 @@ const LabyrinthGame: React.FC = () => {
                 cellClasses = "bg-green-700 text-green-200";
                 cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
             } else if (hasSolvedPuzzle) {
-                cellContentIndicator = <PuzzleIcon size={12} />;
+                cellContentIndicator = <Sparkles size={12} />;
                 cellClasses = "bg-purple-800 text-purple-200";
                 cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
             } else {

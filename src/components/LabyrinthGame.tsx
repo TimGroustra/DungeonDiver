@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 // Removed DropdownMenu imports as they are no longer needed
 
@@ -277,7 +277,7 @@ const LabyrinthGame: React.FC = () => {
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
             if (isFinalExit) {
-                cellContentIndicator = "◎"; // Portal/Altar icon
+                cellContentIndicator = <Crown size={12} />; // Changed to Crown
                 cellClasses = "bg-purple-600 text-white animate-pulse";
                 cellTitle = `Ancient Altar (Final Objective)`;
             } else if (isStaircase) {
@@ -285,23 +285,21 @@ const LabyrinthGame: React.FC = () => {
                 cellClasses = "bg-indigo-600 text-white";
                 cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
-                if (currentEnemy && currentEnemy.id === enemyId && showRPS) {
-                    cellContentIndicator = <Sword size={12} />;
-                    cellClasses = "bg-red-800 text-red-200";
-                    cellTitle = `Explored (${mapX},${mapY}) (Combat Active!)`;
-                } else {
-                    cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-                    cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
-                    cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
-                }
+                cellContentIndicator = <Swords size={12} />; // Changed to Swords
+                cellClasses = "bg-red-900 text-red-300 animate-pulse"; // Darker red, more menacing
+                cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {
-                cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-                cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+                cellContentIndicator = <PuzzleIcon size={12} />; // Keep PuzzleIcon
+                cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
                 cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-                cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
-                cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
+                cellContentIndicator = <Gem size={12} />; // Changed to Gem
+                cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
                 cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+            } else if (hasTrap) { // Trap is present but not yet triggered
+                cellContentIndicator = " "; // Invisible until triggered
+                cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500"; // Same as visited empty room
+                cellTitle = `Explored (${mapX},${mapY})`; // Don't reveal trap in title
             } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
                 cellContentIndicator = <BookOpen size={12} />;
                 cellClasses = "bg-green-700 text-green-200";

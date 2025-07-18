@@ -139,6 +139,7 @@ export class Labyrinth {
   private staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
   private revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   private trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
+  private triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
   private enemies: Map<string, Enemy>;
   private puzzles: Map<string, Puzzle>;
   private items: Map<string, Item>;
@@ -185,6 +186,7 @@ export class Labyrinth {
     this.staticItemLocations = new Map();
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
+    this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
@@ -614,6 +616,10 @@ export class Labyrinth {
     return this.revealedStaticItems;
   }
 
+  public getTriggeredTraps(): Set<string> {
+    return this.triggeredTraps;
+  }
+
   isGameOver(): boolean {
     return this.gameOver;
   }
@@ -740,7 +746,7 @@ export class Labyrinth {
       const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
       if (this.trapsLocations.has(trapTriggeredCoord)) {
           this.playerHealth -= 10;
-          this.trapsLocations.delete(trapTriggeredCoord); // Trap is consumed after triggering
+          this.triggeredTraps.add(trapTriggeredCoord); // Mark trap as triggered
           this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
           if (this.playerHealth <= 0) {
               if (!this._tryActivateWellBlessing()) {
@@ -935,6 +941,7 @@ export class Labyrinth {
                         foundSomethingInRadius = true;
                     }
                 }
+                // Traps are no longer revealed by search
             }
         }
     }

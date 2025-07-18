@@ -202,6 +202,7 @@ const LabyrinthGame: React.FC = () => {
     const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells(); // This now gets visited cells for the current floor
     const revealedStaticItems = labyrinth.getRevealedStaticItems();
+    const triggeredTraps = labyrinth.getTriggeredTraps(); // Get triggered traps
     const fullGridWidth = mapGrid[0]?.length || 0;
     const fullGridHeight = mapGrid.length;
     const currentFloor = labyrinth.getCurrentFloor();
@@ -236,6 +237,13 @@ const LabyrinthGame: React.FC = () => {
           const isVisited = visitedCells.has(cellCoord);
           const isWall = mapGrid[mapY][mapX] === 'wall';
 
+          // Check for final exit portal (now the Altar on Floor 4)
+          const isFinalExit = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
+          // Check if this cell has a trap and if it has been triggered
+          const hasTrap = labyrinth["trapsLocations"].has(fullCoordStr);
+          const isTrapTriggered = triggeredTraps.has(fullCoordStr);
+
+
           if (isPlayerHere) {
             cellContentIndicator = <PersonStanding size={12} />;
             cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
@@ -244,7 +252,11 @@ const LabyrinthGame: React.FC = () => {
             cellContentIndicator = "█";
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
-          } else if (isVisited) { // Only show special indicators on visited cells
+          } else if (isTrapTriggered) { // Prioritize triggered traps to show them
+              cellContentIndicator = <Dices size={12} />;
+              cellClasses = "bg-orange-700 text-orange-200"; // A different color for triggered traps
+              cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
+          } else if (isVisited) { // Only show special indicators on visited cells if not a triggered trap
             const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
             const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
             const hasUndefeatedEnemy = enemy && !enemy.defeated;
@@ -264,18 +276,7 @@ const LabyrinthGame: React.FC = () => {
             const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
-            // Check for final exit portal (now the Altar on Floor 4)
-            const isFinalExit = (currentFloor === numFloors - 1) && (staticItemId === "ancient-altar-f3");
-
-            if (isPlayerHere) {
-                cellContentIndicator = <PersonStanding size={12} />;
-                cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
-                cellTitle = "You are here";
-            } else if (isWall) {
-                cellContentIndicator = "█";
-                cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
-                cellTitle = "Solid Wall";
-            } else if (isFinalExit) {
+            if (isFinalExit) {
                 cellContentIndicator = "◎"; // Portal/Altar icon
                 cellClasses = "bg-purple-600 text-white animate-pulse";
                 cellTitle = `Ancient Altar (Final Objective)`;
@@ -301,10 +302,6 @@ const LabyrinthGame: React.FC = () => {
                 cellContentIndicator = <HelpCircle size={12} className="animate-pulse" />;
                 cellClasses = "bg-yellow-900 text-yellow-300 border-yellow-600 dark:bg-yellow-200 dark:text-yellow-800 dark:border-yellow-500";
                 cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
-            } else if (labyrinth["trapsLocations"].has(fullCoordStr)) {
-                cellContentIndicator = <Dices size={12} className="animate-pulse" />;
-                cellClasses = "bg-orange-900 text-orange-300 border-orange-600 dark:bg-orange-200 dark:text-orange-800 dark:border-orange-500";
-                cellTitle = `Explored (${mapX},${mapY}) (Hidden Trap!)`;
             } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
                 cellContentIndicator = <BookOpen size={12} />;
                 cellClasses = "bg-green-700 text-green-200";

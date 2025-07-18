@@ -1341,13 +1341,18 @@ export class Labyrinth {
   }
 
   public processEnemyMovement() {
+    console.log("processEnemyMovement called.");
+    console.log(`Current Floor: ${this.currentFloor}, Game Over: ${this.gameOver}, Has Heart: ${this.inventory.has("heart-of-labyrinth-f3")}`);
+
     // Only move enemies on Floor 4 (index 3) if player has the Heart and game is not over
     if (this.gameOver || this.currentFloor !== 3 || !this.inventory.has("heart-of-labyrinth-f3")) {
+        console.log("Enemy movement conditions not met. Returning.");
         return;
     }
 
     // Check if 2 seconds have passed since last enemy move
     if (Date.now() - this.lastEnemyMoveTimestamp < 2000) {
+        console.log("Less than 2 seconds since last enemy move. Skipping.");
         return;
     }
 
@@ -1365,6 +1370,11 @@ export class Labyrinth {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
             }
         }
+    }
+
+    console.log(`Found ${enemiesToMove.length} undefeated enemies on current floor.`);
+    if (enemiesToMove.length === 0) {
+        this.addMessage("The air is still; no enemies stir nearby.");
     }
 
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
@@ -1397,13 +1407,17 @@ export class Labyrinth {
                 if (!this.combatQueue.includes(enemyId)) {
                     this.combatQueue.push(enemyId);
                     this.addMessage(`A ${enemy.name} has caught up to you at your location! Prepare for combat!`);
+                    console.log(`Enemy ${enemy.name} at (${oldX},${oldY}) moved to player location (${newX},${newY}). Added to combat queue.`);
                 }
             } else {
                 // Move enemy to new position
                 this.enemyLocations.delete(coordStr); // Remove old location
                 this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
                 this.addMessage(`The ${enemy.name} moves closer...`);
+                console.log(`Enemy ${enemy.name} moved from (${oldX},${oldY}) to (${newX},${newY}).`);
             }
+        } else {
+            console.log(`Enemy ${enemy.name} at (${oldX},${oldY}) could not move to (${newX},${newY}) - invalid or wall.`);
         }
     }
   }

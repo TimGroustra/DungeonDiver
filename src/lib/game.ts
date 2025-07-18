@@ -159,10 +159,10 @@ export class Labyrinth {
   private combatQueue: string[]; // Stores enemy IDs for queued combat
   private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
-  private readonly MAP_WIDTH = 50;
-  private readonly MAP_HEIGHT = 50;
+  private readonly MAP_WIDTH = 100; // Increased map width
+  private readonly MAP_HEIGHT = 100; // Increased map height
   private readonly NUM_FLOORS = 4; // Increased to 4 floors
-  private readonly MIN_ELEMENT_DISTANCE = 5; // Minimum distance between placed elements
+  private readonly MIN_ELEMENT_DISTANCE = 3; // Decreased minimum distance between placed elements
 
   constructor() {
     this.floors = new Map();
@@ -428,21 +428,23 @@ export class Labyrinth {
     }
 
     // Add generic enemies (scaled)
-    const goblin = new Enemy(`goblin-${floor}-1`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
-    this.enemies.set(goblin.id, goblin);
-    this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
+    const numGenericEnemies = 10; // Increased number of generic enemies
+    for (let i = 0; i < numGenericEnemies; i++) {
+      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
+      this.enemies.set(goblin.id, goblin);
+      this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
 
-    const skeleton = new Enemy(`skeleton-${floor}-1`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier));
-    this.enemies.set(skeleton.id, skeleton);
-    this.placeElementRandomly(skeleton.id, this.enemyLocations, floor);
+      const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier));
+      this.enemies.set(skeleton.id, skeleton);
+      this.placeElementRandomly(skeleton.id, this.enemyLocations, floor);
 
-    const shadowBeast = new Enemy(`shadow-beast-${floor}-1`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier));
-    this.enemies.set(shadowBeast.id, shadowBeast);
-    this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor);
+      const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier));
+      this.enemies.set(shadowBeast.id, shadowBeast);
+      this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor);
+    }
 
-    // Add traps (half as many as enemies, scaled damage)
-    const numEnemies = 3; // Fixed number of generic enemies per floor
-    const numTraps = Math.floor(numEnemies / 2);
+    // Add traps (same number as enemies)
+    const numTraps = numGenericEnemies; // Increased number of traps
     for (let i = 0; i < numTraps; i++) {
       this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor);
     }

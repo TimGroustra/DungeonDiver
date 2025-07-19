@@ -133,18 +133,18 @@ export class Labyrinth {
   private messages: string[];
   private gameOver: boolean;
   private visitedCells: Map<number, Set<string>>; // Stores "x,y" strings of visited cells per floor
-  private enemyLocations: Map<string, string>; // "x,y,floor" -> enemyId
-  private puzzleLocations: Map<string, string>; // "x,y,floor" -> puzzleId
-  private itemLocations: Map<string, string>; // "x,y,floor" -> itemId (for visible items)
-  private staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
-  private revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
-  private trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
-  private triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
-  private enemies: Map<string, Enemy>;
-  private puzzles: Map<string, Puzzle>;
-  private items: Map<string, Item>;
+  public enemyLocations: Map<string, string>; // "x,y,floor" -> enemyId
+  public puzzleLocations: Map<string, string>; // "x,y,floor" -> puzzleId
+  public itemLocations: Map<string, string>; // "x,y,floor" -> itemId (for visible items)
+  public staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
+  public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
+  public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
+  public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
+  public enemies: Map<string, Enemy>;
+  public puzzles: Map<string, Puzzle>;
+  public items: Map<string, Item>;
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
-  private floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
+  public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -156,22 +156,22 @@ export class Labyrinth {
   private heartSacrificed: boolean; // New: For Floor 4 quest
 
   private baseSearchRadius: number; // Base search radius
-  private combatQueue: string[]; // Stores enemy IDs for queued combat
+  public combatQueue: string[]; // Stores enemy IDs for queued combat
   private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
   // Watcher of the Core Boss specific states
-  private watcherOfTheCore: Enemy | undefined;
-  private watcherLocation: Coordinate | undefined;
+  public watcherOfTheCore: Enemy | undefined;
+  public watcherLocation: Coordinate | undefined;
   private bossState: 'red_light' | 'green_light';
   private lastBossStateChange: number;
   private isRedLightPulseActive: boolean; // Flag for current pulse
   private playerStunnedTurns: number; // How many turns player is stunned/misdirected
   private bossDefeated: boolean;
-  private bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
+  public bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
-  private readonly NUM_FLOORS = 4; // Increased to 4 floors
+  public readonly NUM_FLOORS = 4; // Increased to 4 floors
   private readonly MIN_ELEMENT_DISTANCE = 3; // Decreased minimum distance between placed elements
 
   private gameResult: { type: 'victory' | 'defeat', name: string, time: number } | null = null; // New: Stores game result
@@ -449,8 +449,19 @@ export class Labyrinth {
 
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
+      const passageEndX = this.MAP_WIDTH - 1;
       const passageStartY = this.MAP_HEIGHT - 5;
+      const passageEndY = this.MAP_HEIGHT - 1;
       const passageMidY = passageStartY + Math.floor(5 / 2); // Middle row of the 5-cell height
+
+      for (let y = passageStartY; y <= passageEndY; y++) {
+        for (let x = passageStartX; x <= passageEndX; x++) {
+          if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
+            currentFloorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
+            this.bossPassageCoords.add(`${x},${y},${floor}`);
+          }
+        }
+      }
 
       // Place The Watcher of the Core (Boss) at the start of the passage
       const watcherX = passageStartX;
@@ -477,7 +488,7 @@ export class Labyrinth {
       this.placeElementInBossPassage(mysteriousBox.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Defeat 'The Watcher of the Core', find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
+        description: "Find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then defeat 'The Watcher of the Core', and finally sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
         isCompleted: () => this.bossDefeated && this.heartSacrificed
       });
     }
@@ -505,7 +516,6 @@ export class Labyrinth {
     }
   }
 
-  // Helper to get coordinates of an element (used for staircase)
   private getCoordForElement(id: string, locationMap: Map<string, string | boolean>, floor: number): Coordinate | undefined {
     for (const [coordStr, elementId] of locationMap.entries()) {
       const [x, y, f] = coordStr.split(',').map(Number);
@@ -516,7 +526,6 @@ export class Labyrinth {
     return undefined;
   }
 
-  // NEW: Helper to place elements specifically within the boss passage
   private placeElementInBossPassage(id: string, locationMap: Map<string, string | boolean>, floor: number) {
     if (floor !== this.NUM_FLOORS - 1) {
       this.placeElementRandomly(id, locationMap, floor); // Fallback for other floors
@@ -542,6 +551,7 @@ export class Labyrinth {
       const isAltar = (this.staticItemLocations.get(coordStr) === "ancient-altar-f3");
 
       if (
+        (x !== 0 || y !== 0) && // Not at floor entrance
         !isWatcher &&
         !isAltar &&
         !locationMap.has(coordStr) &&
@@ -628,35 +638,35 @@ export class Labyrinth {
     this.messages.push(message);
   }
 
-  clearMessages() {
+  public clearMessages() {
     this.messages = [];
   }
 
-  getMessages(): string[] {
+  public getMessages(): string[] {
     return this.messages;
   }
 
-  getPlayerLocation(): Coordinate {
+  public getPlayerLocation(): Coordinate {
     return this.playerLocation;
   }
 
-  getCurrentFloor(): number {
+  public getCurrentFloor(): number {
     return this.currentFloor;
   }
 
-  getPlayerHealth(): number {
+  public getPlayerHealth(): number {
     return this.playerHealth;
   }
 
-  getPlayerMaxHealth(): number {
+  public getPlayerMaxHealth(): number {
     return this.playerMaxHealth;
   }
 
-  getCurrentAttackDamage(): number {
+  public getCurrentAttackDamage(): number {
     return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
   }
 
-  getCurrentDefense(): number {
+  public getCurrentDefense(): number {
     return this.baseDefense + (this.equippedShield?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
   }
 
@@ -664,17 +674,14 @@ export class Labyrinth {
     return this.baseSearchRadius + (this.equippedCompass?.effectValue || 0);
   }
 
-  // Made public for LabyrinthGame component
   public getEquippedWeapon(): Item | undefined {
     return this.equippedWeapon;
   }
 
-  // Made public for LabyrinthGame component
   public getEquippedShield(): Item | undefined {
     return this.equippedShield;
   }
 
-  // New public getters for equipped accessories
   public getEquippedAmulet(): Item | undefined {
     return this.equippedAmulet;
   }
@@ -683,12 +690,11 @@ export class Labyrinth {
     return this.equippedCompass;
   }
 
-  // Updated to return items with quantities
-  getInventoryItems(): { item: Item, quantity: number }[] {
+  public getInventoryItems(): { item: Item, quantity: number }[] {
     return Array.from(this.inventory.values());
   }
 
-  getCurrentLogicalRoom(): LogicalRoom | undefined {
+  public getCurrentLogicalRoom(): LogicalRoom | undefined {
     const currentMap = this.floors.get(this.currentFloor);
     if (!currentMap) return undefined;
 
@@ -704,19 +710,19 @@ export class Labyrinth {
     return undefined;
   }
 
-  getEnemy(id: string): Enemy | undefined {
+  public getEnemy(id: string): Enemy | undefined {
     return this.enemies.get(id);
   }
 
-  getPuzzle(id: string): Puzzle | undefined {
+  public getPuzzle(id: string): Puzzle | undefined {
     return this.puzzles.get(id);
   }
 
-  getItem(id: string): Item | undefined {
+  public getItem(id: string): Item | undefined {
     return this.items.get(id);
   }
 
-  getRevealedStaticItems(): Set<string> {
+  public getRevealedStaticItems(): Set<string> {
     return this.revealedStaticItems;
   }
 
@@ -724,12 +730,11 @@ export class Labyrinth {
     return this.triggeredTraps;
   }
 
-  isGameOver(): boolean {
+  public isGameOver(): boolean {
     return this.gameOver;
   }
 
-  // New method to get game result
-  getGameResult(): { type: 'victory' | 'defeat', name: string, time: number } | null {
+  public getGameResult(): { type: 'victory' | 'defeat', name: string, time: number } | null {
     return this.gameResult;
   }
 
@@ -747,11 +752,11 @@ export class Labyrinth {
     floorVisited.add(`${coord.x},${coord.y}`);
   }
 
-  getVisitedCells(): Set<string> {
+  public getVisitedCells(): Set<string> {
     return this.visitedCells.get(this.currentFloor) || new Set<string>();
   }
 
-  getMapGrid(): ('wall' | 'open')[][] {
+  public getMapGrid(): ('wall' | 'open')[][] {
     const currentMap = this.floors.get(this.currentFloor);
     if (!currentMap) {
       // Should not happen if initialization is correct
@@ -770,11 +775,11 @@ export class Labyrinth {
     return grid;
   }
 
-  getCurrentFloorObjective(): { description: string; isCompleted: () => boolean; } {
+  public getCurrentFloorObjective(): { description: string; isCompleted: () => boolean; } {
     return this.floorObjectives.get(this.currentFloor)!; // Should always exist
   }
 
-  ascendFloor(playerName: string, time: number) {
+  public ascendFloor(playerName: string, time: number) {
     if (this.currentFloor >= this.NUM_FLOORS - 1) {
       this.addMessage("You are already on the deepest floor. There's no way further down.");
       return;
@@ -810,7 +815,7 @@ export class Labyrinth {
     return false;
   }
 
-  move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
+  public move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -933,7 +938,6 @@ export class Labyrinth {
     }
   }
 
-  // New private method to handle picking up items
   private _handleFoundItem(foundItem: Item, coordStr: string) {
     if (foundItem.type === 'consumable' && foundItem.stackable) {
       const existing = this.inventory.get(foundItem.id);
@@ -992,7 +996,7 @@ export class Labyrinth {
     }
   }
 
-  search() {
+  public search() {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1107,7 +1111,7 @@ export class Labyrinth {
     }
   }
 
-  interact(playerName: string, time: number) {
+  public interact(playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1301,7 +1305,7 @@ export class Labyrinth {
     }
   }
 
-  useItem(itemId: string, playerName: string, time: number) {
+  public useItem(itemId: string, playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1426,7 +1430,7 @@ export class Labyrinth {
     }
   }
 
-  fight(playerChoice: "left" | "center" | "right", playerName: string, time: number) {
+  public fight(playerChoice: "left" | "center" | "right", playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1631,7 +1635,6 @@ export class Labyrinth {
     return this.combatQueue;
   }
 
-  // New: Watcher of the Core Boss Logic
   public processBossLogic() {
     if (this.gameOver || this.currentFloor !== this.NUM_FLOORS - 1 || this.bossDefeated) {
         return; // Only run on the last floor if boss is not defeated
@@ -1640,11 +1643,12 @@ export class Labyrinth {
     const now = Date.now();
     const stateChangeInterval = 4000; // 4 seconds for state change
 
+    const playerCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+    const isInBossPassage = this.bossPassageCoords.has(playerCoordStr);
+
     if (now - this.lastBossStateChange > stateChangeInterval) {
         this.lastBossStateChange = now;
-        const playerCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-        const isInBossPassage = this.bossPassageCoords.has(playerCoordStr);
-
+        
         if (this.bossState === 'green_light') {
             this.bossState = 'red_light';
             this.isRedLightPulseActive = true; // Set pulse active

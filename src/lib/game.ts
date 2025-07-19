@@ -159,6 +159,16 @@ export class Labyrinth {
   private combatQueue: string[]; // Stores enemy IDs for queued combat
   private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
+  // Watcher of the Core Boss specific states
+  private watcherOfTheCore: Enemy | undefined;
+  private watcherLocation: Coordinate | undefined;
+  private bossState: 'red_light' | 'green_light';
+  private lastBossStateChange: number;
+  private isRedLightPulseActive: boolean; // Flag for current pulse
+  private playerStunnedTurns: number; // How many turns player is stunned/misdirected
+  private bossDefeated: boolean;
+  private bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
+
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
   private readonly NUM_FLOORS = 4; // Increased to 4 floors
@@ -207,6 +217,16 @@ export class Labyrinth {
     this.baseSearchRadius = 2; // Initial base search radius
     this.combatQueue = [];
     this.lastEnemyMoveTimestamp = 0;
+
+    // Watcher of the Core Boss specific initializations
+    this.watcherOfTheCore = undefined;
+    this.watcherLocation = undefined;
+    this.bossState = 'green_light'; // Starts not watching
+    this.lastBossStateChange = Date.now();
+    this.isRedLightPulseActive = false;
+    this.playerStunnedTurns = 0;
+    this.bossDefeated = false;
+    this.bossPassageCoords = new Set<string>();
 
     this.initializeLabyrinth();
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
@@ -420,13 +440,28 @@ export class Labyrinth {
 
       const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
       this.items.set(ancientAltar.id, ancientAltar);
-      this.placeElementRandomly(ancientAltar.id, this.staticItemLocations, floor);
+      // Place altar at the very end of the map
+      const altarX = this.MAP_WIDTH - 1;
+      const altarY = this.MAP_HEIGHT - 1;
+      this.staticItemLocations.set(`${altarX},${altarY},${floor}`, ancientAltar.id);
+
+      // Place The Watcher of the Core (Boss)
+      const watcherX = this.MAP_WIDTH - 3; // Two cells before the altar
+      const watcherY = this.MAP_HEIGHT - 1;
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100); // Health for stress
+      this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
+      this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
+      this.watcherLocation = { x: watcherX, y: watcherY };
+
+      // Define the boss passage coordinates
+      this.bossPassageCoords.add(`${watcherX},${watcherY},${floor}`);
+      this.bossPassageCoords.add(`${this.MAP_WIDTH - 2},${this.MAP_HEIGHT - 1},${floor}`);
+      this.bossPassageCoords.add(`${this.MAP_WIDTH - 1},${this.MAP_HEIGHT - 1},${floor}`); // Altar location is also part of passage
 
       this.floorObjectives.set(floor, {
-        description: "Find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
-        isCompleted: () => this.heartSacrificed
+        description: "Defeat 'The Watcher of the Core', find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
+        isCompleted: () => this.bossDefeated && this.heartSacrificed
       });
-      // The exit portal is implicitly at the end of the main path for the last floor, but the objective is to sacrifice the heart.
     }
 
     // Add generic enemies (scaled)
@@ -498,12 +533,12 @@ export class Labyrinth {
       const currentFloorMap = this.floors.get(floor)!;
 
       // Ensure not placed at player start (0,0) of this floor, or on an existing element, and only in an open room
-      // The exit portal for the *last* floor is special, so we don't place other elements there.
-      const isFinalExitPortal = (floor === this.NUM_FLOORS - 1) && (x === this.MAP_WIDTH - 1 && y === this.MAP_HEIGHT - 1);
+      // Also, avoid placing elements on the boss's passage or altar location on the last floor
+      const isBossPassageOrAltar = (floor === this.NUM_FLOORS - 1) && this.bossPassageCoords.has(coordStr);
 
       if (
         (x !== 0 || y !== 0) && // Not at floor entrance
-        !isFinalExitPortal && // Not at the final exit portal (which is now the altar location)
+        !isBossPassageOrAltar && // Not on boss passage or altar
         currentFloorMap[y][x] !== 'wall' && // Must be an open room
         !locationMap.has(coordStr) && // Check if the *current* locationMap already has something here
         !this.enemyLocations.has(coordStr) &&
@@ -716,6 +751,15 @@ export class Labyrinth {
       return;
     }
 
+    // Handle player stun/misdirection from Watcher of the Core
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--;
+        const directions = ["north", "south", "east", "west"];
+        const randomDirection = directions[Math.floor(Math.random() * directions.length)] as "north" | "south" | "east" | "west";
+        this.addMessage(`You are disoriented! You attempt to move ${direction}, but stumble ${randomDirection} instead!`);
+        direction = randomDirection; // Override direction with random one
+    }
+
     const currentMap = this.floors.get(this.currentFloor)!; // Get current floor map
 
     let newX = this.playerLocation.x;
@@ -747,6 +791,33 @@ export class Labyrinth {
         return;
       }
 
+      // Watcher of the Core: Red Light, Green Light check
+      if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
+          const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+          const newCoordStr = `${newX},${newY},${this.currentFloor}`;
+
+          const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
+          const isInPassage = this.bossPassageCoords.has(newCoordStr);
+
+          if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
+              // Player moved during Red Light in the passage
+              const damageTaken = 25; // AoE damage
+              this.playerHealth -= damageTaken;
+              this.playerStunnedTurns = 1; // Stun for 1 turn
+              this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
+              if (this.playerHealth <= 0) {
+                  if (!this._tryActivateWellBlessing(playerName, time)) {
+                      this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
+                      this.setGameOver('defeat', playerName, time);
+                      return; // Stop further processing
+                  }
+              }
+          } else if (this.bossState === 'green_light' && (wasInPassage || isInPassage)) {
+              // Player moved during Green Light in the passage - safe
+              this.addMessage("The passage is dim. You move safely.");
+          }
+      }
+
       this.playerLocation = { x: newX, y: newY };
       this.markVisited(this.playerLocation);
 
@@ -770,7 +841,7 @@ export class Labyrinth {
           }
       }
 
-      // Check for game over condition (reaching the exit on the LAST floor)
+      // Check for game over condition (reaching the altar on the LAST floor)
       if (this.currentFloor === this.NUM_FLOORS - 1 && newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
         const finalObjective = this.floorObjectives.get(this.currentFloor);
         if (finalObjective?.isCompleted()) {
@@ -784,7 +855,7 @@ export class Labyrinth {
       // Check for enemy encounter (only if no combat is queued)
       if (this.combatQueue.length === 0) {
         const enemyId = this.enemyLocations.get(`${newX},${newY},${this.currentFloor}`);
-        if (enemyId) {
+        if (enemyId && enemyId !== this.watcherOfTheCore?.id) { // Exclude Watcher from normal combat queue
           const enemy = this.enemies.get(enemyId);
           if (enemy && !enemy.defeated) {
             this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
@@ -1082,6 +1153,13 @@ export class Labyrinth {
                 interacted = true;
             }
         } else if (staticItem.id.startsWith("ancient-altar-")) { // Floor 4 Quest
+            // Check if boss is defeated before allowing altar interaction
+            if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
+                this.addMessage("The Ancient Altar is guarded by a powerful presence. You must defeat The Watcher of the Core first!");
+                interacted = true;
+                return;
+            }
+
             const heartEntry = this.inventory.get("heart-of-labyrinth-f3");
             if (heartEntry) {
                 this.inventory.delete("heart-of-labyrinth-f3");
@@ -1132,6 +1210,24 @@ export class Labyrinth {
         }
       }
     }
+
+    // Special interaction for Watcher of the Core (to "defeat" it)
+    if (this.currentFloor === this.NUM_FLOORS - 1 && this.watcherLocation &&
+        this.playerLocation.x === this.watcherLocation.x && this.playerLocation.y === this.watcherLocation.y &&
+        !this.bossDefeated) {
+        if (this.watcherOfTheCore && this.watcherOfTheCore.health <= 0) {
+            this.bossDefeated = true;
+            this.addMessage("The Watcher of the Core shudders, its many eyes dimming. It collapses into dust, its oppressive gaze finally lifted. The path to the Ancient Altar is now clear!");
+            // Remove boss from enemy locations
+            const bossCoordStr = `${this.watcherLocation.x},${this.watcherLocation.y},${this.currentFloor}`;
+            this.enemyLocations.delete(bossCoordStr);
+            interacted = true;
+        } else {
+            this.addMessage("The Watcher of the Core stands defiant, its gaze unwavering. You must find a way to break its will!");
+            interacted = true;
+        }
+    }
+
 
     if (!interacted) {
       this.addMessage("There's nothing here that responds to your touch.");
@@ -1390,7 +1486,7 @@ export class Labyrinth {
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === this.currentFloor) { // Only consider enemies on the current floor
+        if (f === this.currentFloor && enemyId !== this.watcherOfTheCore?.id) { // Only consider enemies on the current floor, exclude Watcher
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated) {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
@@ -1466,5 +1562,54 @@ export class Labyrinth {
 
   public getCombatQueue(): string[] {
     return this.combatQueue;
+  }
+
+  // New: Watcher of the Core Boss Logic
+  public processBossLogic() {
+    if (this.gameOver || this.currentFloor !== this.NUM_FLOORS - 1 || this.bossDefeated) {
+        return; // Only run on the last floor if boss is not defeated
+    }
+
+    const now = Date.now();
+    const stateChangeInterval = 4000; // 4 seconds for state change
+
+    if (now - this.lastBossStateChange > stateChangeInterval) {
+        this.lastBossStateChange = now;
+        if (this.bossState === 'green_light') {
+            this.bossState = 'red_light';
+            this.isRedLightPulseActive = true; // Set pulse active
+            this.addMessage("The Labyrinth's Gaze turns towards you! The passage pulses with a blinding light! DO NOT MOVE!");
+        } else {
+            this.bossState = 'green_light';
+            this.isRedLightPulseActive = false; // Reset pulse
+            this.addMessage("The Labyrinth's Gaze shifts away. The passage dims. You may move.");
+
+            // If player was in the passage and didn't move during Red Light, boss takes stress damage
+            const playerCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+            if (this.bossPassageCoords.has(playerCoordStr) && this.playerStunnedTurns === 0) {
+                if (this.watcherOfTheCore) {
+                    const stressDamage = 10; // Damage to boss for successful evasion
+                    this.watcherOfTheCore.takeDamage(stressDamage);
+                    this.addMessage(`You successfully evaded The Watcher's gaze! It shudders, taking ${stressDamage} stress damage. Its remaining will: ${this.watcherOfTheCore.health}`);
+                    if (this.watcherOfTheCore.defeated) {
+                        this.addMessage("The Watcher of the Core's will is broken! It stands defeated, its gaze no longer a threat. You can now interact with it to clear the path.");
+                        this.bossDefeated = true; // Mark as defeated for objective
+                    }
+                }
+            }
+        }
+    }
+  }
+
+  public getBossState(): 'red_light' | 'green_light' {
+    return this.bossState;
+  }
+
+  public isBossPassage(x: number, y: number, floor: number): boolean {
+    return this.bossPassageCoords.has(`${x},${y},${floor}`);
+  }
+
+  public isBossDefeated(): boolean {
+    return this.bossDefeated;
   }
 }

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 // Removed DropdownMenu imports as they are no longer needed
 
@@ -108,7 +108,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     };
   }, [gameStarted, labyrinth, showRPS, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
 
-  // useEffect for enemy movement based on floor objective completion
+  // useEffect for enemy movement and boss logic based on floor objective completion
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
     // Check if the current floor's objective is completed and the game is not over
@@ -117,11 +117,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000; // Default to 2s if somehow out of bounds
 
-    if (isObjectiveCompleted && !isGameOver) {
+    if (!isGameOver) {
         intervalId = setInterval(() => {
-            labyrinth.processEnemyMovement();
+            // Process normal enemy movement only if objective is completed
+            if (isObjectiveCompleted) {
+                labyrinth.processEnemyMovement();
+            }
+            // Always process boss logic on the last floor if not defeated
+            if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
+                labyrinth.processBossLogic();
+            }
             setGameVersion(prev => prev + 1); // Trigger re-render
-        }, moveSpeed);
+        }, moveSpeed); // Use enemy move speed as the general game tick
     }
 
     return () => {
@@ -129,7 +136,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             clearInterval(intervalId);
         }
     };
-  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.getCurrentFloorObjective().isCompleted()]); // Depend on labyrinth, gameVersion, current floor, and objective completion status
+  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.getCurrentFloorObjective().isCompleted(), labyrinth.isBossDefeated()]); // Depend on labyrinth, gameVersion, current floor, and objective completion status
 
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());
@@ -159,7 +166,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         // Re-evaluate after removing, might have another enemy in queue
         setGameVersion(prev => prev + 1); // Force re-render to re-check queue
       }
-    } else if (enemyIdAtLocation) { // If no combat in queue, check current cell
+    } else if (enemyIdAtLocation && enemyIdAtLocation !== labyrinth["watcherOfTheCore"]?.id) { // If no combat in queue, check current cell, exclude Watcher
       const enemy = labyrinth.getEnemy(enemyIdAtLocation);
       if (enemy && !enemy.defeated) {
         setCurrentEnemy(enemy);
@@ -258,10 +265,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           const isWall = mapGrid[mapY][mapX] === 'wall';
 
           // Check for final exit portal (now the Altar on Floor 4)
-          const isFinalExit = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
+          const isAltar = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
           // Check if this cell has a trap and if it has been triggered
           const hasTrap = labyrinth["trapsLocations"].has(fullCoordStr);
           const isTrapTriggered = triggeredTraps.has(fullCoordStr);
+
+          // Watcher of the Core specific checks
+          const isBossPassage = labyrinth.isBossPassage(mapX, mapY, currentFloor);
+          const isRedLight = labyrinth.getBossState() === 'red_light';
+          const isBossDefeated = labyrinth.isBossDefeated();
+          const isWatcherLocation = (currentFloor === numFloors - 1) && (labyrinth["watcherLocation"]?.x === mapX && labyrinth["watcherLocation"]?.y === mapY);
 
 
           if (isPlayerHere) {
@@ -296,10 +309,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
-            if (isFinalExit) {
+            if (isAltar) {
                 cellContentIndicator = <Crown size={12} />; // Changed to Crown
                 cellClasses = "bg-purple-600 text-white animate-pulse";
                 cellTitle = `Ancient Altar (Final Objective)`;
+            } else if (isWatcherLocation && !isBossDefeated) {
+                cellContentIndicator = <Eye size={12} />; // Eye icon for the Watcher
+                cellClasses = "bg-red-700 text-red-200 animate-pulse";
+                cellTitle = `The Watcher of the Core!`;
             } else if (isStaircase) {
                 cellContentIndicator = <ArrowDownCircle size={12} />; // Staircase icon
                 cellClasses = "bg-indigo-600 text-white";
@@ -338,6 +355,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
             cellTitle = `Unexplored (${mapX},${mapY})`;
           }
+
+          // Apply boss passage glow if on the last floor and boss is not defeated
+          if (currentFloor === numFloors - 1 && !isBossDefeated && isBossPassage) {
+            if (isRedLight) {
+              cellClasses = cn(cellClasses, "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast"); // Faster pulse for red light
+            } else {
+              cellClasses = cn(cellClasses, "bg-green-900/50 dark:bg-green-200/50"); // Subtle green for green light
+            }
+          }
+
         } else {
           // Out of bounds - render as void
           cellContentIndicator = " ";

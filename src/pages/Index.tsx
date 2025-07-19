@@ -3,6 +3,7 @@ import LabyrinthGame from "@/components/LabyrinthGame";
 import StartGameModal from "@/components/StartGameModal";
 import LeaderboardModal from "@/components/LeaderboardModal";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
 
 interface LeaderboardEntry {
   name: string;
@@ -19,12 +20,24 @@ const Index = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [highlightPlayer, setHighlightPlayer] = useState<string | null>(null);
 
-  // Load leaderboard from localStorage on mount
+  // Load leaderboard from Supabase on mount
   useEffect(() => {
-    const storedLeaderboard = localStorage.getItem("labyrinthLeaderboard");
-    if (storedLeaderboard) {
-      setLeaderboard(JSON.parse(storedLeaderboard));
-    }
+    const fetchLeaderboard = async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("player_name, score_time")
+        .order("score_time", { ascending: true })
+        .limit(10); // Fetch top 10 scores
+
+      if (error) {
+        console.error("Error fetching leaderboard:", error);
+        toast.error("Failed to load leaderboard.");
+      } else {
+        setLeaderboard(data.map(entry => ({ name: entry.player_name, time: entry.score_time })));
+      }
+    };
+
+    fetchLeaderboard();
   }, []);
 
   // Timer effect
@@ -53,21 +66,41 @@ const Index = () => {
     toast.success(`Welcome, ${name}! Your journey begins.`);
   };
 
-  const handleGameOver = (result: { type: 'victory' | 'defeat', name: string, time: number }) => {
+  const handleGameOver = async (result: { type: 'victory' | 'defeat', name: string, time: number }) => {
     setGameStarted(false);
     setStartTime(null); // Stop the timer
 
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${result.time.toFixed(2)} seconds!`);
-      const newLeaderboard = [...leaderboard, { name: result.name, time: result.time }];
-      newLeaderboard.sort((a, b) => a.time - b.time); // Sort by fastest time
-      setLeaderboard(newLeaderboard);
-      localStorage.setItem("labyrinthLeaderboard", JSON.stringify(newLeaderboard));
+      
+      // Save score to Supabase
+      const { error } = await supabase
+        .from("leaderboard")
+        .insert({ player_name: result.name, score_time: result.time });
+
+      if (error) {
+        console.error("Error saving score:", error);
+        toast.error("Failed to save your score to the leaderboard.");
+      } else {
+        toast.success("Your score has been recorded!");
+        // Re-fetch leaderboard to include new score
+        const { data, error: fetchError } = await supabase
+          .from("leaderboard")
+          .select("player_name, score_time")
+          .order("score_time", { ascending: true })
+          .limit(10);
+
+        if (fetchError) {
+          console.error("Error re-fetching leaderboard:", fetchError);
+        } else {
+          setLeaderboard(data.map(entry => ({ name: entry.player_name, time: entry.score_time })));
+        }
+      }
+
       setHighlightPlayer(result.name);
       setShowLeaderboardModal(true);
     } else {
       toast.error(`Alas, ${result.name}, the Labyrinth claims another victim. Game Over.`);
-      // Optionally show leaderboard on defeat too, or just restart
       setShowLeaderboardModal(false); // Don't show leaderboard on defeat by default
     }
   };

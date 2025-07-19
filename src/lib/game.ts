@@ -48,6 +48,7 @@ export class Item {
   type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory'; // Added 'accessory' type
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
   stackable: boolean; // New: Can this item stack in inventory?
+  sprite?: string; // New: Path to the item's sprite image
 
   constructor(
     id: string,
@@ -56,7 +57,8 @@ export class Item {
     isStatic: boolean = false,
     type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' = 'generic',
     effectValue?: number,
-    stackable: boolean = false
+    stackable: boolean = false,
+    sprite?: string // Added sprite to constructor
   ) {
     this.id = id;
     this.name = name;
@@ -65,6 +67,7 @@ export class Item {
     this.type = type;
     this.effectValue = effectValue;
     this.stackable = stackable;
+    this.sprite = sprite; // Assign sprite
   }
 }
 
@@ -324,7 +327,7 @@ export class Labyrinth {
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, floor);
 
-    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
+    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5), false, "/assets/images/weapon_lavish_sword.png"); // Sword gets stronger, added sprite
     this.items.set(sword.id, sword);
     this.placeElementRandomly(sword.id, this.itemLocations, floor);
 

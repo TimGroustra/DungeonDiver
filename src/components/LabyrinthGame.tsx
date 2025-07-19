@@ -416,7 +416,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
             return (
               <li key={item.id} className="flex items-center justify-between mb-1">
-                <div>
+                <div className="flex items-center">
+                  {item.sprite && (
+                    <img src={item.sprite} alt={item.name} className="w-4 h-4 mr-2 object-contain" />
+                  )}
                   <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
                   {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
                   {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}

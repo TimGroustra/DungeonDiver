@@ -309,7 +309,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
                 cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-                cellContentIndicator = <Gem size={12} />; // Changed to Gem
+                cellContentIndicator = <img src="/assets/images/chest_full_open_anim_f0.png" alt="Chest" className="w-full h-full object-contain" />;
                 cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
                 cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
             } else if (hasTrap) { // Trap is present but not yet triggered

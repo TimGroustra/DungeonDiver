@@ -269,7 +269,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
           } else if (isTrapTriggered) { // Prioritize triggered traps to show them
-              cellContentIndicator = <Dices size={12} />;
+              cellContentIndicator = <img src="/assets/images/floor_spikes_anim_f1.png" alt="Trap" className="w-full h-full object-contain" />;
               cellClasses = "bg-orange-700 text-orange-200"; // A different color for triggered traps
               cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
           } else if (isVisited) { // Only show special indicators on visited cells if not a triggered trap

@@ -77,13 +77,15 @@ export class Enemy {
   description: string;
   health: number;
   defeated: boolean;
+  sprite?: string; // New: Path to the enemy's sprite image
 
-  constructor(id: string, name: string, description: string, health: number = 1) {
+  constructor(id: string, name: string, description: string, health: number = 1, sprite?: string) {
     this.id = id;
     this.name = name;
     this.description = description;
     this.health = health;
     this.defeated = false;
+    this.sprite = sprite; // Assign sprite
   }
 
   takeDamage(amount: number) {
@@ -435,7 +437,7 @@ export class Labyrinth {
     // Add generic enemies (scaled)
     const numGenericEnemies = 10; // Increased number of generic enemies
     for (let i = 0; i < numGenericEnemies; i++) {
-      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
+      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier), "/assets/images/ogre_run_anim_f3.png"); // Added sprite
       this.enemies.set(goblin.id, goblin);
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
 

@@ -481,6 +481,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               {showRPS && currentEnemy && (
                 <div className="mt-4 mb-3 p-3 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900 w-full">
                   <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
+                  {currentEnemy.sprite && (
+                    <div className="flex justify-center mb-2">
+                      <img src={currentEnemy.sprite} alt={currentEnemy.name} className="w-16 h-16 object-contain" />
+                    </div>
+                  )}
                   <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
                   <p className="mb-2">Choose your move wisely, adventurer:</p>
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">

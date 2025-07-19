@@ -528,8 +528,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               </div>
 
               {showRPS && currentEnemy && (
-                <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-800/90 dark:bg-gray-100/90 p-4 rounded-lg"> {/* Absolute overlay */}
-                  <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm">
+                <div className="absolute inset-0 flex flex-col items-center justify-end z-20 bg-gray-800/90 dark:bg-gray-100/90 p-4 rounded-lg"> {/* Absolute overlay, justify-end to push content to bottom */}
+                  <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm mb-4"> {/* Added mb-4 */}
                     <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
                     <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
                     <p className="mb-2">Choose your move wisely, adventurer:</p>

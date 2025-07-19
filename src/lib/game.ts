@@ -323,7 +323,7 @@ export class Labyrinth {
     const enemyDamageMultiplier = 1 + (floor * 0.3); // Increased from 0.2
 
     // Common items (can be found on any floor)
-    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
+    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true, "/assets/images/flask_big_green.png"); // Now stackable, added sprite
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, floor);
 

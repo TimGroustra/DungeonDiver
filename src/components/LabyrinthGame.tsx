@@ -29,6 +29,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [showRPS, setShowRPS] = useState<boolean>(false);
   const [currentEnemy, setCurrentEnemy] = useState<Enemy | undefined>(undefined);
+  const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false); // New state to prevent multiple dispatches
   const logRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile(); // Determine if on mobile
@@ -43,18 +44,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameLog(["Game started!"]);
       setShowRPS(false);
       setCurrentEnemy(undefined);
+      setHasGameOverBeenDispatched(false); // Reset the flag for a new game
     }
   }, [gameStarted]); // Only re-initialize when gameStarted changes (e.g., from false to true)
 
   useEffect(() => {
     updateGameDisplay();
-    if (labyrinth.isGameOver()) {
+    // Only call onGameOver if the game is over AND it hasn't been dispatched yet
+    if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
       const result = labyrinth.getGameResult();
       if (result) {
         onGameOver(result);
+        setHasGameOverBeenDispatched(true); // Set the flag to true after dispatching
       }
     }
-  }, [gameVersion, labyrinth, onGameOver]); // Depend on gameVersion to trigger updates
+  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]); // Add hasGameOverBeenDispatched to dependencies
 
   useEffect(() => {
     // Scroll to bottom of log (only relevant if log is scrollable, but keeping ref for consistency)

@@ -486,7 +486,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {/* Reverted to grid for md and larger screens, flex column for smaller */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, Combat */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center relative"> {/* Added relative positioning here */}
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
               {/* Adjusted width for fluidity */}
@@ -507,14 +507,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               </div>
 
               {showRPS && currentEnemy && (
-                <div className="mt-4 mb-3 p-3 border border-red-600 rounded-md bg-red-900/30 dark:bg-red-100/30 text-red-100 dark:text-red-900 w-full">
-                  <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
-                  <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                  <p className="mb-2">Choose your move wisely, adventurer:</p>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
-                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
-                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
+                <div className="absolute inset-0 flex items-center justify-center z-20 bg-gray-800/90 dark:bg-gray-100/90 p-4 rounded-lg"> {/* Absolute overlay */}
+                  <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm">
+                    <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
+                    <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
+                    <p className="mb-2">Choose your move wisely, adventurer:</p>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
+                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
+                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
+                    </div>
                   </div>
                 </div>
               )}

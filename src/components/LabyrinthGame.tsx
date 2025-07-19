@@ -507,45 +507,45 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {/* Reverted to grid for md and larger screens, flex column for smaller */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map, Controls, Combat */}
-            <div className="flex flex-col items-center relative"> {/* Added relative positioning here */}
+            <div className="flex flex-col items-center relative">
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
-              {/* Adjusted width for fluidity */}
-              <div className="grid grid-cols-3 gap-2 mt-4 w-full sm:max-w-64">
-                <div />
-                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
-                <div />
-                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
-                <div />
-                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
-                <div />
-                <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
-                <div />
-              </div>
-              <div className="flex gap-3 mt-3">
-                <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
-                <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
-              </div>
 
-              {showRPS && currentEnemy && (
-                <div className="absolute inset-0 flex flex-col items-center justify-end z-20 bg-gray-800/90 dark:bg-gray-100/90 p-4 rounded-lg"> {/* Absolute overlay, justify-end to push content to bottom */}
-                  <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm mb-4"> {/* Added mb-4 */}
-                    <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
-                    <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                    <p className="mb-2">Choose your move wisely, adventurer:</p>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
-                    </div>
+              {showRPS && currentEnemy ? (
+                <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm mt-4">
+                  <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
+                  <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
+                  <p className="mb-2">Choose your move wisely, adventurer:</p>
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
+                    <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mt-4 w-full sm:max-w-64">
+                    <div />
+                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
+                    <div />
+                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
+                    <div />
+                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
+                    <div />
+                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
+                    <div />
+                  </div>
+                  <div className="flex gap-3 mt-3">
+                    <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
+                    <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
+                  </div>
+                </>
               )}
             </div>
 
             {/* Right Column: Room Info, Game Log, Adventurer Status, Inventory */}
-            <div className="flex flex-col items-center"> {/* Added items-center here */}
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" /> {/* Separator for mobile */}
+            <div className="flex flex-col items-center">
+              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
               {/* Current Room Info (moved here) */}
               <div className="mb-3 w-full text-center">

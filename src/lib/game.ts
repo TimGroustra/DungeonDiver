@@ -48,7 +48,6 @@ export class Item {
   type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory'; // Added 'accessory' type
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
   stackable: boolean; // New: Can this item stack in inventory?
-  sprite?: string; // New: Path to the item's sprite image
 
   constructor(
     id: string,
@@ -57,8 +56,7 @@ export class Item {
     isStatic: boolean = false,
     type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' = 'generic',
     effectValue?: number,
-    stackable: boolean = false,
-    sprite?: string // Added sprite to constructor
+    stackable: boolean = false
   ) {
     this.id = id;
     this.name = name;
@@ -67,7 +65,6 @@ export class Item {
     this.type = type;
     this.effectValue = effectValue;
     this.stackable = stackable;
-    this.sprite = sprite; // Assign sprite
   }
 }
 
@@ -77,15 +74,13 @@ export class Enemy {
   description: string;
   health: number;
   defeated: boolean;
-  sprite?: string; // New: Path to the enemy's sprite image
 
-  constructor(id: string, name: string, description: string, health: number = 1, sprite?: string) {
+  constructor(id: string, name: string, description: string, health: number = 1) {
     this.id = id;
     this.name = name;
     this.description = description;
     this.health = health;
     this.defeated = false;
-    this.sprite = sprite; // Assign sprite
   }
 
   takeDamage(amount: number) {
@@ -325,11 +320,11 @@ export class Labyrinth {
     const enemyDamageMultiplier = 1 + (floor * 0.3); // Increased from 0.2
 
     // Common items (can be found on any floor)
-    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true, "/assets/images/flask_big_green.png"); // Now stackable, added sprite
+    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, floor);
 
-    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5), false, "/assets/images/weapon_lavish_sword.png"); // Sword gets stronger, added sprite
+    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
     this.items.set(sword.id, sword);
     this.placeElementRandomly(sword.id, this.itemLocations, floor);
 
@@ -437,7 +432,7 @@ export class Labyrinth {
     // Add generic enemies (scaled)
     const numGenericEnemies = 10; // Increased number of generic enemies
     for (let i = 0; i < numGenericEnemies; i++) {
-      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier), "/assets/images/masked_orc_idle_anim_f3.png"); // Updated sprite
+      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
       this.enemies.set(goblin.id, goblin);
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
 

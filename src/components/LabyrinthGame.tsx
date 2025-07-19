@@ -20,6 +20,8 @@ interface LabyrinthGameProps {
   onGameRestart: () => void;
 }
 
+const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500]; // Speeds for Floor 1, 2, 3, 4 (indices 0, 1, 2, 3)
+
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, elapsedTime, onGameOver, onGameRestart }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
@@ -112,12 +114,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     // Check if the current floor's objective is completed and the game is not over
     const isObjectiveCompleted = labyrinth.getCurrentFloorObjective().isCompleted();
     const isGameOver = labyrinth.isGameOver();
+    const currentFloor = labyrinth.getCurrentFloor();
+    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000; // Default to 2s if somehow out of bounds
 
     if (isObjectiveCompleted && !isGameOver) {
         intervalId = setInterval(() => {
             labyrinth.processEnemyMovement();
             setGameVersion(prev => prev + 1); // Trigger re-render
-        }, 2000); // Move every 2 seconds
+        }, moveSpeed);
     }
 
     return () => {

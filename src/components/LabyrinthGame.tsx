@@ -66,38 +66,59 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   // New useEffect for keyboard controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || labyrinth.isGameOver() || showRPS) {
-        // Do not allow actions if game is not started, game is over, or in combat
+      if (!gameStarted || labyrinth.isGameOver()) {
+        // Do not allow actions if game is not started or game is over
         return;
       }
 
-      switch (event.key) {
-        case "ArrowUp":
-          event.preventDefault();
-          handleMove("north");
-          break;
-        case "ArrowDown":
-          event.preventDefault();
-          handleMove("south");
-          break;
-        case "ArrowLeft":
-          event.preventDefault();
-          handleMove("west");
-          break;
-        case "ArrowRight":
-          event.preventDefault();
-          handleMove("east");
-          break;
-        case "Shift": // For Search
-          event.preventDefault();
-          handleSearch();
-          break;
-        case "Control": // For Interact
-          event.preventDefault();
-          handleInteract();
-          break;
-        default:
-          break;
+      if (showRPS) {
+        // If in combat, map arrow keys to combat choices
+        switch (event.key) {
+          case "ArrowLeft":
+            event.preventDefault();
+            handleRPSChoice("left");
+            break;
+          case "ArrowUp":
+            event.preventDefault();
+            handleRPSChoice("center");
+            break;
+          case "ArrowRight":
+            event.preventDefault();
+            handleRPSChoice("right");
+            break;
+          default:
+            break;
+        }
+      } else {
+        // If not in combat, map arrow keys to movement
+        switch (event.key) {
+          case "ArrowUp":
+            event.preventDefault();
+            handleMove("north");
+            break;
+          case "ArrowDown":
+            event.preventDefault();
+            handleMove("south");
+            break;
+          case "ArrowLeft":
+            event.preventDefault();
+            handleMove("west");
+            break;
+          case "ArrowRight":
+            event.preventDefault();
+            handleMove("east");
+            break;
+          case "Shift": // For Search
+            event.preventDefault();
+            handleSearch();
+            break;
+          case "Control": // For Interact
+            event.preventDefault();
+            handleInteract();
+            break;
+          default:
+            break;
+        }
       }
     };
 

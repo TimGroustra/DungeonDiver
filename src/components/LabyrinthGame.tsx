@@ -241,7 +241,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2 sm:pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* Changed to grid layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Changed to md:grid-cols-2 */}
             {/* Left Column: Map & Controls */}
             <div className="flex flex-col items-center">
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>

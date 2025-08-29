@@ -8,9 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import MapView from "./game/MapView";
 import PlayerControls from "./game/PlayerControls";
-import PlayerStatus from "./game/PlayerStatus";
-import Inventory from "./game/Inventory";
-import GameLog from "./game/GameLog";
+import PlayerStatus from "./game/PlayerStatus"; // PlayerStatus will now contain Inventory and GameLog
+// import Inventory from "./game/Inventory"; // Removed, now part of PlayerStatus
+// import GameLog from "./game/GameLog"; // Removed, now part of PlayerStatus
 import Objective from "./game/Objective";
 
 interface LabyrinthGameProps {
@@ -241,7 +241,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2 sm:pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {/* Changed to md:grid-cols-2 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Left Column: Map & Controls */}
             <div className="flex flex-col items-center">
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
@@ -257,21 +257,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               />
             </div>
 
-            {/* Right Column: Stats, Health, Inventory */}
+            {/* Right Column: Stats, Health, Inventory, GameLog */}
             <div className="flex flex-col items-center">
-              <PlayerStatus labyrinth={labyrinth} cellSize={cellSize} dynamicViewportSize={dynamicViewportSize} />
-              <Inventory
+              <PlayerStatus
                 labyrinth={labyrinth}
                 onUseItem={handleUseItem}
                 isGameOver={labyrinth.isGameOver()}
                 showRPS={showRPS}
+                gameLog={gameLog}
+                logRef={logRef}
               />
             </div>
           </div>
 
           <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
 
-          {/* Bottom Section: Log, Description, Objective */}
+          {/* Bottom Section: Description, Objective */}
           <div className="w-full text-center">
             <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
             <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
@@ -280,7 +281,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <GameLog gameLog={gameLog} logRef={logRef} />
+            {/* GameLog removed from here */}
             <Objective labyrinth={labyrinth} />
           </div>
         </CardContent>

@@ -501,35 +501,33 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1 sm:p-2">
-      <Card className="w-full max-w-5xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 sm:pb-3">
-          <CardTitle className="text-2xl sm:text-3xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
-          <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1">
+      <Card className="w-full max-w-4xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2">
+          <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
+          <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
-        <CardContent className="pt-2 sm:pt-4">
-          {/* Reverted to grid for md and larger screens, flex column for smaller */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left Column: Adventurer Status, Map, Controls, Combat */}
             <div className="flex flex-col items-center relative">
-              {/* Adventurer's Status (compacted) - MOVED HERE */}
-              <div className="mb-3 w-full text-center">
-                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2">Adventurer's Status:</h3>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-base text-gray-300 dark:text-gray-700">
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-1">Adventurer's Status:</h3>
+                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-gray-300 dark:text-gray-700">
                   <p className="flex items-center">
-                    <Heart className="mr-1 text-red-500" size={18} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+                    <Heart className="mr-1 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
                   </p>
                   <p className="flex items-center">
-                    <Sword className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span>
+                    <Sword className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span>
                   </p>
                   <p className="flex items-center">
-                    <Shield className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span>
+                    <Shield className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span>
                   </p>
                   <p className="flex items-center">
-                    <Target className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span>
+                    <Target className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span>
                   </p>
                 </div>
-                <div className="text-xs text-gray-400 dark:text-gray-600 mt-2">
+                <div className="text-xs text-gray-400 dark:text-gray-600 mt-1">
                   {labyrinth.getEquippedWeapon() && (
                     <p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
                   )}
@@ -546,17 +544,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 {renderInventory()}
               </div>
 
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" /> {/* Added separator */}
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
-              <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
+              <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
 
               {showRPS && currentEnemy ? (
-                <div className="p-3 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm mt-4">
-                  <h3 className="text-xl font-bold text-red-400 dark:text-red-700 mb-2">Combat Encounter!</h3>
-                  <p className="text-base mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                  <p className="mb-2">Choose your move wisely, adventurer:</p>
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+                <div className="p-2 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full max-w-sm mt-3">
+                  <h3 className="text-lg font-bold text-red-400 dark:text-red-700 mb-1">Combat Encounter!</h3>
+                  <p className="text-sm mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
+                  <p className="mb-2 text-sm">Choose your move wisely:</p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
                     <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
                     <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
@@ -564,20 +562,20 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-3 gap-2 mt-4 w-full sm:max-w-64">
+                  <div className="grid grid-cols-3 gap-2 mt-3 w-full sm:max-w-64">
                     <div />
-                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
                     <div />
-                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
                     <div />
-                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
                     <div />
-                    <Button className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
                     <div />
                   </div>
-                  <div className="flex gap-3 mt-3">
-                    <Button className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search Area</Button>
-                    <Button className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
+                  <div className="flex gap-2 mt-2">
+                    <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search</Button>
+                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
                   </div>
                 </>
               )}
@@ -585,34 +583,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
             {/* Right Column: Room Info, Game Log, Quest Objective */}
             <div className="flex flex-col items-center">
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
-              {/* Current Room Info (moved here) */}
-              <div className="mb-3 w-full text-center">
-                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+              <div className="mb-2 w-full text-center">
+                <h2 className="text-xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+                <p className="text-sm text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth."}</p>
               </div>
 
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
-              <h3 className="text-xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
-              {/* Removed ScrollArea, showing only last 3 logs */}
-              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono overflow-hidden">
+              <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
+              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono overflow-hidden">
                 {gameLog.slice(-3).reverse().map((message, index) => (
                   <p key={index} className="mb-1 last:mb-0">{message}</p>
                 ))}
               </div>
 
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
-              {/* Quest Objective */}
-              <div className="mb-3 w-full text-center">
-                  <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600 mb-2">Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
-                  <p className="text-base text-gray-300 dark:text-gray-700 italic">
+              <div className="mb-2 w-full text-center">
+                  <h3 className="text-lg font-bold text-yellow-300 dark:text-yellow-600 mb-1">Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
+                  <p className="text-sm text-gray-300 dark:text-gray-700 italic">
                       {labyrinth.getCurrentFloorObjective().description}
                   </p>
                   <p className={cn(
-                      "text-sm font-semibold mt-1",
+                      "text-xs font-semibold mt-1",
                       labyrinth.getCurrentFloorObjective().isCompleted() ? "text-green-400 dark:text-green-500" : "text-red-400 dark:text-red-500"
                   )}>
                       Status: {labyrinth.getCurrentFloorObjective().isCompleted() ? "Completed!" : "In Progress"}
@@ -621,9 +616,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2 sm:pt-3">
+        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2">
           {labyrinth.isGameOver() && (
-            <Button onClick={onGameRestart} className="mt-3 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
+            <Button onClick={onGameRestart} className="mt-2 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">
               Restart Journey
             </Button>
           )}

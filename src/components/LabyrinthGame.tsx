@@ -585,33 +585,37 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
               <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
 
-              {/* Adventurer's Status (moved here) */}
+              {/* Adventurer's Status (compacted) */}
               <div className="mb-3 w-full text-center">
-                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600">Adventurer's Status:</h3>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
-                  <Heart className="mr-2 text-red-500" size={18} /> Health: <span className="font-bold text-red-400 ml-1">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()} HP</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
-                  <Sword className="mr-2 text-gray-400" size={18} /> Attack: <span className="font-bold text-orange-400 ml-1">{labyrinth.getCurrentAttackDamage()}</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
-                  <Shield className="mr-2 text-gray-400" size={18} /> Defense: <span className="font-bold text-blue-400 ml-1">{labyrinth.getCurrentDefense()}</span>
-                </p>
-                <p className="text-base text-gray-300 dark:text-gray-700 flex items-center justify-center">
-                  <Target className="mr-2 text-gray-400" size={18} /> Search Radius: <span className="font-bold text-purple-400 ml-1">{labyrinth.getSearchRadius()}</span>
-                </p>
-                {labyrinth.getEquippedWeapon() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
-                )}
-                {labyrinth.getEquippedShield() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Shield: {labyrinth.getEquippedShield()?.name}</p>
-                )}
-                {labyrinth.getEquippedAmulet() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Accessory: {labyrinth.getEquippedAmulet()?.name}</p>
-                )}
-                {labyrinth.getEquippedCompass() && (
-                  <p className="text-xs text-gray-400 dark:text-gray-600 ml-7">Accessory: {labyrinth.getEquippedCompass()?.name}</p>
-                )}
+                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2">Adventurer's Status:</h3>
+                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-base text-gray-300 dark:text-gray-700">
+                  <p className="flex items-center">
+                    <Heart className="mr-1 text-red-500" size={18} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Sword className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Shield className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Target className="mr-1 text-gray-400" size={18} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span>
+                  </p>
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-600 mt-2">
+                  {labyrinth.getEquippedWeapon() && (
+                    <p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedShield() && (
+                    <p>Shield: {labyrinth.getEquippedShield()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedAmulet() && (
+                    <p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedCompass() && (
+                    <p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>
+                  )}
+                </div>
                 {renderInventory()}
               </div>
             </div>

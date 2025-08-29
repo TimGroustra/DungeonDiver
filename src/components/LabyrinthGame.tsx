@@ -513,7 +513,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left Column: Map, Controls, Combat */}
             <div className="flex flex-col items-center relative">
-              <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
+              <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
               {renderMap()}
 
               <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">

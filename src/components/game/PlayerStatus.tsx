@@ -36,7 +36,7 @@ const PlayerStatus: React.FC<PlayerStatusProps> = ({
 
   return (
     <div className="flex flex-col items-center w-full">
-      <Card className="w-full max-w-sm bg-gray-700 text-gray-100 dark:bg-gray-200 dark:text-gray-900 border-gray-600 dark:border-gray-400 mb-4">
+      <Card className="w-fit bg-gray-700 text-gray-100 dark:bg-gray-200 dark:text-gray-900 border-gray-600 dark:border-gray-400 mb-4">
         <CardHeader className="pb-2">
           <CardTitle className="text-xl font-bold text-green-300 dark:text-green-700">Adventurer's Status</CardTitle>
         </CardHeader>

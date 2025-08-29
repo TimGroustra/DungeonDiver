@@ -125,6 +125,7 @@ export class Labyrinth {
   private playerMaxHealth: number;
   private baseAttackDamage: number;
   private baseDefense: number;
+  private playerGold: number; // Added player gold
   private equippedWeapon: Item | undefined;
   private equippedShield: Item | undefined;
   private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
@@ -184,6 +185,7 @@ export class Labyrinth {
     this.playerMaxHealth = 100;
     this.baseAttackDamage = 10;
     this.baseDefense = 0;
+    this.playerGold = 0; // Initialize player gold
     this.equippedWeapon = undefined;
     this.equippedShield = undefined;
     this.equippedAmulet = undefined; // Initialize new equipped slot
@@ -289,7 +291,7 @@ export class Labyrinth {
           for (let x = 0; x < this.MAP_WIDTH; x++) {
             if (floorMap[y][x] === 'wall') {
               const neighbors = this.getValidNeighbors(x, y); // Use the new private method
-              const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
+              const numOpenNeighbors = neighbors.filter(n => currentFloorMap[n.y][n.x] !== 'wall').length;
               if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) {
                 floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
               }
@@ -660,6 +662,10 @@ export class Labyrinth {
 
   public getPlayerMaxHealth(): number {
     return this.playerMaxHealth;
+  }
+
+  public getPlayerGold(): number { // Added getPlayerGold method
+    return this.playerGold;
   }
 
   public getCurrentAttackDamage(): number {

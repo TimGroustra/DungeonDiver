@@ -3,10 +3,17 @@ import LabyrinthGame from "@/components/LabyrinthGame";
 import StartGameModal from "@/components/StartGameModal";
 import LeaderboardModal from "@/components/LeaderboardModal";
 import LeaderboardPage from "@/components/LeaderboardPage";
+import GameOverScreen from "@/components/GameOverScreen";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LeaderboardEntry {
+  name: string;
+  time: number;
+}
+
+interface GameResult {
+  type: 'victory' | 'defeat';
   name: string;
   time: number;
 }
@@ -20,6 +27,8 @@ const Index = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [highlightPlayer, setHighlightPlayer] = useState<string | null>(null);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameResult, setGameResult] = useState<GameResult | null>(null);
 
   // Load leaderboard from Supabase on mount
   useEffect(() => {
@@ -64,15 +73,19 @@ const Index = () => {
     setShowStartModal(false);
     setShowLeaderboardModal(false);
     setHighlightPlayer(null);
+    setGameOver(false);
+    setGameResult(null);
     toast.success(`Welcome, ${name}! Your journey begins.`);
   };
 
-  const handleGameOver = async (result: { type: 'victory' | 'defeat', name: string, time: number }) => {
+  const handleGameOver = async (result: GameResult) => {
     setGameStarted(false);
-    setStartTime(null); // Stop the timer
+    setStartTime(null);
+    setGameOver(true);
+    setGameResult(result);
 
     if (result.type === 'victory') {
-      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${result.time.toFixed(2)} seconds!`);
+      toast.success(`Congratulations, ${result.name}! You escaped in ${result.time.toFixed(2)}s!`);
       
       // Save score to Supabase
       const { error } = await supabase
@@ -97,12 +110,8 @@ const Index = () => {
           setLeaderboard(data.map(entry => ({ name: entry.player_name, time: entry.score_time })));
         }
       }
-
-      setHighlightPlayer(result.name);
-      setShowLeaderboardModal(true);
     } else {
-      toast.error(`Alas, ${result.name}, the Labyrinth claims another victim. Game Over.`);
-      setShowLeaderboardModal(false); // Don't show leaderboard on defeat by default
+      toast.error(`Alas, ${result.name}, the Labyrinth claims another victim.`);
     }
   };
 
@@ -113,6 +122,8 @@ const Index = () => {
     setStartTime(null);
     setElapsedTime(0);
     setHighlightPlayer(null);
+    setGameOver(false);
+    setGameResult(null);
   };
 
   const handlePlayClick = () => {
@@ -124,6 +135,10 @@ const Index = () => {
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
+
+  if (gameOver && gameResult) {
+    return <GameOverScreen result={gameResult} onRestart={handleRestartGame} />;
+  }
 
   if (gameStarted) {
     return (

@@ -60,9 +60,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]); // Add hasGameOverBeenDispatched to dependencies
 
   useEffect(() => {
-    // Scroll to bottom of log (only relevant if log is scrollable, but keeping ref for consistency)
+    // Scroll to top of log to show newest messages
     if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
+      logRef.current.scrollTop = 0;
     }
   }, [gameLog]);
 

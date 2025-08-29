@@ -16,9 +16,10 @@ import { Label } from "@/components/ui/label";
 interface StartGameModalProps {
   isOpen: boolean;
   onStartGame: (playerName: string) => void;
+  onClose: () => void;
 }
 
-const StartGameModal: React.FC<StartGameModalProps> = ({ isOpen, onStartGame }) => {
+const StartGameModal: React.FC<StartGameModalProps> = ({ isOpen, onStartGame, onClose }) => {
   const [playerName, setPlayerName] = useState("");
 
   const handleStart = () => {
@@ -34,7 +35,7 @@ const StartGameModal: React.FC<StartGameModalProps> = ({ isOpen, onStartGame }) 
   };
 
   return (
-    <Dialog open={isOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px] bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
         <DialogHeader>
           <DialogTitle className="text-yellow-400 dark:text-yellow-600">Welcome, Adventurer!</DialogTitle>

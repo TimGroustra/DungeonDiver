@@ -30,8 +30,8 @@ const Inventory: React.FC<InventoryProps> = ({ labyrinth, onUseItem, isGameOver,
   };
 
   return (
-    <div className="mt-4 w-full" style={{ maxWidth: `200px` }}> {/* Constrain width to match map's default size */}
-      <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2 text-center lg:text-left">Inventory:</h3>
+    <div className="mt-4 w-full">
+      <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2">Inventory:</h3>
       {inventoryItems.length === 0 ? (
         <p className="text-gray-300 dark:text-gray-700 text-sm italic">Your inventory is empty.</p>
       ) : (

@@ -13,9 +13,9 @@ interface PlayerStatusProps {
 
 const PlayerStatus: React.FC<PlayerStatusProps> = ({ labyrinth, cellSize, dynamicViewportSize }) => {
   return (
-    <div className="w-full" style={{ maxWidth: `${dynamicViewportSize * cellSize}px` }}> {/* Constrain width to match map */}
-      <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2 text-center lg:text-left">Adventurer's Status:</h3>
-      <div className="flex justify-center lg:justify-start items-center gap-4 text-base text-gray-300 dark:text-gray-700 p-2 rounded-md bg-gray-900/50 dark:bg-gray-200/50 mb-4">
+    <>
+      <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2 text-center">Adventurer's Status:</h3>
+      <div className="flex justify-center items-center gap-6 text-base text-gray-300 dark:text-gray-700 p-2 rounded-md bg-gray-900/50 dark:bg-gray-200/50 mb-4">
         <Tooltip>
           <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
             <Sword size={20} className="text-orange-400" />
@@ -44,7 +44,7 @@ const PlayerStatus: React.FC<PlayerStatusProps> = ({ labyrinth, cellSize, dynami
           </TooltipContent>
         </Tooltip>
       </div>
-      <div className="w-full mb-2">
+      <div className="w-full mb-2" style={{ maxWidth: `${dynamicViewportSize * cellSize}px` }}>
         <div className="flex justify-between items-center mb-1 px-1">
           <span className="text-sm font-bold text-lime-300 dark:text-lime-600">Health</span>
           <span className="text-xs font-mono text-gray-300 dark:text-gray-700">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
@@ -56,7 +56,7 @@ const PlayerStatus: React.FC<PlayerStatusProps> = ({ labyrinth, cellSize, dynami
           />
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

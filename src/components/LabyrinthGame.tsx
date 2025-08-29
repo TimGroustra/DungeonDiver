@@ -412,59 +412,67 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const equippedAmulet = labyrinth.getEquippedAmulet();
     const equippedCompass = labyrinth.getEquippedCompass();
 
-    if (inventoryItems.length === 0) {
-      return <p className="text-gray-300 dark:text-gray-700 text-sm italic mt-4">Your inventory is empty.</p>;
-    }
     return (
       <div className="mt-4">
-        <p className="font-semibold text-base">Your Inventory:</p>
-        <ul className="list-disc list-inside text-xs text-gray-700 dark:text-gray-300">
-          {inventoryItems.map(({ item, quantity }) => {
-            let equippedStatus = "";
-            let isEquipped = false;
+        <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2">Inventory:</h3>
+        {inventoryItems.length === 0 ? (
+          <p className="text-gray-300 dark:text-gray-700 text-sm italic">Your inventory is empty.</p>
+        ) : (
+          <ScrollArea className="h-[200px] w-full pr-3">
+            <ul className="space-y-2 text-xs text-gray-300 dark:text-gray-700">
+              {inventoryItems.map(({ item, quantity }) => {
+                let equippedStatus = "";
+                let isEquipped = false;
 
-            if (item.type === 'weapon' && equippedWeapon?.id === item.id) {
-              equippedStatus = "(Equipped Weapon)";
-              isEquipped = true;
-            } else if (item.type === 'shield' && equippedShield?.id === item.id) {
-              equippedStatus = "(Equipped Shield)";
-              isEquipped = true;
-            } else if (item.type === 'accessory') {
-              if (item.id === "scholar-amulet-f0" && equippedAmulet?.id === item.id) {
-                equippedStatus = "(Equipped Amulet)";
-                isEquipped = true;
-              } else if (item.id === "true-compass-f2" && equippedCompass?.id === item.id) {
-                equippedStatus = "(Equipped Compass)";
-                isEquipped = true;
-              }
-            }
+                if (item.type === 'weapon' && equippedWeapon?.id === item.id) {
+                  equippedStatus = "(Equipped Weapon)";
+                  isEquipped = true;
+                } else if (item.type === 'shield' && equippedShield?.id === item.id) {
+                  equippedStatus = "(Equipped Shield)";
+                  isEquipped = true;
+                } else if (item.type === 'accessory') {
+                  if (item.id === "scholar-amulet-f0" && equippedAmulet?.id === item.id) {
+                    equippedStatus = "(Equipped Amulet)";
+                    isEquipped = true;
+                  } else if (item.id === "true-compass-f2" && equippedCompass?.id === item.id) {
+                    equippedStatus = "(Equipped Compass)";
+                    isEquipped = true;
+                  }
+                }
 
-            const isConsumableWithUses = item.type === 'consumable' && item.stackable;
-            const canUse = !labyrinth.isGameOver() && !showRPS && (isConsumableWithUses ? quantity > 0 : true);
-            const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
+                const isConsumableWithUses = item.type === 'consumable' && item.stackable;
+                const canUse = !labyrinth.isGameOver() && !showRPS && (isConsumableWithUses ? quantity > 0 : true);
+                const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
 
-            return (
-              <li key={item.id} className="flex items-center justify-between mb-1">
-                <div>
-                  <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
-                  {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600"> (x{quantity})</span>}: {item.description}
-                  {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
-                </div>
-                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
-                    onClick={() => handleUseItem(item.id)}
-                    disabled={!canUse}
-                  >
-                    {buttonText}
-                  </Button>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                return (
+                  <li key={item.id} className="flex items-center justify-between">
+                    <Tooltip>
+                      <TooltipTrigger className="text-left">
+                        <span className="font-medium text-white dark:text-gray-950">{item.name}</span>
+                        {isConsumableWithUses && <span className="ml-1 text-gray-400 dark:text-gray-600">(x{quantity})</span>}
+                        {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600 text-xs">{equippedStatus}</span>}
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{item.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900"
+                        onClick={() => handleUseItem(item.id)}
+                        disabled={!canUse}
+                      >
+                        {buttonText}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </ScrollArea>
+        )}
       </div>
     );
   };
@@ -481,8 +489,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2 sm:pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="flex flex-col items-center relative">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left Column: Map & Controls */}
+            <div className="flex flex-col items-center">
               <div className="mb-2" style={{ width: `${dynamicViewportSize * cellSize}px` }}>
                 <div className="flex justify-between items-center mb-1 px-1">
                   <span className="text-sm font-bold text-lime-300 dark:text-lime-600">Health</span>
@@ -530,73 +539,74 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             </div>
 
-            <div className="flex flex-col items-center">
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
-
-              <div className="mb-3 w-full text-center">
-                <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+            {/* Right Column: Stats & Inventory */}
+            <div className="flex-grow lg:max-w-sm">
+              <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2 text-center">Adventurer's Status:</h3>
+              <div className="flex justify-center items-center gap-6 text-base text-gray-300 dark:text-gray-700 p-2 rounded-md bg-gray-900/50 dark:bg-gray-200/50">
+                <Tooltip>
+                  <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
+                    <Sword size={20} className="text-orange-400" />
+                    <span className="font-bold text-lg">{labyrinth.getCurrentAttackDamage()}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p><strong>Attack Power:</strong> The amount of damage you deal in combat.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
+                    <Shield size={20} className="text-blue-400" />
+                    <span className="font-bold text-lg">{labyrinth.getCurrentDefense()}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p><strong>Defense:</strong> Reduces incoming damage from enemies.</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
+                    <Target size={20} className="text-purple-400" />
+                    <span className="font-bold text-lg">{labyrinth.getSearchRadius()}</span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p><strong>Search Radius:</strong> The range of your 'Search Area' action.</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
+              {renderInventory()}
+            </div>
+          </div>
 
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+          <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
 
+          {/* Bottom Section: Log, Description, Objective */}
+          <div className="w-full text-center">
+            <h2 className="text-2xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
+            <p className="text-base text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth, where shadows dance and whispers echo."}</p>
+          </div>
+
+          <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
               <h3 className="text-xl font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles of the Labyrinth:</h3>
-              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-sm font-mono overflow-hidden">
-                {gameLog.slice(-3).reverse().map((message, index) => (
-                  <p key={index} className="mb-1 last:mb-0">{message}</p>
-                ))}
-              </div>
-
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
-
-              <div className="mb-3 w-full text-center">
-                  <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600 mb-2">Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
-                  <p className="text-base text-gray-300 dark:text-gray-700 italic">
-                      {labyrinth.getCurrentFloorObjective().description}
-                  </p>
-                  <p className={cn(
-                      "text-sm font-semibold mt-1",
-                      labyrinth.getCurrentFloorObjective().isCompleted() ? "text-green-400 dark:text-green-500" : "text-red-400 dark:text-red-500"
-                  )}>
-                      Status: {labyrinth.getCurrentFloorObjective().isCompleted() ? "Completed!" : "In Progress"}
-                  </p>
-              </div>
-
-              <Separator className="my-4 w-full bg-gray-700 dark:bg-gray-300" />
-
-              <div className="mb-3 w-full text-center">
-                <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2">Adventurer's Status:</h3>
-                <div className="flex justify-center items-center gap-6 text-base text-gray-300 dark:text-gray-700 p-2 rounded-md bg-gray-900/50 dark:bg-gray-200/50">
-                  <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
-                      <Sword size={20} className="text-orange-400" />
-                      <span className="font-bold text-lg">{labyrinth.getCurrentAttackDamage()}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p><strong>Attack Power:</strong> The amount of damage you deal in combat.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
-                      <Shield size={20} className="text-blue-400" />
-                      <span className="font-bold text-lg">{labyrinth.getCurrentDefense()}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p><strong>Defense:</strong> Reduces incoming damage from enemies.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger className="flex items-center gap-1.5 cursor-help transition-transform hover:scale-110">
-                      <Target size={20} className="text-purple-400" />
-                      <span className="font-bold text-lg">{labyrinth.getSearchRadius()}</span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p><strong>Search Radius:</strong> The range of your 'Search Area' action.</p>
-                    </TooltipContent>
-                  </Tooltip>
+              <ScrollArea className="h-24 w-full rounded-md border border-gray-700 dark:border-gray-300 p-3 bg-gray-900 dark:bg-gray-200">
+                <div ref={logRef} className="text-gray-200 dark:text-gray-800 text-sm font-mono">
+                  {gameLog.slice(-10).map((message, index) => (
+                    <p key={index} className="mb-1 last:mb-0">{message}</p>
+                  ))}
                 </div>
-                {renderInventory()}
-              </div>
+              </ScrollArea>
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-yellow-300 dark:text-yellow-600 mb-2">Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
+              <p className="text-base text-gray-300 dark:text-gray-700 italic">
+                  {labyrinth.getCurrentFloorObjective().description}
+              </p>
+              <p className={cn(
+                  "text-sm font-semibold mt-1",
+                  labyrinth.getCurrentFloorObjective().isCompleted() ? "text-green-400 dark:text-green-500" : "text-red-400 dark:text-red-500"
+              )}>
+                  Status: {labyrinth.getCurrentFloorObjective().isCompleted() ? "Completed!" : "In Progress"}
+              </p>
             </div>
           </div>
         </CardContent>

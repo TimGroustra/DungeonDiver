@@ -581,7 +581,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             </div>
 
-            {/* Right Column: Room Info, Game Log, Quest Objective */}
+            {/* Right Column: Room Info, Game Log */}
             <div className="flex flex-col items-center">
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
@@ -597,21 +597,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 {gameLog.slice(-3).reverse().map((message, index) => (
                   <p key={index} className="mb-1 last:mb-0">{message}</p>
                 ))}
-              </div>
-
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
-
-              <div className="mb-2 w-full text-center">
-                  <h3 className="text-lg font-bold text-yellow-300 dark:text-yellow-600 mb-1">Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
-                  <p className="text-sm text-gray-300 dark:text-gray-700 italic">
-                      {labyrinth.getCurrentFloorObjective().description}
-                  </p>
-                  <p className={cn(
-                      "text-xs font-semibold mt-1",
-                      labyrinth.getCurrentFloorObjective().isCompleted() ? "text-green-400 dark:text-green-500" : "text-red-400 dark:text-red-500"
-                  )}>
-                      Status: {labyrinth.getCurrentFloorObjective().isCompleted() ? "Completed!" : "In Progress"}
-                  </p>
               </div>
             </div>
           </div>

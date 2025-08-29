@@ -581,16 +581,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             </div>
 
-            {/* Right Column: Room Info, Game Log */}
+            {/* Right Column: Game Log */}
             <div className="flex flex-col items-center">
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
-
-              <div className="mb-2 w-full text-center">
-                <h2 className="text-xl font-bold mb-1 text-cyan-300 dark:text-cyan-600">{currentLogicalRoom?.name || "The Void Beyond"}</h2>
-                <p className="text-sm text-gray-300 dark:text-gray-700 italic">{currentLogicalRoom?.description || "You are lost in an unknown part of the labyrinth."}</p>
-              </div>
-
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
               <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
               <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono overflow-hidden">

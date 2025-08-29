@@ -241,9 +241,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <CardDescription className="text-sm sm:text-base italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2 sm:pt-4">
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* Changed to grid layout */}
             {/* Left Column: Map & Controls */}
-            <div className="flex flex-col items-center lg:w-1/2">
+            <div className="flex flex-col items-center">
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               <MapView labyrinth={labyrinth} cellSize={cellSize} dynamicViewportSize={dynamicViewportSize} />
               <PlayerControls
@@ -258,7 +258,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </div>
 
             {/* Right Column: Stats, Health, Inventory */}
-            <div className="flex-grow lg:w-1/2 flex flex-col items-center">
+            <div className="flex flex-col items-center">
               <PlayerStatus labyrinth={labyrinth} cellSize={cellSize} dynamicViewportSize={dynamicViewportSize} />
               <Inventory
                 labyrinth={labyrinth}

@@ -21,7 +21,14 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
   const isVictory = result.type === 'victory';
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-4">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-4"
+      style={{
+        backgroundImage: "url('/Eldoria.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
       <Card className={cn(
         "w-full max-w-md text-center border-4",
         isVictory ? "bg-yellow-900/50 border-yellow-500 text-yellow-100" : "bg-red-900/50 border-red-500 text-red-100"

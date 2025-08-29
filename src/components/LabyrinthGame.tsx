@@ -496,8 +496,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-1">
-      <Card className="w-full max-w-4xl shadow-2xl bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-1"
+      style={{
+        backgroundImage: "url('/Eldoria.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
         <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2">
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>

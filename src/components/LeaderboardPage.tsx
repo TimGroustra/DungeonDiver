@@ -17,8 +17,15 @@ interface LeaderboardPageProps {
 
 const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ leaderboard, onPlay }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-950 dark:bg-gray-50 p-4">
-      <Card className="w-full max-w-md bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
+    <div
+      className="flex flex-col items-center justify-center min-h-screen p-4"
+      style={{
+        backgroundImage: "url('/Eldoria.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <Card className="w-full max-w-md bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300">
         <CardHeader>
           <CardTitle className="text-yellow-400 dark:text-yellow-600 text-2xl text-center">Labyrinth Conquerors!</CardTitle>
           <CardDescription className="text-gray-300 dark:text-gray-700 text-center">

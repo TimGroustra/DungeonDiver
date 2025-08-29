@@ -34,7 +34,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const isMobile = useIsMobile(); // Determine if on mobile
   const dynamicViewportSize = 10; // Restored to fixed size
-  const cellSize = 20; // Restored to fixed size
 
   // Initialize labyrinth on component mount or game restart
   useEffect(() => {
@@ -267,9 +266,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const viewportMapStartX = playerLoc.x - halfViewport;
     const viewportMapStartY = playerLoc.y - halfViewport;
 
-    const mapDisplayWidth = dynamicViewportSize * cellSize;
-    const mapDisplayHeight = dynamicViewportSize * cellSize;
-
     const visibleCells = [];
     for (let viewportY = 0; viewportY < dynamicViewportSize; viewportY++) {
       const rowCells = [];
@@ -415,12 +411,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     return (
       <div
-        className="grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
+        className="w-full grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
-          gridTemplateColumns: "repeat(" + dynamicViewportSize + ", " + cellSize + "px)",
-          gridTemplateRows: "repeat(" + dynamicViewportSize + ", " + cellSize + "px)",
-          width: mapDisplayWidth + "px",
-          height: mapDisplayHeight + "px",
+          gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)`,
+          gridTemplateRows: `repeat(${dynamicViewportSize}, 1fr)`,
+          aspectRatio: '1 / 1',
         }}
       >
         {visibleCells.map((row, rowIndex) => (

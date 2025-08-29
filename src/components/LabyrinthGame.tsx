@@ -509,43 +509,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </CardHeader>
         <CardContent className="pt-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Left Column: Adventurer Status, Map, Controls, Combat */}
+            {/* Left Column: Map, Controls, Combat */}
             <div className="flex flex-col items-center relative">
-              <div className="mb-2 w-full text-center">
-                <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-1">Adventurer's Status:</h3>
-                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-gray-300 dark:text-gray-700">
-                  <p className="flex items-center">
-                    <Heart className="mr-1 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
-                  </p>
-                  <p className="flex items-center">
-                    <Sword className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span>
-                  </p>
-                  <p className="flex items-center">
-                    <Shield className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span>
-                  </p>
-                  <p className="flex items-center">
-                    <Target className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span>
-                  </p>
-                </div>
-                <div className="text-xs text-gray-400 dark:text-gray-600 mt-1">
-                  {labyrinth.getEquippedWeapon() && (
-                    <p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
-                  )}
-                  {labyrinth.getEquippedShield() && (
-                    <p>Shield: {labyrinth.getEquippedShield()?.name}</p>
-                  )}
-                  {labyrinth.getEquippedAmulet() && (
-                    <p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>
-                  )}
-                  {labyrinth.getEquippedCompass() && (
-                    <p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>
-                  )}
-                </div>
-                {renderInventory()}
-              </div>
-
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
-
               <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
 
@@ -581,9 +546,44 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             </div>
 
-            {/* Right Column: Game Log */}
+            {/* Right Column: Adventurer's Status, Chronicles */}
             <div className="flex flex-col items-center">
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
+
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-1">Adventurer's Status:</h3>
+                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-gray-300 dark:text-gray-700">
+                  <p className="flex items-center">
+                    <Heart className="mr-1 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Sword className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Shield className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span>
+                  </p>
+                  <p className="flex items-center">
+                    <Target className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span>
+                  </p>
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-600 mt-1">
+                  {labyrinth.getEquippedWeapon() && (
+                    <p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedShield() && (
+                    <p>Shield: {labyrinth.getEquippedShield()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedAmulet() && (
+                    <p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>
+                  )}
+                  {labyrinth.getEquippedCompass() && (
+                    <p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>
+                  )}
+                </div>
+                {renderInventory()}
+              </div>
+
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
               <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
               <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono overflow-hidden">

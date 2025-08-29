@@ -2,8 +2,9 @@ import React, { useState, useEffect } from "react";
 import LabyrinthGame from "@/components/LabyrinthGame";
 import StartGameModal from "@/components/StartGameModal";
 import LeaderboardModal from "@/components/LeaderboardModal";
+import LeaderboardPage from "@/components/LeaderboardPage";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client"; // Import Supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeaderboardEntry {
   name: string;
@@ -11,7 +12,7 @@ interface LeaderboardEntry {
 }
 
 const Index = () => {
-  const [showStartModal, setShowStartModal] = useState(true);
+  const [showStartModal, setShowStartModal] = useState(false);
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [gameStarted, setGameStarted] = useState(false);
@@ -106,13 +107,16 @@ const Index = () => {
   };
 
   const handleRestartGame = () => {
-    setShowStartModal(true);
     setShowLeaderboardModal(false);
-    setGameStarted(false); // This will trigger LabyrinthGame to re-initialize
+    setGameStarted(false);
     setPlayerName("");
     setStartTime(null);
     setElapsedTime(0);
     setHighlightPlayer(null);
+  };
+
+  const handlePlayClick = () => {
+    setShowStartModal(true);
   };
 
   const formatTime = (seconds: number) => {
@@ -121,29 +125,33 @@ const Index = () => {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <>
-      <StartGameModal isOpen={showStartModal} onStartGame={handleStartGame} />
-      <LeaderboardModal
-        isOpen={showLeaderboardModal}
-        onClose={handleRestartGame} // Close leaderboard and restart game
-        leaderboard={leaderboard}
-        highlightName={highlightPlayer}
-      />
-
-      {gameStarted && (
+  if (gameStarted) {
+    return (
+      <>
         <div className="absolute top-4 right-4 bg-gray-700 text-white px-3 py-1 rounded-md text-sm font-mono z-10">
           Time: {formatTime(elapsedTime)}
         </div>
-      )}
+        <LabyrinthGame
+          playerName={playerName}
+          gameStarted={gameStarted}
+          elapsedTime={elapsedTime}
+          onGameOver={handleGameOver}
+          onGameRestart={handleRestartGame}
+        />
+      </>
+    );
+  }
 
-      <LabyrinthGame
-        playerName={playerName}
-        gameStarted={gameStarted}
-        elapsedTime={elapsedTime}
-        onGameOver={handleGameOver}
-        onGameRestart={handleRestartGame}
+  return (
+    <>
+      <StartGameModal isOpen={showStartModal} onStartGame={handleStartGame} onClose={() => setShowStartModal(false)} />
+      <LeaderboardModal
+        isOpen={showLeaderboardModal}
+        onClose={handleRestartGame}
+        leaderboard={leaderboard}
+        highlightName={highlightPlayer}
       />
+      <LeaderboardPage leaderboard={leaderboard} onPlay={handlePlayClick} />
     </>
   );
 };

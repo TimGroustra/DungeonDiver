@@ -491,7 +491,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <CardContent className="pt-2 sm:pt-4">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column: Map & Controls */}
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center lg:w-1/2">
               <h3 className="text-xl font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map</h3>
               {renderMap()}
 
@@ -528,7 +528,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </div>
 
             {/* Right Column: Stats, Health, Inventory */}
-            <div className="flex-grow lg:max-w-sm flex flex-col items-center">
+            <div className="flex-grow lg:w-1/2 flex flex-col items-center">
               <h3 className="text-xl font-bold text-lime-300 dark:text-lime-600 mb-2 text-center">Adventurer's Status:</h3>
               <div className="flex justify-center items-center gap-6 text-base text-gray-300 dark:text-gray-700 p-2 rounded-md bg-gray-900/50 dark:bg-gray-200/50 mb-4">
                 <Tooltip>
@@ -559,7 +559,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="w-full mb-2">
+              <div className="w-full mb-2" style={{ maxWidth: `${dynamicViewportSize * cellSize}px` }}>
                 <div className="flex justify-between items-center mb-1 px-1">
                   <span className="text-sm font-bold text-lime-300 dark:text-lime-600">Health</span>
                   <span className="text-xs font-mono text-gray-300 dark:text-gray-700">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>

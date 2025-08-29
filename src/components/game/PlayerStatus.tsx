@@ -4,10 +4,11 @@ import React from 'react';
 import { Labyrinth } from '@/lib/game';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import Inventory from './Inventory'; // Import Inventory
-import GameLog from './GameLog'; // Import GameLog
+import Inventory from './Inventory';
+import GameLog from './GameLog';
 
 interface PlayerStatusProps {
+  playerName: string;
   labyrinth: Labyrinth;
   onUseItem: (itemId: string) => void;
   isGameOver: boolean;
@@ -17,6 +18,7 @@ interface PlayerStatusProps {
 }
 
 const PlayerStatus: React.FC<PlayerStatusProps> = ({
+  playerName,
   labyrinth,
   onUseItem,
   isGameOver,
@@ -24,11 +26,13 @@ const PlayerStatus: React.FC<PlayerStatusProps> = ({
   gameLog,
   logRef,
 }) => {
-  const player = labyrinth.getPlayer();
   const currentFloor = labyrinth.getCurrentFloor();
-  const maxHealth = player.getMaxHealth();
-  const currentHealth = player.getHealth();
+  const maxHealth = labyrinth.getPlayerMaxHealth();
+  const currentHealth = labyrinth.getPlayerHealth();
   const healthPercentage = (currentHealth / maxHealth) * 100;
+  const attack = labyrinth.getCurrentAttackDamage();
+  const defense = labyrinth.getCurrentDefense();
+  const gold = labyrinth.getPlayerGold();
 
   return (
     <div className="flex flex-col items-center w-full">
@@ -38,15 +42,15 @@ const PlayerStatus: React.FC<PlayerStatusProps> = ({
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <p className="text-lg"><strong>Name:</strong> {player.getName()}</p>
+            <p className="text-lg"><strong>Name:</strong> {playerName}</p>
             <p className="text-lg"><strong>Floor:</strong> {currentFloor + 1}</p>
             <div>
               <p className="text-lg mb-1"><strong>Health:</strong> {currentHealth} / {maxHealth}</p>
               <Progress value={healthPercentage} className="w-full h-3 bg-red-900 dark:bg-red-200 [&>*]:bg-red-500 [&>*]:dark:bg-red-600" />
             </div>
-            <p className="text-lg"><strong>Attack:</strong> {player.getAttack()}</p>
-            <p className="text-lg"><strong>Defense:</strong> {player.getDefense()}</p>
-            <p className="text-lg"><strong>Gold:</strong> {player.getGold()}</p>
+            <p className="text-lg"><strong>Attack:</strong> {attack}</p>
+            <p className="text-lg"><strong>Defense:</strong> {defense}</p>
+            <p className="text-lg"><strong>Gold:</strong> {gold}</p>
           </div>
         </CardContent>
       </Card>

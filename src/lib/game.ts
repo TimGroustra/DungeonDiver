@@ -359,16 +359,20 @@ export class Labyrinth {
     const enemyHealthMultiplier = 1 + (floor * 0.7); // Increased from 0.5
     const enemyDamageMultiplier = 1 + (floor * 0.3); // Increased from 0.2
 
+    // Prefixes for gear based on floor
+    const prefixes = ["Rusty", "Iron", "Steel", "Mithril"];
+    const prefix = prefixes[floor] || "Ancient"; // Fallback to Ancient if floor > 3
+
     // Common items (can be found on any floor)
     const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
     this.items.set(potion.id, potion);
     this.placeElementRandomly(potion.id, this.itemLocations, floor);
 
-    const sword = new Item(`sword-${floor}-1`, "Blade of the Labyrinth", "A finely crafted sword, its edge humming with ancient power. Increases your attack.", false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
+    const sword = new Item(`sword-${floor}-1`, `${prefix} Blade of the Labyrinth`, `A ${prefix.toLowerCase()} sword, its edge humming with ancient power. Increases your attack.`, false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
     this.items.set(sword.id, sword);
     this.placeElementRandomly(sword.id, this.itemLocations, floor);
 
-    const shield = new Item(`shield-${floor}-1`, "Aegis of the Guardian", "A sturdy shield emblazoned with a forgotten crest. Increases your defense.", false, 'shield', 5 + (floor * 2)); // Shield gets stronger
+    const shield = new Item(`shield-${floor}-1`, `${prefix} Aegis of the Guardian`, `A sturdy ${prefix.toLowerCase()} shield emblazoned with a forgotten crest. Increases your defense.`, false, 'shield', 5 + (floor * 2)); // Shield gets stronger
     this.items.set(shield.id, shield);
     this.placeElementRandomly(shield.id, this.itemLocations, floor);
 

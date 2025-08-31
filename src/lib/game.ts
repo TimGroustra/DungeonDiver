@@ -1444,45 +1444,51 @@ export class Labyrinth {
 
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
         const [oldX, oldY] = coordStr.split(',').map(Number);
-        let newX = oldX;
-        let newY = oldY;
-
+        
         const dx = playerX - oldX;
         const dy = playerY - oldY;
 
+        // Create a prioritized list of moves
+        const moves: {x: number, y: number}[] = [];
         if (Math.abs(dx) > Math.abs(dy)) {
-            newX += Math.sign(dx);
-        } else if (Math.abs(dy) > 0) {
-            newY += Math.sign(dy);
-        } else if (dx !== 0) {
-            newX += Math.sign(dx);
+            moves.push({x: oldX + Math.sign(dx), y: oldY}); // Primary horizontal
+            if (dy !== 0) moves.push({x: oldX, y: oldY + Math.sign(dy)}); // Secondary vertical
+        } else {
+            moves.push({x: oldX, y: oldY + Math.sign(dy)}); // Primary vertical
+            if (dx !== 0) moves.push({x: oldX + Math.sign(dx), y: oldY}); // Secondary horizontal
         }
 
-        if (!this._isValidEnemyMove(newX, newY, currentFloorMap)) {
-            continue;
-        }
-
-        if (newX === playerX && newY === playerY) {
-            const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
-            this.playerHealth -= damageDealt;
-            this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
-            if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time)) {
-                    this.addMessage("You have been slain... Game Over.");
-                    this.setGameOver('defeat', playerName, time);
-                }
+        let moved = false;
+        for (const move of moves) {
+            if (!this._isValidEnemyMove(move.x, move.y, currentFloorMap)) {
+                continue;
             }
-            continue;
-        }
 
-        const newCoordStr = `${newX},${newY},${this.currentFloor}`;
-        if (this.enemyLocations.has(newCoordStr)) {
-            continue;
-        }
+            if (move.x === playerX && move.y === playerY) {
+                const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
+                this.playerHealth -= damageDealt;
+                this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
+                if (this.playerHealth <= 0) {
+                    if (!this._tryActivateWellBlessing(playerName, time)) {
+                        this.addMessage("You have been slain... Game Over.");
+                        this.setGameOver('defeat', playerName, time);
+                    }
+                }
+                moved = true;
+                break; // Enemy attacked, stop trying to move
+            }
 
-        this.enemyLocations.delete(coordStr);
-        this.enemyLocations.set(newCoordStr, enemyId);
-        this.addMessage(`${enemy.name} moved from (${oldX},${oldY}) to (${newX},${newY}).`); // Added log message
+            const newCoordStr = `${move.x},${move.y},${this.currentFloor}`;
+            if (this.enemyLocations.has(newCoordStr)) {
+                continue; // Path is blocked by another enemy, try next move
+            }
+
+            this.enemyLocations.delete(coordStr);
+            this.enemyLocations.set(newCoordStr, enemyId);
+            this.addMessage(`${enemy.name} moved from (${oldX},${oldY}) to (${move.x},${move.y}).`);
+            moved = true;
+            break; // Enemy moved, stop trying other moves
+        }
     }
   }
 

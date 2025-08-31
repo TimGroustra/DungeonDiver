@@ -220,18 +220,24 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const renderMap = () => {
     const mapGrid = labyrinth.getMapGrid();
     const playerLoc = labyrinth.getPlayerLocation();
-    const visitedCells = labyrinth.getVisitedCells(); // This now gets visited cells for the current floor
+    const visitedCells = labyrinth.getVisitedCells();
     const revealedStaticItems = labyrinth.getRevealedStaticItems();
-    const triggeredTraps = labyrinth.getTriggeredTraps(); // Get triggered traps
+    const triggeredTraps = labyrinth.getTriggeredTraps();
     const fullGridWidth = mapGrid[0]?.length || 0;
     const fullGridHeight = mapGrid.length;
     const currentFloor = labyrinth.getCurrentFloor();
-    const numFloors = labyrinth["NUM_FLOORS"]; // Access private property for display
+    const numFloors = labyrinth["NUM_FLOORS"];
+
+    const floorTiles = [
+      '/tiles/floor-1.png',
+      '/tiles/floor-2.png',
+      '/tiles/floor-3.png',
+      '/tiles/floor-4.png',
+      '/tiles/floor-5.png',
+      '/tiles/floor-6.png',
+    ];
 
     const halfViewport = Math.floor(dynamicViewportSize / 2);
-
-    // Calculate the top-left corner of the viewport in map coordinates
-    // This ensures the player is at (halfViewport, halfViewport) relative to this start
     const viewportMapStartX = playerLoc.x - halfViewport;
     const viewportMapStartY = playerLoc.y - halfViewport;
 
@@ -246,135 +252,126 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         let cellContentIndicator: React.ReactNode = "";
         let cellTitle = "";
         let cellClasses = "";
+        let cellStyle: React.CSSProperties = {};
 
-        // Check if the map coordinates are within the actual labyrinth bounds
         if (mapX >= 0 && mapX < fullGridWidth && mapY >= 0 && mapY < fullGridHeight) {
-          const cellCoord = `${mapX},${mapY}`; // For visitedCells set
-          const fullCoordStr = `${mapX},${mapY},${currentFloor}`; // For element locations
+          const cellCoord = `${mapX},${mapY}`;
+          const fullCoordStr = `${mapX},${mapY},${currentFloor}`;
           const isVisited = visitedCells.has(cellCoord);
           const isWall = mapGrid[mapY][mapX] === 'wall';
 
-          // Check for final exit portal (now the Altar on Floor 4)
+          if (isVisited && !isWall) {
+            const tileIndex = Math.abs(mapX * 31 + mapY * 17) % floorTiles.length;
+            const tileUrl = floorTiles[tileIndex];
+            cellStyle = { backgroundImage: `url(${tileUrl})`, backgroundSize: 'cover' };
+          }
+
           const isAltar = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
-          // Check if this cell has a trap and if it has been triggered
           const hasTrap = labyrinth["trapsLocations"].has(fullCoordStr);
           const isTrapTriggered = triggeredTraps.has(fullCoordStr);
-
-          // Watcher of the Core specific checks
           const isBossPassage = labyrinth.isBossPassage(mapX, mapY, currentFloor);
           const isRedLight = labyrinth.getBossState() === 'red_light';
           const isBossDefeated = labyrinth.isBossDefeated();
           const isWatcherLocation = (currentFloor === numFloors - 1) && (labyrinth["watcherLocation"]?.x === mapX && labyrinth["watcherLocation"]?.y === mapY);
 
-
           if (isPlayerHere) {
             cellContentIndicator = <img src="/player-adventurer.png" alt="Player" className="w-3 h-3" />;
-            cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
+            cellClasses = "bg-blue-600/50 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
-            cellContentIndicator = "█";
-            cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
+            cellStyle = { backgroundImage: `url('/tiles/wall.png')`, backgroundSize: 'cover' };
             cellTitle = "Solid Wall";
-          } else if (isTrapTriggered) { // Prioritize triggered traps to show them
-              cellContentIndicator = <Dices size={12} />;
-              cellClasses = "bg-orange-700 text-orange-200"; // A different color for triggered traps
-              cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
-          } else if (isVisited) { // Only show special indicators on visited cells if not a triggered trap
+          } else if (isTrapTriggered) {
+            cellContentIndicator = <Dices size={12} />;
+            cellClasses = "bg-orange-700/75 text-orange-200";
+            cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
+          } else if (isVisited) {
             const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
             const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
             const hasUndefeatedEnemy = enemy && !enemy.defeated;
-
             const puzzleId = labyrinth["puzzleLocations"].get(fullCoordStr);
             const puzzle = puzzleId ? labyrinth.getPuzzle(puzzleId) : undefined;
             const hasUnsolvedPuzzle = puzzle && !puzzle.solved;
             const hasSolvedPuzzle = puzzle && puzzle.solved;
-
             const itemId = labyrinth["itemLocations"].get(fullCoordStr);
             const item = itemId ? labyrinth.getItem(itemId) : undefined;
             const hasUnpickedItem = !!item;
-
             const staticItemId = labyrinth["staticItemLocations"].get(fullCoordStr);
             const hasStaticItemAtLocation = !!staticItemId;
             const isStaticItemCurrentlyRevealed = revealedStaticItems.has(fullCoordStr);
-
-            // Check for staircase to next floor
             const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
             if (isAltar) {
-                cellContentIndicator = <Crown size={12} />; // Changed to Crown
-                cellClasses = "bg-purple-600 text-white animate-pulse";
-                cellTitle = `Ancient Altar (Final Objective)`;
+              cellContentIndicator = <Crown size={12} />;
+              cellClasses = "bg-purple-600/75 text-white animate-pulse";
+              cellTitle = `Ancient Altar (Final Objective)`;
             } else if (isWatcherLocation && !isBossDefeated) {
-                cellContentIndicator = <Eye size={12} />; // Eye icon for the Watcher
-                cellClasses = "bg-red-700 text-red-200 animate-pulse";
-                cellTitle = `The Watcher of the Core!`;
+              cellContentIndicator = <Eye size={12} />;
+              cellClasses = "bg-red-700/75 text-red-200 animate-pulse";
+              cellTitle = `The Watcher of the Core!`;
             } else if (isStaircase) {
-                cellContentIndicator = <ArrowDownCircle size={12} />; // Staircase icon
-                cellClasses = "bg-indigo-600 text-white";
-                cellTitle = `Staircase to Floor ${currentFloor + 2}`;
+              cellContentIndicator = <ArrowDownCircle size={12} />;
+              cellClasses = "bg-indigo-600/75 text-white";
+              cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
-                cellContentIndicator = <img src="/enemy-ghost.png" alt="Enemy" className="w-3 h-3" />;
-                cellClasses = "bg-red-900 text-red-300 animate-pulse"; // Darker red, more menacing
-                cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
+              cellContentIndicator = <img src="/enemy-ghost.png" alt="Enemy" className="w-3 h-3" />;
+              cellClasses = "bg-red-900/50 text-red-300 animate-pulse";
+              cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {
-                cellContentIndicator = <PuzzleIcon size={12} />; // Keep PuzzleIcon
-                cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
-                cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
+              cellContentIndicator = <PuzzleIcon size={12} />;
+              cellClasses = "bg-yellow-800/50 text-yellow-300 animate-pulse";
+              cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-                if (item?.name === "Vial of Lumina") {
-                    cellContentIndicator = <img src="/item-vial.png" alt="Vial" className="w-3 h-3" />;
-                } else {
-                    cellContentIndicator = <Gem size={12} />;
-                }
-                cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
-                cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
-            } else if (hasTrap) { // Trap is present but not yet triggered
-                cellContentIndicator = " "; // Invisible until triggered
-                cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500"; // Same as visited empty room
-                cellTitle = `Explored (${mapX},${mapY})`; // Don't reveal trap in title
+              if (item?.name === "Vial of Lumina") {
+                cellContentIndicator = <img src="/item-vial.png" alt="Vial" className="w-3 h-3" />;
+              } else {
+                cellContentIndicator = <Gem size={12} />;
+              }
+              cellClasses = "bg-emerald-800/50 text-emerald-300 animate-pulse";
+              cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+            } else if (hasTrap) {
+              cellContentIndicator = " ";
+              cellTitle = `Explored (${mapX},${mapY})`;
             } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
-                cellContentIndicator = <BookOpen size={12} />;
-                cellClasses = "bg-green-700 text-green-200";
-                cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
+              cellContentIndicator = <BookOpen size={12} />;
+              cellClasses = "bg-green-700/50 text-green-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
             } else if (hasSolvedPuzzle) {
-                cellContentIndicator = <Sparkles size={12} />;
-                cellClasses = "bg-purple-800 text-purple-200";
-                cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
+              cellContentIndicator = <Sparkles size={12} />;
+              cellClasses = "bg-purple-800/50 text-purple-200";
+              cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
             } else {
-                cellContentIndicator = "·";
-                cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500";
-                cellTitle = `Explored (${mapX},${mapY})`;
+              cellContentIndicator = " ";
+              cellTitle = `Explored (${mapX},${mapY})`;
             }
-          } else { // Unvisited open path
+          } else {
             cellContentIndicator = "·";
             cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
             cellTitle = `Unexplored (${mapX},${mapY})`;
           }
 
-          // Apply boss passage glow if on the last floor and boss is not defeated
           if (currentFloor === numFloors - 1 && !isBossDefeated && isBossPassage) {
             if (isRedLight) {
-              cellClasses = cn(cellClasses, "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast"); // Faster pulse for red light
+              cellClasses = cn(cellClasses, "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast");
             } else {
-              cellClasses = cn(cellClasses, "bg-green-900/50 dark:bg-green-200/50"); // Subtle green for green light
+              cellClasses = cn(cellClasses, "bg-green-900/50 dark:bg-green-200/50");
             }
           }
-
         } else {
-          // Out of bounds - render as void
           cellContentIndicator = " ";
           cellClasses = "bg-gray-950 dark:bg-gray-100 border-gray-900 dark:border-gray-200";
           cellTitle = "The Void";
         }
         rowCells.push(
           <div
-            key={`${viewportX}-${viewportY}`} // Use viewport coordinates for key
+            key={`${viewportX}-${viewportY}`}
             className={cn(
               "w-full h-full flex items-center justify-center text-[10px] font-bold",
               "border border-gray-800 dark:border-gray-500",
               cellClasses,
             )}
+            style={cellStyle}
             title={cellTitle}
           >
             {cellContentIndicator}

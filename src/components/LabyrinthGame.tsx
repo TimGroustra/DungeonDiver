@@ -356,6 +356,38 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     );
   };
 
+  const getDirectionStatus = (dir: "north" | "south" | "east" | "west") => {
+    const playerLoc = labyrinth.getPlayerLocation();
+    const currentFloor = labyrinth.getCurrentFloor();
+    const mapGrid = labyrinth.getMapGrid();
+
+    let targetX = playerLoc.x;
+    let targetY = playerLoc.y;
+
+    switch (dir) {
+      case "north": targetY--; break;
+      case "south": targetY++; break;
+      case "east": targetX++; break;
+      case "west": targetX--; break;
+    }
+
+    const isOutOfBounds = targetX < 0 || targetX >= labyrinth["MAP_WIDTH"] || targetY < 0 || targetY >= labyrinth["MAP_HEIGHT"];
+    const isWall = !isOutOfBounds && mapGrid[targetY][targetX] === 'wall';
+    
+    let hasEnemy = false;
+    if (!isOutOfBounds && !isWall) {
+      const enemyId = labyrinth.enemyLocations.get(`${targetX},${targetY},${currentFloor}`);
+      hasEnemy = !!(enemyId && labyrinth.getEnemy(enemyId) && !labyrinth.getEnemy(enemyId)?.defeated);
+    }
+
+    return { isWall, hasEnemy };
+  };
+
+  const northStatus = getDirectionStatus("north");
+  const southStatus = getDirectionStatus("south");
+  const eastStatus = getDirectionStatus("east");
+  const westStatus = getDirectionStatus("west");
+
   const renderInventory = () => {
     const inventoryItems = labyrinth.getInventoryItems(); // Now returns { item: Item, quantity: number }[]
     const equippedWeapon = labyrinth.getEquippedWeapon();
@@ -449,13 +481,57 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 <div>
                   <div className="grid grid-cols-3 gap-2 w-full">
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver()}>North</Button>
+                    <Button
+                      size="sm"
+                      className={cn(
+                        northStatus.isWall ? "bg-gray-500 text-gray-300 cursor-not-allowed" :
+                        northStatus.hasEnemy ? "bg-red-600 hover:bg-red-700 text-white" :
+                        "bg-green-700 hover:bg-green-800 text-white"
+                      )}
+                      onClick={() => handleMove("north")}
+                      disabled={labyrinth.isGameOver() || northStatus.isWall}
+                    >
+                      {northStatus.hasEnemy ? "Attack" : "North"}
+                    </Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver()}>West</Button>
+                    <Button
+                      size="sm"
+                      className={cn(
+                        westStatus.isWall ? "bg-gray-500 text-gray-300 cursor-not-allowed" :
+                        westStatus.hasEnemy ? "bg-red-600 hover:bg-red-700 text-white" :
+                        "bg-green-700 hover:bg-green-800 text-white"
+                      )}
+                      onClick={() => handleMove("west")}
+                      disabled={labyrinth.isGameOver() || westStatus.isWall}
+                    >
+                      {westStatus.hasEnemy ? "Attack" : "West"}
+                    </Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver()}>East</Button>
+                    <Button
+                      size="sm"
+                      className={cn(
+                        eastStatus.isWall ? "bg-gray-500 text-gray-300 cursor-not-allowed" :
+                        eastStatus.hasEnemy ? "bg-red-600 hover:bg-red-700 text-white" :
+                        "bg-green-700 hover:bg-green-800 text-white"
+                      )}
+                      onClick={() => handleMove("east")}
+                      disabled={labyrinth.isGameOver() || eastStatus.isWall}
+                    >
+                      {eastStatus.hasEnemy ? "Attack" : "East"}
+                    </Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver()}>South</Button>
+                    <Button
+                      size="sm"
+                      className={cn(
+                        southStatus.isWall ? "bg-gray-500 text-gray-300 cursor-not-allowed" :
+                        southStatus.hasEnemy ? "bg-red-600 hover:bg-red-700 text-white" :
+                        "bg-green-700 hover:bg-green-800 text-white"
+                      )}
+                      onClick={() => handleMove("south")}
+                      disabled={labyrinth.isGameOver() || southStatus.isWall}
+                    >
+                      {southStatus.hasEnemy ? "Attack" : "South"}
+                    </Button>
                     <div />
                   </div>
                   <div className="flex gap-2 mt-2 justify-center">

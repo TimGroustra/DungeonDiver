@@ -500,21 +500,21 @@ export class Labyrinth {
     for (let i = 0; i < numGenericEnemies; i++) {
       const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
       this.enemies.set(goblin.id, goblin);
-      this.placeElementRandomly(goblin.id, this.enemyLocations, floor);
+      this.placeElementRandomly(goblin.id, this.enemyLocations, floor, true);
 
       const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier));
       this.enemies.set(skeleton.id, skeleton);
-      this.placeElementRandomly(skeleton.id, this.enemyLocations, floor);
+      this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
       const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier));
       this.enemies.set(shadowBeast.id, shadowBeast);
-      this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor);
+      this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor, true);
     }
 
     // Add traps (same number as enemies)
     const numTraps = numGenericEnemies; // Increased number of traps
     for (let i = 0; i < numTraps; i++) {
-      this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor);
+      this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor, true);
     }
   }
 
@@ -598,7 +598,7 @@ export class Labyrinth {
     return false;
   }
 
-  private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>, floor: number) {
+  private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>, floor: number, isHostile: boolean = false) {
     let placed = false;
     let attempts = 0;
     const MAX_ATTEMPTS = 1000; // Prevent infinite loops in very dense maps
@@ -614,6 +614,7 @@ export class Labyrinth {
       const isBossPassageOrAltar = (floor === this.NUM_FLOORS - 1) && this.bossPassageCoords.has(coordStr);
 
       if (
+        (!isHostile || Math.max(x, y) > 5) && // New condition for safe zone
         (x !== 0 || y !== 0) && // Not at floor entrance
         !isBossPassageOrAltar && // Not on boss passage or altar
         currentFloorMap[y][x] !== 'wall' && // Must be an open room

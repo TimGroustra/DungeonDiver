@@ -300,12 +300,16 @@ export class Labyrinth {
         }
       }
 
+      // Post-process the map to enforce area constraints
+      this.postProcessMap(floorMap, floor);
+
       // Ensure boss passage is open on the last floor
       if (floor === this.NUM_FLOORS - 1) {
         const passageStartX = this.MAP_WIDTH - 40;
         const passageEndX = this.MAP_WIDTH - 1;
         const passageStartY = this.MAP_HEIGHT - 5;
         const passageEndY = this.MAP_HEIGHT - 1;
+        const passageMidY = passageStartY + Math.floor((passageEndY - passageStartY) / 2);
 
         for (let y = passageStartY; y <= passageEndY; y++) {
           for (let x = passageStartX; x <= passageEndX; x++) {
@@ -314,6 +318,18 @@ export class Labyrinth {
               this.bossPassageCoords.add(`${x},${y},${floor}`);
             }
           }
+        }
+        
+        // Add some pillars to break up the vastness of the boss passage
+        const numPillars = 20;
+        for (let i = 0; i < numPillars; i++) {
+            const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
+            const pY = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
+            // Ensure pillar is not on the direct middle path
+            if (pY !== passageMidY) {
+                floorMap[pY][pX] = 'wall';
+                this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
+            }
         }
       }
 
@@ -1552,5 +1568,93 @@ export class Labyrinth {
 
   public isBossDefeated(): boolean {
     return this.bossDefeated;
+  }
+  
+  private getContiguousArea(startX: number, startY: number, type: 'wall' | 'open', floorMap: (LogicalRoom | 'wall')[][], globalVisited: Set<string>): { size: number, cells: Coordinate[] } {
+    const areaCells: Coordinate[] = [];
+    const queue: Coordinate[] = [{ x: startX, y: startY }];
+    const visitedInArea = new Set<string>();
+    
+    const startCoord = `${startX},${startY}`;
+    
+    const startCellType = floorMap[startY][startX] === 'wall' ? 'wall' : 'open';
+    if (startCellType !== type) {
+        return { size: 0, cells: [] };
+    }
+
+    visitedInArea.add(startCoord);
+    globalVisited.add(startCoord);
+    
+    while (queue.length > 0) {
+        const { x, y } = queue.shift()!;
+        areaCells.push({x, y});
+
+        const neighbors = this.getValidNeighbors(x, y);
+        for (const neighbor of neighbors) {
+            const neighborCoord = `${neighbor.x},${neighbor.y}`;
+            if (!visitedInArea.has(neighborCoord)) {
+                const neighborType = floorMap[neighbor.y][neighbor.x] === 'wall' ? 'wall' : 'open';
+                if (neighborType === type) {
+                    visitedInArea.add(neighborCoord);
+                    globalVisited.add(neighborCoord);
+                    queue.push(neighbor);
+                }
+            }
+        }
+    }
+    return { size: areaCells.length, cells: areaCells };
+  }
+
+  private reduceOpenArea(areaCells: Coordinate[], floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const cellsToConvert = Math.floor(areaCells.length - 100);
+    
+    areaCells.sort((a, b) => {
+        const aNeighbors = this.getValidNeighbors(a.x, a.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        const bNeighbors = this.getValidNeighbors(b.x, b.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        return bNeighbors - aNeighbors;
+    });
+
+    for (let i = 0; i < cellsToConvert && i < areaCells.length; i++) {
+        const cell = areaCells[i];
+        if ((cell.x === 0 && cell.y === 0) || (cell.x === this.MAP_WIDTH - 1 && cell.y === this.MAP_HEIGHT - 1)) continue;
+        floorMap[cell.y][cell.x] = 'wall';
+    }
+  }
+
+  private breakUpWallArea(areaCells: Coordinate[], floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const cellsToConvert = Math.floor((areaCells.length - 225) / 10);
+
+    for (let i = 0; i < cellsToConvert; i++) {
+        if (areaCells.length === 0) break;
+        const randIndex = Math.floor(Math.random() * areaCells.length);
+        const cell = areaCells[randIndex];
+        
+        const neighbors = this.getValidNeighbors(cell.x, cell.y);
+        const openNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        if (openNeighbors === 0) {
+            floorMap[cell.y][cell.x] = new LogicalRoom(`room-${cell.x}-${cell.y}-f${floor}`, `Secluded Chamber ${cell.x},${cell.y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+        }
+        areaCells.splice(randIndex, 1);
+    }
+  }
+
+  private postProcessMap(floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const visited = new Set<string>();
+
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+            const coord = `${x},${y}`;
+            if (!visited.has(coord)) {
+                const cellType = floorMap[y][x] === 'wall' ? 'wall' : 'open';
+                const { size, cells } = this.getContiguousArea(x, y, cellType, floorMap, visited);
+
+                if (cellType === 'open' && size > 100) {
+                    this.reduceOpenArea(cells, floorMap, floor);
+                } else if (cellType === 'wall' && size > 225) {
+                    this.breakUpWallArea(cells, floorMap, floor);
+                }
+            }
+        }
+    }
   }
 }

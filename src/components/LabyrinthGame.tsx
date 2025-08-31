@@ -268,7 +268,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
 
           if (isPlayerHere) {
-            cellContentIndicator = <PersonStanding size={12} />;
+            cellContentIndicator = <img src="/player-adventurer.png" alt="Player" className="w-3 h-3" />;
             cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {

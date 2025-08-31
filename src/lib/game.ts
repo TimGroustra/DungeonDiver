@@ -364,9 +364,12 @@ export class Labyrinth {
     const prefix = prefixes[floor] || "Ancient"; // Fallback to Ancient if floor > 3
 
     // Common items (can be found on any floor)
-    const potion = new Item(`potion-${floor}-1`, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true); // Now stackable
-    this.items.set(potion.id, potion);
-    this.placeElementRandomly(potion.id, this.itemLocations, floor);
+    const potionId = "vial-of-lumina";
+    if (!this.items.has(potionId)) {
+      const potion = new Item(potionId, "Vial of Lumina", "A small vial containing a glowing, restorative liquid. It promises to mend wounds.", false, 'consumable', 100, true);
+      this.items.set(potionId, potion);
+    }
+    this.placeElementRandomly(potionId, this.itemLocations, floor);
 
     const sword = new Item(`sword-${floor}-1`, `${prefix} Blade of the Labyrinth`, `A ${prefix.toLowerCase()} sword, its edge humming with ancient power. Increases your attack.`, false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
     this.items.set(sword.id, sword);

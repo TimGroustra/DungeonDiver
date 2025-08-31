@@ -251,8 +251,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         const isPlayerHere = playerLoc.x === mapX && playerLoc.y === mapY;
         let cellContentIndicator: React.ReactNode = "";
         let cellTitle = "";
-        let cellClasses = "";
-        let cellStyle: React.CSSProperties = {};
+        let overlayClasses = "";
+        let baseTile: React.ReactNode = null;
 
         if (mapX >= 0 && mapX < fullGridWidth && mapY >= 0 && mapY < fullGridHeight) {
           const cellCoord = `${mapX},${mapY}`;
@@ -260,12 +260,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           const isVisited = visitedCells.has(cellCoord);
           const isWall = mapGrid[mapY][mapX] === 'wall';
 
-          if (isVisited && !isWall) {
+          // 1. Determine Base Tile
+          if (isWall) {
+            baseTile = <img src="/tiles/wall.png" alt="Wall" className="w-full h-full object-cover" />;
+            cellTitle = "Solid Wall";
+          } else if (isVisited) {
             const tileIndex = Math.abs(mapX * 31 + mapY * 17) % floorTiles.length;
             const tileUrl = floorTiles[tileIndex];
-            cellStyle = { backgroundImage: `url(${tileUrl})`, backgroundSize: 'cover' };
+            baseTile = <img src={tileUrl} alt="Floor" className="w-full h-full object-cover" />;
           }
 
+          // 2. Determine Overlay and Content Indicator
           const isAltar = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
           const hasTrap = labyrinth["trapsLocations"].has(fullCoordStr);
           const isTrapTriggered = triggeredTraps.has(fullCoordStr);
@@ -276,14 +281,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
           if (isPlayerHere) {
             cellContentIndicator = <img src="/player-adventurer.png" alt="Player" className="w-3 h-3" />;
-            cellClasses = "bg-blue-600/50 text-white ring-2 ring-blue-300 dark:ring-blue-700";
+            overlayClasses = "bg-blue-600/50 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
-            cellStyle = { backgroundImage: `url('/tiles/wall.png')`, backgroundSize: 'cover' };
-            cellTitle = "Solid Wall";
+            // No overlay or content for walls
           } else if (isTrapTriggered) {
             cellContentIndicator = <Dices size={12} />;
-            cellClasses = "bg-orange-700/75 text-orange-200";
+            overlayClasses = "bg-orange-700/75 text-orange-200";
             cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
           } else if (isVisited) {
             const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
@@ -304,23 +308,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
             if (isAltar) {
               cellContentIndicator = <Crown size={12} />;
-              cellClasses = "bg-purple-600/75 text-white animate-pulse";
+              overlayClasses = "bg-purple-600/75 text-white animate-pulse";
               cellTitle = `Ancient Altar (Final Objective)`;
             } else if (isWatcherLocation && !isBossDefeated) {
               cellContentIndicator = <Eye size={12} />;
-              cellClasses = "bg-red-700/75 text-red-200 animate-pulse";
+              overlayClasses = "bg-red-700/75 text-red-200 animate-pulse";
               cellTitle = `The Watcher of the Core!`;
             } else if (isStaircase) {
               cellContentIndicator = <ArrowDownCircle size={12} />;
-              cellClasses = "bg-indigo-600/75 text-white";
+              overlayClasses = "bg-indigo-600/75 text-white";
               cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
               cellContentIndicator = <img src="/enemy-ghost.png" alt="Enemy" className="w-3 h-3" />;
-              cellClasses = "bg-red-900/50 text-red-300 animate-pulse";
+              overlayClasses = "bg-red-900/50 text-red-300 animate-pulse";
               cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {
               cellContentIndicator = <PuzzleIcon size={12} />;
-              cellClasses = "bg-yellow-800/50 text-yellow-300 animate-pulse";
+              overlayClasses = "bg-yellow-800/50 text-yellow-300 animate-pulse";
               cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
               if (item?.name === "Vial of Lumina") {
@@ -328,18 +332,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               } else {
                 cellContentIndicator = <Gem size={12} />;
               }
-              cellClasses = "bg-emerald-800/50 text-emerald-300 animate-pulse";
+              overlayClasses = "bg-emerald-800/50 text-emerald-300 animate-pulse";
               cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
             } else if (hasTrap) {
               cellContentIndicator = " ";
               cellTitle = `Explored (${mapX},${mapY})`;
             } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
               cellContentIndicator = <BookOpen size={12} />;
-              cellClasses = "bg-green-700/50 text-green-200";
+              overlayClasses = "bg-green-700/50 text-green-200";
               cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
             } else if (hasSolvedPuzzle) {
               cellContentIndicator = <Sparkles size={12} />;
-              cellClasses = "bg-purple-800/50 text-purple-200";
+              overlayClasses = "bg-purple-800/50 text-purple-200";
               cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
             } else {
               cellContentIndicator = " ";
@@ -347,34 +351,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             }
           } else {
             cellContentIndicator = "·";
-            cellClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
+            overlayClasses = "bg-gray-900 dark:bg-gray-800 text-gray-700";
             cellTitle = `Unexplored (${mapX},${mapY})`;
           }
 
           if (currentFloor === numFloors - 1 && !isBossDefeated && isBossPassage) {
             if (isRedLight) {
-              cellClasses = cn(cellClasses, "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast");
+              overlayClasses = cn(overlayClasses, "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast");
             } else {
-              cellClasses = cn(cellClasses, "bg-green-900/50 dark:bg-green-200/50");
+              overlayClasses = cn(overlayClasses, "bg-green-900/50 dark:bg-green-200/50");
             }
           }
         } else {
-          cellContentIndicator = " ";
-          cellClasses = "bg-gray-950 dark:bg-gray-100 border-gray-900 dark:border-gray-200";
+          overlayClasses = "bg-gray-950 dark:bg-gray-100";
           cellTitle = "The Void";
         }
         rowCells.push(
           <div
             key={`${viewportX}-${viewportY}`}
-            className={cn(
-              "w-full h-full flex items-center justify-center text-[10px] font-bold",
-              "border border-gray-800 dark:border-gray-500",
-              cellClasses,
-            )}
-            style={cellStyle}
+            className="relative w-full h-full border border-gray-800 dark:border-gray-500"
             title={cellTitle}
           >
-            {cellContentIndicator}
+            {baseTile}
+            <div className={cn("absolute inset-0 flex items-center justify-center text-[10px] font-bold", overlayClasses)}>
+              {cellContentIndicator}
+            </div>
           </div>
         );
       }

@@ -590,8 +590,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 
               <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
-              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono max-h-40 overflow-y-auto">
-                {gameLog.slice(-6).reverse().map((message, index) => (
+              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono h-40 overflow-y-auto">
+                {[...gameLog].reverse().map((message, index) => (
                   <p key={index} className="mb-1 last:mb-0">{message}</p>
                 ))}
               </div>

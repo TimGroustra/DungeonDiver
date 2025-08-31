@@ -286,13 +286,13 @@ export class Labyrinth {
       floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
 
       // Add branching paths, loops, and open areas for each floor
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 10; i++) { // Increased iterations for more side passages
         for (let y = 0; y < this.MAP_HEIGHT; y++) {
           for (let x = 0; x < this.MAP_WIDTH; x++) {
             if (floorMap[y][x] === 'wall') {
               const neighbors = this.getValidNeighbors(x, y); // Use the new private method
               const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
-              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) {
+              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.2)) { // Increased probability
                 floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
               }
             }
@@ -817,7 +817,7 @@ export class Labyrinth {
         this.inventory.delete("well-blessing-f1");
         this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality as the last charge is consumed.`);
       } else {
-        this.inventory.set("well-blessing-f1", blessingEntry);
+        this.inventory.set(blessing.id, blessingEntry);
         this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality! (${blessingEntry.quantity} uses left)`);
       }
       return true;

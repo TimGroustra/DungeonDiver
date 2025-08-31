@@ -251,8 +251,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         if (mapX >= 0 && mapX < fullGridWidth && mapY >= 0 && mapY < fullGridHeight) {
           const cellCoord = `${mapX},${mapY}`; // For visitedCells set
           const fullCoordStr = `${mapX},${mapY},${currentFloor}`; // For element locations
-          const isVisited = visitedCells.has(cellCoord);
           const isWall = mapGrid[mapY][mapX] === 'wall';
+          const isVisited = visitedCells.has(cellCoord);
 
           // Check for final exit portal (now the Altar on Floor 4)
           const isAltar = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
@@ -511,7 +511,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               </div>
             </div>
 
-            {/* Right Column: Adventurer's Status, Chronicles */}
+            {/* Right Column: Adventurer's Status, Controls, Chronicles */}
             <div className="flex flex-col items-center">
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
@@ -546,6 +546,33 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   )}
                 </div>
                 {renderInventory()}
+              </div>
+
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
+
+              {/* New Controls Section */}
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-cyan-300 dark:text-cyan-600 mb-2">Controls:</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm text-gray-300 dark:text-gray-700 w-full max-w-xs mx-auto">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">↑</span> <span>Move North</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">↓</span> <span>Move South</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">←</span> <span>Move West</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">→</span> <span>Move East</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">⇧ Shift</span> <span>Search Area</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">⌃ Ctrl</span> <span>Interact</span>
+                  </div>
+                </div>
               </div>
 
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />

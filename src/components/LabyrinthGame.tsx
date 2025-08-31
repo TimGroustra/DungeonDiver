@@ -11,6 +11,18 @@ import { cn } from "@/lib/utils"; // Utility for conditional class names
 import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 
+// Import images directly
+import wallTile from '/tiles/wall.png';
+import floorTile1 from '/tiles/floor-1.png';
+import floorTile2 from '/tiles/floor-2.png';
+import floorTile3 from '/tiles/floor-3.png';
+import floorTile4 from '/tiles/floor-4.png';
+import floorTile5 from '/tiles/floor-5.png';
+import floorTile6 from '/tiles/floor-6.png';
+import playerIcon from '/player-adventurer.png';
+import enemyIcon from '/enemy-ghost.png';
+import vialIcon from '/item-vial.png';
+
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -28,7 +40,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false); // New state to prevent multiple dispatches
-  const [cacheBustKey, setCacheBustKey] = useState(Date.now());
   const logRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile(); // Determine if on mobile
@@ -41,7 +52,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameVersion(0);
       setGameLog(["Game started!"]);
       setHasGameOverBeenDispatched(false); // Reset the flag for a new game
-      setCacheBustKey(Date.now()); // Generate a new key for the new game
     }
   }, [gameStarted]); // Only re-initialize when gameStarted changes (e.g., from false to true)
 
@@ -231,12 +241,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const numFloors = labyrinth["NUM_FLOORS"];
 
     const floorTiles = [
-      '/tiles/floor-1.png',
-      '/tiles/floor-2.png',
-      '/tiles/floor-3.png',
-      '/tiles/floor-4.png',
-      '/tiles/floor-5.png',
-      '/tiles/floor-6.png',
+      floorTile1,
+      floorTile2,
+      floorTile3,
+      floorTile4,
+      floorTile5,
+      floorTile6,
     ];
 
     const halfViewport = Math.floor(dynamicViewportSize / 2);
@@ -264,12 +274,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
           // 1. Determine Base Tile
           if (isWall) {
-            baseTile = <img src={`/tiles/wall.png?v=${cacheBustKey}`} alt="Wall" className="w-full h-full object-cover" />;
+            baseTile = <img src={wallTile} alt="Wall" className="w-full h-full object-cover" />;
             cellTitle = "Solid Wall";
           } else if (isVisited) {
             const tileIndex = Math.abs(mapX * 31 + mapY * 17) % floorTiles.length;
             const tileUrl = floorTiles[tileIndex];
-            baseTile = <img src={`${tileUrl}?v=${cacheBustKey}`} alt="Floor" className="w-full h-full object-cover" />;
+            baseTile = <img src={tileUrl} alt="Floor" className="w-full h-full object-cover" />;
           }
 
           // 2. Determine Overlay and Content Indicator
@@ -282,7 +292,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           const isWatcherLocation = (currentFloor === numFloors - 1) && (labyrinth["watcherLocation"]?.x === mapX && labyrinth["watcherLocation"]?.y === mapY);
 
           if (isPlayerHere) {
-            cellContentIndicator = <img src={`/player-adventurer.png?v=${cacheBustKey}`} alt="Player" className="w-3 h-3" />;
+            cellContentIndicator = <img src={playerIcon} alt="Player" className="w-3 h-3" />;
             overlayClasses = "bg-blue-600/50 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
@@ -321,7 +331,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               overlayClasses = "bg-indigo-600/75 text-white";
               cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
-              cellContentIndicator = <img src={`/enemy-ghost.png?v=${cacheBustKey}`} alt="Enemy" className="w-3 h-3" />;
+              cellContentIndicator = <img src={enemyIcon} alt="Enemy" className="w-3 h-3" />;
               overlayClasses = "bg-red-900/50 text-red-300 animate-pulse";
               cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {
@@ -330,7 +340,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
               if (item?.name === "Vial of Lumina") {
-                cellContentIndicator = <img src={`/item-vial.png?v=${cacheBustKey}`} alt="Vial" className="w-3 h-3" />;
+                cellContentIndicator = <img src={vialIcon} alt="Vial" className="w-3 h-3" />;
               } else {
                 cellContentIndicator = <Gem size={12} />;
               }
@@ -479,7 +489,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     <div
       className="flex flex-col items-center justify-center min-h-screen p-1"
       style={{
-        backgroundImage: "url('/Eldoria.png')",
+        backgroundImage: "url('/background.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

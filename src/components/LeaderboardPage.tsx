@@ -20,7 +20,7 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ leaderboard, onPlay }
     <div
       className="flex flex-col items-center justify-center min-h-screen p-4"
       style={{
-        backgroundImage: "url('/Eldoria.png')",
+        backgroundImage: "url('/background.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

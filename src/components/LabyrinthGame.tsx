@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
 import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
-// Removed DropdownMenu imports as they are no longer needed
 
 interface LabyrinthGameProps {
   playerName: string;
@@ -105,7 +104,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
+  }, [gameStarted, labyrinth, playerName, elapsedTime]);
 
   // useEffect for enemy movement and boss logic
   useEffect(() => {
@@ -175,6 +174,42 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
+  };
+
+  const getButtonProps = (direction: "north" | "south" | "east" | "west") => {
+    const playerX = labyrinth.getPlayerLocation().x;
+    const playerY = labyrinth.getPlayerLocation().y;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const mapGrid = labyrinth.getMapGrid();
+  
+    let targetX = playerX;
+    let targetY = playerY;
+  
+    switch (direction) {
+      case "north": targetY--; break;
+      case "south": targetY++; break;
+      case "east": targetX++; break;
+      case "west": targetX--; break;
+    }
+  
+    // Check bounds first
+    if (targetX < 0 || targetX >= labyrinth["MAP_WIDTH"] || targetY < 0 || targetY >= labyrinth["MAP_HEIGHT"]) {
+      return { text: direction, className: "bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+    }
+  
+    const targetCoordStr = `${targetX},${targetY},${currentFloor}`;
+    const isWall = mapGrid[targetY][targetX] === 'wall';
+    const enemyId = labyrinth.enemyLocations.get(targetCoordStr);
+    const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
+    const hasUndefeatedEnemy = enemy && !enemy.defeated;
+  
+    if (isWall) {
+      return { text: direction, className: "bg-gray-500 hover:bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+    } else if (hasUndefeatedEnemy) {
+      return { text: "Attack", className: "bg-red-600 hover:bg-red-700 text-white", disabled: false };
+    } else {
+      return { text: direction, className: "bg-green-700 hover:bg-green-800 text-white", disabled: false };
+    }
   };
 
   const renderMap = () => {
@@ -424,6 +459,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return null; // Don't render game content until game starts
   }
 
+  const northProps = getButtonProps("north");
+  const southProps = getButtonProps("south");
+  const westProps = getButtonProps("west");
+  const eastProps = getButtonProps("east");
+
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen p-1"
@@ -449,13 +489,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 <div>
                   <div className="grid grid-cols-3 gap-2 w-full">
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver()}>North</Button>
+                    <Button size="sm" className={northProps.className} onClick={() => handleMove("north")} disabled={northProps.disabled || labyrinth.isGameOver()}>{northProps.text}</Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver()}>West</Button>
+                    <Button size="sm" className={westProps.className} onClick={() => handleMove("west")} disabled={westProps.disabled || labyrinth.isGameOver()}>{westProps.text}</Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver()}>East</Button>
+                    <Button size="sm" className={eastProps.className} onClick={() => handleMove("east")} disabled={eastProps.disabled || labyrinth.isGameOver()}>{eastProps.text}</Button>
                     <div />
-                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver()}>South</Button>
+                    <Button size="sm" className={southProps.className} onClick={() => handleMove("south")} disabled={southProps.disabled || labyrinth.isGameOver()}>{southProps.text}</Button>
                     <div />
                   </div>
                   <div className="flex gap-2 mt-2 justify-center">

@@ -149,6 +149,7 @@ const Index = () => {
         <LabyrinthGame
           playerName={playerName}
           gameStarted={gameStarted}
+          startTime={startTime}
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleRestartGame}

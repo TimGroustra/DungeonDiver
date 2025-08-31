@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
+  startTime: number | null;
   elapsedTime: number;
   onGameOver: (result: { type: 'victory' | 'defeat', name: string, time: number }) => void;
   onGameRestart: () => void;
@@ -21,7 +22,7 @@ interface LabyrinthGameProps {
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500]; // Speeds for Floor 1, 2, 3, 4 (indices 0, 1, 2, 3)
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, elapsedTime, onGameOver, onGameRestart }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
@@ -108,28 +109,29 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // useEffect for enemy movement and boss logic
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | undefined;
-    const isGameOver = labyrinth.isGameOver();
-    const currentFloor = labyrinth.getCurrentFloor();
-    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000; // Default to 2s if somehow out of bounds
-
-    if (!isGameOver) {
-        intervalId = setInterval(() => {
-            labyrinth.processEnemyMovement(playerName, elapsedTime);
-            
-            if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
-                labyrinth.processBossLogic();
-            }
-            setGameVersion(prev => prev + 1); // Trigger re-render
-        }, moveSpeed); // Use enemy move speed as the general game tick
+    if (!gameStarted || labyrinth.isGameOver()) {
+      return;
     }
 
-    return () => {
-        if (intervalId) {
-            clearInterval(intervalId);
+    const currentFloor = labyrinth.getCurrentFloor();
+    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
+
+    const intervalId = setInterval(() => {
+        // Calculate elapsed time inside the interval to avoid stale state
+        const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+        
+        labyrinth.processEnemyMovement(playerName, currentElapsedTime);
+        
+        if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
+            labyrinth.processBossLogic();
         }
+        setGameVersion(prev => prev + 1); // Trigger re-render
+    }, moveSpeed);
+
+    return () => {
+        clearInterval(intervalId);
     };
-  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.isBossDefeated(), playerName, elapsedTime]); // Depend on labyrinth, gameVersion, current floor, and boss defeated status
+  }, [gameStarted, labyrinth, labyrinth.isGameOver(), labyrinth.getCurrentFloor(), playerName, startTime]);
 
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());

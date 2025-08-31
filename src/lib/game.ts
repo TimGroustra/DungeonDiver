@@ -121,6 +121,15 @@ export class Puzzle {
   }
 }
 
+interface Room {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  id: string;
+  center: Coordinate;
+}
+
 export class Labyrinth {
   private floors: Map<number, (LogicalRoom | 'wall')[][]>; // Map of floor number to its grid
   private playerLocation: Coordinate;
@@ -176,6 +185,12 @@ export class Labyrinth {
   private readonly MAP_HEIGHT = 100; // Increased map height
   public readonly NUM_FLOORS = 4; // Increased to 4 floors
   private readonly MIN_ELEMENT_DISTANCE = 3; // Decreased minimum distance between placed elements
+
+  // New constants for map generation
+  private readonly MIN_ROOM_SIZE = 5;
+  private readonly MAX_ROOM_SIZE = 15;
+  private readonly NUM_ROOMS_PER_FLOOR = 15; // Number of rooms per floor
+  private readonly CORRIDOR_WIDTH = 1; // Width of corridors
 
   private gameResult: { type: 'victory' | 'defeat', name: string, time: number } | null = null; // New: Stores game result
 
@@ -242,100 +257,229 @@ export class Labyrinth {
         .fill(null)
         .map(() => Array(this.MAP_WIDTH).fill('wall'));
 
-      // Carve a main path for each floor
-      let currentX = 0;
-      let currentY = 0;
-      const endX = this.MAP_WIDTH - 1;
-      const endY = this.MAP_HEIGHT - 1;
+      const rooms: Room[] = this._generateRooms(floorMap, floor);
+      this._connectRoomsWithMST(floorMap, rooms, floor);
+      this._addExtraConnections(floorMap, rooms, floor, 5); // Add 5 extra connections for loops
 
-      // Simple path carving for now, can be improved later
-      while (currentX !== endX || currentY !== endY) {
-        floorMap[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}-f${floor}`, `Winding Passage ${currentX},${currentY} (Floor ${floor + 1})`, this.getRandomRoomDescription());
-
-        const possibleMoves: { x: number, y: number }[] = [];
-        if (currentX < endX) possibleMoves.push({ x: currentX + 1, y: currentY });
-        if (currentY < endY) possibleMoves.push({ x: currentX, y: currentY + 1 });
-        if (currentX > 0) possibleMoves.push({ x: currentX - 1, y: currentY });
-        if (currentY > 0) possibleMoves.push({ x: currentX, y: currentY - 1 });
-
-        const validMoves = possibleMoves.filter(move =>
-          move.x >= 0 && move.x < this.MAP_WIDTH &&
-          move.y >= 0 && move.y < this.MAP_HEIGHT
-        );
-
-        let nextMove: Coordinate;
-        if (validMoves.length > 0) {
-          const preferredMoves = validMoves.filter(move =>
-            (move.x > currentX && move.x <= endX) || (move.y > currentY && move.y <= endY)
-          );
-          if (preferredMoves.length > 0 && Math.random() < 0.8) {
-            nextMove = preferredMoves[Math.floor(Math.random() * preferredMoves.length)];
-          } else {
-            nextMove = validMoves[Math.floor(Math.random() * validMoves.length)];
-          }
-        } else {
-          break;
-        }
-        currentX = nextMove.x;
-        currentY = nextMove.y;
-      }
-      // Ensure the last cell of the main path is a room
-      floorMap[endY][endX] = new LogicalRoom(`room-${endX}-${endY}-f${floor}`, `Floor ${floor + 1} End Chamber`, this.getRandomRoomDescription());
-
-      // Set start room description for each floor
-      floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
-
-      // Add branching paths, loops, and open areas for each floor
-      for (let i = 0; i < 10; i++) { // Increased iterations for more side passages
-        for (let y = 0; y < this.MAP_HEIGHT; y++) {
-          for (let x = 0; x < this.MAP_WIDTH; x++) {
-            if (floorMap[y][x] === 'wall') {
-              const neighbors = this.getValidNeighbors(x, y); // Use the new private method
-              const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
-              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.2)) { // Increased probability
-                floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
-              }
-            }
+      // Ensure all carved paths are LogicalRoom instances
+      for (let y = 0; y < this.MAP_HEIGHT; y++) {
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+          if (floorMap[y][x] === 'open') { // 'open' is a temporary state during generation
+            floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Labyrinth Path ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
           }
         }
       }
 
-      // Post-process the map to enforce area constraints
-      this.postProcessMap(floorMap, floor);
+      // Place player start and floor exit
+      this._placeStartAndExit(floorMap, floor, rooms);
 
-      // Ensure boss passage is open on the last floor
+      // Handle boss passage for the last floor
       if (floor === this.NUM_FLOORS - 1) {
-        const passageStartX = this.MAP_WIDTH - 40;
-        const passageEndX = this.MAP_WIDTH - 1;
-        const passageStartY = this.MAP_HEIGHT - 5;
-        const passageEndY = this.MAP_HEIGHT - 1;
-        const passageMidY = passageStartY + Math.floor((passageEndY - passageStartY) / 2);
-
-        for (let y = passageStartY; y <= passageEndY; y++) {
-          for (let x = passageStartX; x <= passageEndX; x++) {
-            if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
-              floorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
-              this.bossPassageCoords.add(`${x},${y},${floor}`);
-            }
-          }
-        }
-        
-        // Add some pillars to break up the vastness of the boss passage
-        const numPillars = 20;
-        for (let i = 0; i < numPillars; i++) {
-            const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
-            const pY = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
-            // Ensure pillar is not on the direct middle path
-            if (pY !== passageMidY) {
-                floorMap[pY][pX] = 'wall';
-                this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
-            }
-        }
+        this._placeBossArea(floorMap, floor, rooms);
       }
 
       this.floors.set(floor, floorMap);
       this.visitedCells.set(floor, new Set<string>()); // Initialize visited cells for each floor
       this.addGameElements(floor);
+    }
+  }
+
+  private _generateRooms(floorMap: (LogicalRoom | 'wall')[][], floor: number): Room[] {
+    const rooms: Room[] = [];
+    let attempts = 0;
+    const MAX_ROOM_ATTEMPTS = 500; // Prevent infinite loops
+
+    while (rooms.length < this.NUM_ROOMS_PER_FLOOR && attempts < MAX_ROOM_ATTEMPTS) {
+      const width = Math.floor(Math.random() * (this.MAX_ROOM_SIZE - this.MIN_ROOM_SIZE + 1)) + this.MIN_ROOM_SIZE;
+      const height = Math.floor(Math.random() * (this.MAX_ROOM_SIZE - this.MIN_ROOM_SIZE + 1)) + this.MIN_ROOM_SIZE;
+      const x = Math.floor(Math.random() * (this.MAP_WIDTH - width));
+      const y = Math.floor(Math.random() * (this.MAP_HEIGHT - height));
+
+      const newRoom: Room = { x, y, width, height, id: `room-${rooms.length}-f${floor}`, center: { x: x + Math.floor(width / 2), y: y + Math.floor(height / 2) } };
+
+      if (this._isValidRoomPlacement(floorMap, newRoom, rooms)) {
+        rooms.push(newRoom);
+        // Carve out the room
+        for (let ry = y; ry < y + height; ry++) {
+          for (let rx = x; rx < x + width; rx++) {
+            floorMap[ry][rx] = 'open'; // Temporarily mark as open
+          }
+        }
+      }
+      attempts++;
+    }
+    return rooms;
+  }
+
+  private _isValidRoomPlacement(floorMap: (LogicalRoom | 'wall')[][], newRoom: Room, existingRooms: Room[]): boolean {
+    // Check map boundaries
+    if (newRoom.x < 0 || newRoom.x + newRoom.width > this.MAP_WIDTH ||
+        newRoom.y < 0 || newRoom.y + newRoom.height > this.MAP_HEIGHT) {
+      return false;
+    }
+
+    // Check for overlap with existing rooms (with a small buffer)
+    const buffer = 1; // Minimum 1 cell buffer between rooms
+    for (const room of existingRooms) {
+      if (newRoom.x < room.x + room.width + buffer &&
+          newRoom.x + newRoom.width > room.x - buffer &&
+          newRoom.y < room.y + room.height + buffer &&
+          newRoom.y + newRoom.height > room.y - buffer) {
+        return false; // Overlaps
+      }
+    }
+    return true;
+  }
+
+  private _connectRoomsWithMST(floorMap: (LogicalRoom | 'wall')[][], rooms: Room[], floor: number) {
+    if (rooms.length <= 1) return;
+
+    const numRooms = rooms.length;
+    const minCostEdge: number[] = Array(numRooms).fill(Infinity);
+    const parent: (number | null)[] = Array(numRooms).fill(null);
+    const inMST: boolean[] = Array(numRooms).fill(false);
+
+    minCostEdge[0] = 0; // Start with the first room
+
+    for (let count = 0; count < numRooms - 1; count++) {
+      let u = -1;
+      let min = Infinity;
+
+      // Find vertex with minimum key value, from the set of vertices not yet included in MST
+      for (let v = 0; v < numRooms; v++) {
+        if (!inMST[v] && minCostEdge[v] < min) {
+          min = minCostEdge[v];
+          u = v;
+        }
+      }
+
+      if (u === -1) break; // No reachable unvisited vertex
+      inMST[u] = true;
+
+      // Update key value and parent index of the adjacent vertices of the picked vertex.
+      for (let v = 0; v < numRooms; v++) {
+        if (u !== v && !inMST[v]) {
+          const dist = this._getDistance(rooms[u].center, rooms[v].center);
+          if (dist < minCostEdge[v]) {
+            minCostEdge[v] = dist;
+            parent[v] = u;
+          }
+        }
+      }
+    }
+
+    // Carve corridors based on the MST
+    for (let i = 1; i < numRooms; i++) {
+      if (parent[i] !== null) {
+        this._carveCorridor(floorMap, rooms[i].center, rooms[parent[i]!].center);
+      }
+    }
+  }
+
+  private _addExtraConnections(floorMap: (LogicalRoom | 'wall')[][], rooms: Room[], floor: number, numConnections: number) {
+    if (rooms.length < 2) return;
+
+    for (let i = 0; i < numConnections; i++) {
+      const room1Index = Math.floor(Math.random() * rooms.length);
+      let room2Index = Math.floor(Math.random() * rooms.length);
+      while (room1Index === room2Index) { // Ensure different rooms
+        room2Index = Math.floor(Math.random() * rooms.length);
+      }
+      this._carveCorridor(floorMap, rooms[room1Index].center, rooms[room2Index].center);
+    }
+  }
+
+  private _getDistance(coord1: Coordinate, coord2: Coordinate): number {
+    return Math.abs(coord1.x - coord2.x) + Math.abs(coord1.y - coord2.y); // Manhattan distance
+  }
+
+  private _carveCorridor(floorMap: (LogicalRoom | 'wall')[][], start: Coordinate, end: Coordinate) {
+    let x = start.x;
+    let y = start.y;
+
+    while (x !== end.x || y !== end.y) {
+      floorMap[y][x] = 'open'; // Mark as open
+
+      if (x < end.x) x++;
+      else if (x > end.x) x--;
+      else if (y < end.y) y++;
+      else if (y > end.y) y--;
+    }
+    floorMap[y][x] = 'open'; // Ensure the end point is also open
+  }
+
+  private _placeStartAndExit(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
+    // Ensure (0,0) is an open room for player start
+    if (floorMap[0][0] === 'wall') {
+      floorMap[0][0] = 'open';
+      this._carveCorridor(floorMap, {x:0, y:0}, rooms[0].center); // Connect to first room
+    }
+    floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
+    this.playerLocation = { x: 0, y: 0 };
+
+    // Place staircase to next floor in a random, accessible room (not the start room)
+    if (floor < this.NUM_FLOORS - 1) {
+      let exitRoom: Room | undefined;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 100;
+      while (!exitRoom && attempts < MAX_ATTEMPTS) {
+        const randomIndex = Math.floor(Math.random() * rooms.length);
+        const potentialExitRoom = rooms[randomIndex];
+        if (potentialExitRoom.x !== 0 || potentialExitRoom.y !== 0) { // Not the start room
+          exitRoom = potentialExitRoom;
+        }
+        attempts++;
+      }
+
+      if (exitRoom) {
+        const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
+        this.items.set(staircase.id, staircase);
+        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
+        this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
+        this.floorExitStaircases.set(floor, staircaseCoord);
+      } else {
+        console.warn(`Could not place staircase on floor ${floor}.`);
+      }
+    }
+  }
+
+  private _placeBossArea(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
+    const passageStartX = this.MAP_WIDTH - 40;
+    const passageEndX = this.MAP_WIDTH - 1;
+    const passageStartY = this.MAP_HEIGHT - 5;
+    const passageEndY = this.MAP_HEIGHT - 1;
+    const passageMidY = passageStartY + Math.floor(5 / 2);
+
+    for (let y = passageStartY; y <= passageEndY; y++) {
+      for (let x = passageStartX; x <= passageEndX; x++) {
+        if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
+          floorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
+          this.bossPassageCoords.add(`${x},${y},${floor}`);
+        }
+      }
+    }
+    
+    // Add some pillars to break up the vastness of the boss passage
+    const numPillars = 20;
+    for (let i = 0; i < numPillars; i++) {
+        const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
+        const pY = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
+        // Ensure pillar is not on the direct middle path
+        if (pY !== passageMidY) {
+            floorMap[pY][pX] = 'wall';
+            this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
+        }
+    }
+
+    // Connect a random room to the boss passage entrance
+    if (rooms.length > 0) {
+      const entranceX = passageStartX - 1; // Cell just before the passage
+      const entranceY = passageMidY;
+      if (entranceX >= 0 && floorMap[entranceY][entranceX] === 'wall') {
+        floorMap[entranceY][entranceX] = 'open'; // Make sure it's open
+      }
+      const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
+      this._carveCorridor(floorMap, randomRoom.center, { x: entranceX, y: entranceY });
     }
   }
 
@@ -414,12 +558,6 @@ export class Labyrinth {
         isCompleted: () => this.scholarAmuletQuestCompleted
       });
 
-      // Place staircase to next floor
-      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
-      this.items.set(staircase.id, staircase);
-      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
-      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
-
     } else if (floor === 1) { // Floor 2: The Whispering Well's Thirst
       const dryWell = new Item("dry-well-f1", "Whispering Well", "A stone well, completely dry, but you hear faint whispers emanating from its depths. It seems to yearn for water.", true, 'static');
       this.items.set(dryWell.id, dryWell);
@@ -437,12 +575,6 @@ export class Labyrinth {
         description: "Find the 'Enchanted Flask', locate the 'Hidden Spring' to fill it with 'Living Water', then use the water to quench the 'Whispering Well'.",
         isCompleted: () => this.whisperingWellQuestCompleted
       });
-
-      // Place staircase to next floor
-      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Dark Chasm", "A gaping chasm with a faint glow at its bottom. A path seems to open only when the guardian is defeated.", true, 'static');
-      this.items.set(staircase.id, staircase);
-      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
-      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
 
     } else if (floor === 2) { // Floor 3: The Broken Compass's Secret
       const brokenCompass = new Item("broken-compass-f2", "Broken Compass", "A beautiful but shattered compass. Its needle spins wildly, useless.", false, 'quest');
@@ -466,27 +598,12 @@ export class Labyrinth {
         isCompleted: () => this.trueCompassQuestCompleted
       });
 
-      // Place staircase to next floor (to Floor 4)
-      const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Descent to the Core", "A dark, foreboding staircase leading to the deepest floor of the Labyrinth.", true, 'static');
-      this.items.set(staircase.id, staircase);
-      this.placeElementRandomly(staircase.id, this.staticItemLocations, floor);
-      this.floorExitStaircases.set(floor, this.getCoordForElement(staircase.id, this.staticItemLocations, floor)!);
-
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
       const passageStartY = this.MAP_HEIGHT - 5;
       const passageEndY = this.MAP_HEIGHT - 1;
       const passageMidY = passageStartY + Math.floor(5 / 2); // Middle row of the 5-cell height
-
-      for (let y = passageStartY; y <= passageEndY; y++) {
-        for (let x = passageStartX; x <= passageEndX; x++) {
-          if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
-            currentFloorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
-            this.bossPassageCoords.add(`${x},${y},${floor}`);
-          }
-        }
-      }
 
       // Place The Watcher of the Core (Boss) at the start of the passage
       const watcherX = passageStartX;
@@ -585,7 +702,8 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
-        !this.isTooClose(x, y, floor) // Still respect minimum distance
+        !this.isTooClose(x, y, floor) && // Still respect minimum distance
+        this.floors.get(floor)![y][x] !== 'wall' // Must be an open room
       ) {
         locationMap.set(coordStr, id);
         placed = true;
@@ -1639,22 +1757,7 @@ export class Labyrinth {
   }
 
   private postProcessMap(floorMap: (LogicalRoom | 'wall')[][], floor: number) {
-    const visited = new Set<string>();
-
-    for (let y = 0; y < this.MAP_HEIGHT; y++) {
-        for (let x = 0; x < this.MAP_WIDTH; x++) {
-            const coord = `${x},${y}`;
-            if (!visited.has(coord)) {
-                const cellType = floorMap[y][x] === 'wall' ? 'wall' : 'open';
-                const { size, cells } = this.getContiguousArea(x, y, cellType, floorMap, visited);
-
-                if (cellType === 'open' && size > 100) {
-                    this.reduceOpenArea(cells, floorMap, floor);
-                } else if (cellType === 'wall' && size > 225) {
-                    this.breakUpWallArea(cells, floorMap, floor);
-                }
-            }
-        }
-    }
+    // This method is no longer needed with the new generation algorithm,
+    // but keeping it as a placeholder if future post-processing is desired.
   }
 }

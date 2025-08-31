@@ -190,7 +190,7 @@ export class Labyrinth {
   private readonly MIN_ROOM_SIZE = 5;
   private readonly MAX_ROOM_SIZE = 15;
   private readonly NUM_ROOMS_PER_FLOOR = 15; // Number of rooms per floor
-  private readonly CORRIDOR_WIDTH = 1; // Width of corridors
+  private readonly CORRIDOR_WIDTH = 3; // Width of corridors - CHANGED TO 3
 
   private gameResult: { type: 'victory' | 'defeat', name: string, time: number } | null = null; // New: Stores game result
 
@@ -319,7 +319,7 @@ export class Labyrinth {
     }
 
     // Check for overlap with existing rooms (with a small buffer)
-    const buffer = 1; // Minimum 1 cell buffer between rooms
+    const buffer = this.CORRIDOR_WIDTH; // Minimum buffer between rooms and corridors - CHANGED
     for (const room of existingRooms) {
       if (newRoom.x < room.x + room.width + buffer &&
           newRoom.x + newRoom.width > room.x - buffer &&
@@ -397,25 +397,53 @@ export class Labyrinth {
     let x = start.x;
     let y = start.y;
 
-    while (x !== end.x || y !== end.y) {
-      floorMap[y][x] = 'open'; // Mark as open
+    const halfWidth = Math.floor(this.CORRIDOR_WIDTH / 2);
 
+    while (x !== end.x || y !== end.y) {
+      // Carve a square around the current point
+      for (let cy = y - halfWidth; cy <= y + halfWidth; cy++) {
+        for (let cx = x - halfWidth; cx <= x + halfWidth; cx++) {
+          if (cx >= 0 && cx < this.MAP_WIDTH && cy >= 0 && cy < this.MAP_HEIGHT) {
+            floorMap[cy][cx] = 'open';
+          }
+        }
+      }
+
+      // Move towards the end point
       if (x < end.x) x++;
       else if (x > end.x) x--;
       else if (y < end.y) y++;
       else if (y > end.y) y--;
     }
-    floorMap[y][x] = 'open'; // Ensure the end point is also open
+    // Ensure the end point area is also carved
+    for (let cy = y - halfWidth; cy <= y + halfWidth; cy++) {
+      for (let cx = x - halfWidth; cx <= x + halfWidth; cx++) {
+        if (cx >= 0 && cx < this.MAP_WIDTH && cy >= 0 && cy < this.MAP_HEIGHT) {
+          floorMap[cy][cx] = 'open';
+        }
+      }
+    }
   }
 
   private _placeStartAndExit(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
-    // Ensure (0,0) is an open room for player start
-    if (floorMap[0][0] === 'wall') {
-      floorMap[0][0] = 'open';
-      this._carveCorridor(floorMap, {x:0, y:0}, rooms[0].center); // Connect to first room
+    const startX = 0;
+    const startY = 0;
+
+    // Ensure the starting cell is an open room
+    if (floorMap[startY][startX] === 'wall') {
+      floorMap[startY][startX] = new LogicalRoom(`room-${startX}-${startY}-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
+    } else {
+      // If it's already 'open' from room generation, convert it to LogicalRoom
+      floorMap[startY][startX] = new LogicalRoom(`room-${startX}-${startY}-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
     }
-    floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
-    this.playerLocation = { x: 0, y: 0 };
+    this.playerLocation = { x: startX, y: startY };
+
+    // Connect to first room if it exists and is not the start room itself
+    if (rooms.length > 0 && (rooms[0].center.x !== startX || rooms[0].center.y !== startY)) {
+      this._carveCorridor(floorMap, {x: startX, y: startY}, rooms[0].center);
+    } else if (rooms.length > 1) { // If first room is start, connect to second
+      this._carveCorridor(floorMap, {x: startX, y: startY}, rooms[1].center);
+    }
 
     // Place staircase to next floor in a random, accessible room (not the start room)
     if (floor < this.NUM_FLOORS - 1) {
@@ -425,7 +453,7 @@ export class Labyrinth {
       while (!exitRoom && attempts < MAX_ATTEMPTS) {
         const randomIndex = Math.floor(Math.random() * rooms.length);
         const potentialExitRoom = rooms[randomIndex];
-        if (potentialExitRoom.x !== 0 || potentialExitRoom.y !== 0) { // Not the start room
+        if (potentialExitRoom.x !== startX || potentialExitRoom.y !== startY) { // Not the start room
           exitRoom = potentialExitRoom;
         }
         attempts++;
@@ -446,26 +474,45 @@ export class Labyrinth {
   private _placeBossArea(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
     const passageStartX = this.MAP_WIDTH - 40;
     const passageEndX = this.MAP_WIDTH - 1;
-    const passageStartY = this.MAP_HEIGHT - 5;
-    const passageEndY = this.MAP_HEIGHT - 1;
-    const passageMidY = passageStartY + Math.floor(5 / 2);
+    const passageCenterY = Math.floor(this.MAP_HEIGHT / 2); // Center the passage vertically
 
-    for (let y = passageStartY; y <= passageEndY; y++) {
-      for (let x = passageStartX; x <= passageEndX; x++) {
+    const halfCorridor = Math.floor(this.CORRIDOR_WIDTH / 2);
+
+    // Carve the main boss passage
+    for (let x = passageStartX; x <= passageEndX; x++) {
+      for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfCorridor; y++) {
         if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
           floorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
           this.bossPassageCoords.add(`${x},${y},${floor}`);
         }
       }
     }
-    
+
+    // Add some "alcoves" or wider sections to make it less linear
+    const numAlcoves = 3;
+    for (let i = 0; i < numAlcoves; i++) {
+      const alcoveX = passageStartX + Math.floor(Math.random() * (passageEndX - passageStartX - 5)); // Ensure space for alcove
+      const alcoveY = passageCenterY + (Math.random() > 0.5 ? halfCorridor + 1 : -(halfCorridor + 1)); // Above or below main path
+      const alcoveWidth = Math.floor(Math.random() * 3) + 3; // 3-5 cells wide
+      const alcoveHeight = Math.floor(Math.random() * 2) + 2; // 2-3 cells high
+
+      for (let y = alcoveY; y < alcoveY + alcoveHeight; y++) {
+        for (let x = alcoveX; x < alcoveX + alcoveWidth; x++) {
+          if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
+            floorMap[y][x] = new LogicalRoom(`boss-alcove-${x}-${y}-f${floor}`, `Watcher's Alcove ${x},${y}`, "A small, dark alcove, filled with an unsettling silence.");
+            this.bossPassageCoords.add(`${x},${y},${floor}`);
+          }
+        }
+      }
+    }
+
     // Add some pillars to break up the vastness of the boss passage
     const numPillars = 20;
     for (let i = 0; i < numPillars; i++) {
         const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
-        const pY = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
+        const pY = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
         // Ensure pillar is not on the direct middle path
-        if (pY !== passageMidY) {
+        if (floorMap[pY][pX] !== 'wall') { // Only place pillar if it's currently open
             floorMap[pY][pX] = 'wall';
             this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
         }
@@ -474,7 +521,7 @@ export class Labyrinth {
     // Connect a random room to the boss passage entrance
     if (rooms.length > 0) {
       const entranceX = passageStartX - 1; // Cell just before the passage
-      const entranceY = passageMidY;
+      const entranceY = passageCenterY;
       if (entranceX >= 0 && floorMap[entranceY][entranceX] === 'wall') {
         floorMap[entranceY][entranceX] = 'open'; // Make sure it's open
       }
@@ -601,21 +648,19 @@ export class Labyrinth {
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
-      const passageStartY = this.MAP_HEIGHT - 5;
-      const passageEndY = this.MAP_HEIGHT - 1;
-      const passageMidY = passageStartY + Math.floor(5 / 2); // Middle row of the 5-cell height
+      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2); // Center the passage vertically
 
       // Place The Watcher of the Core (Boss) at the start of the passage
-      const watcherX = passageStartX;
-      const watcherY = passageMidY;
+      const watcherX = passageStartX + Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
+      const watcherY = passageCenterY;
       this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100, 25); // Health for stress, and attack damage
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
       this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
       this.watcherLocation = { x: watcherX, y: watcherY };
 
       // Place Ancient Altar at the end of the passage
-      const altarX = this.MAP_WIDTH - 1;
-      const altarY = passageMidY;
+      const altarX = this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
+      const altarY = passageCenterY;
       const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
       this.items.set(ancientAltar.id, ancientAltar);
       this.staticItemLocations.set(`${altarX},${altarY},${floor}`, ancientAltar.id);
@@ -680,12 +725,13 @@ export class Labyrinth {
 
     const passageStartX = this.MAP_WIDTH - 40;
     const passageEndX = this.MAP_WIDTH - 1;
-    const passageStartY = this.MAP_HEIGHT - 5;
-    const passageEndY = this.MAP_HEIGHT - 1;
+    const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
+    const halfCorridor = Math.floor(this.CORRIDOR_WIDTH / 2);
 
     while (!placed && attempts < MAX_ATTEMPTS) {
+      // Place within the main corridor area of the boss passage
       const x = passageStartX + Math.floor(Math.random() * (passageEndX - passageStartX + 1));
-      const y = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
+      const y = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
       const coordStr = `${x},${y},${floor}`;
 
       // Ensure not placed on Watcher or Altar

@@ -1413,6 +1413,7 @@ export class Labyrinth {
     const currentFloorMap = this.floors.get(this.currentFloor)!;
     const AGGRO_RADIUS = 3;
 
+    // Aggro logic
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
         if (f === this.currentFloor) {
@@ -1481,6 +1482,7 @@ export class Labyrinth {
 
         this.enemyLocations.delete(coordStr);
         this.enemyLocations.set(newCoordStr, enemyId);
+        this.addMessage(`${enemy.name} moved from (${oldX},${oldY}) to (${newX},${newY}).`); // Added log message
     }
   }
 

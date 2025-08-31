@@ -289,7 +289,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const hasUnsolvedPuzzle = puzzle && !puzzle.solved;
             const hasSolvedPuzzle = puzzle && puzzle.solved;
 
-            const hasUnpickedItem = labyrinth["itemLocations"].has(fullCoordStr);
+            const itemId = labyrinth["itemLocations"].get(fullCoordStr);
+            const item = itemId ? labyrinth.getItem(itemId) : undefined;
+            const hasUnpickedItem = !!item;
 
             const staticItemId = labyrinth["staticItemLocations"].get(fullCoordStr);
             const hasStaticItemAtLocation = !!staticItemId;
@@ -320,7 +322,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
                 cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-                cellContentIndicator = <Gem size={12} />; // Changed to Gem
+                if (item?.name === "Vial of Lumina") {
+                    cellContentIndicator = <img src="/item-vial.png" alt="Vial" className="w-3 h-3" />;
+                } else {
+                    cellContentIndicator = <Gem size={12} />;
+                }
                 cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
                 cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
             } else if (hasTrap) { // Trap is present but not yet triggered

@@ -75,14 +75,16 @@ export class Enemy {
   health: number;
   defeated: boolean;
   isAggro: boolean;
+  attackDamage: number;
 
-  constructor(id: string, name: string, description: string, health: number = 1) {
+  constructor(id: string, name: string, description: string, health: number = 1, attackDamage: number = 5) {
     this.id = id;
     this.name = name;
     this.description = description;
     this.health = health;
     this.defeated = false;
     this.isAggro = false;
+    this.attackDamage = attackDamage;
   }
 
   takeDamage(amount: number) {
@@ -158,7 +160,6 @@ export class Labyrinth {
   private heartSacrificed: boolean; // New: For Floor 4 quest
 
   private baseSearchRadius: number; // Base search radius
-  public combatQueue: string[]; // Stores enemy IDs for queued combat
   private lastEnemyMoveTimestamp: number; // Timestamp for enemy movement on Floor 4
 
   // Watcher of the Core Boss specific states
@@ -217,7 +218,6 @@ export class Labyrinth {
     this.heartSacrificed = false;
 
     this.baseSearchRadius = 2; // Initial base search radius
-    this.combatQueue = [];
     this.lastEnemyMoveTimestamp = 0;
 
     // Watcher of the Core Boss specific initializations
@@ -468,7 +468,7 @@ export class Labyrinth {
       // Place The Watcher of the Core (Boss) at the start of the passage
       const watcherX = passageStartX;
       const watcherY = passageMidY;
-      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100); // Health for stress
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100, 25); // Health for stress, and attack damage
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
       this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
       this.watcherLocation = { x: watcherX, y: watcherY };
@@ -498,15 +498,15 @@ export class Labyrinth {
     // Add generic enemies (scaled)
     const numGenericEnemies = 10; // Increased number of generic enemies
     for (let i = 0; i < numGenericEnemies; i++) {
-      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier));
+      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier), Math.floor(8 * enemyDamageMultiplier));
       this.enemies.set(goblin.id, goblin);
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor, true);
 
-      const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier));
+      const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier), Math.floor(10 * enemyDamageMultiplier));
       this.enemies.set(skeleton.id, skeleton);
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
-      const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier));
+      const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier), Math.floor(12 * enemyDamageMultiplier));
       this.enemies.set(shadowBeast.id, shadowBeast);
       this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor, true);
     }
@@ -824,120 +824,86 @@ export class Labyrinth {
       return;
     }
 
-    // Handle player stun/misdirection from Watcher of the Core
     if (this.playerStunnedTurns > 0) {
         this.playerStunnedTurns--;
         const directions = ["north", "south", "east", "west"];
         const randomDirection = directions[Math.floor(Math.random() * directions.length)] as "north" | "south" | "east" | "west";
         this.addMessage(`You are disoriented! You attempt to move ${direction}, but stumble ${randomDirection} instead!`);
-        direction = randomDirection; // Override direction with random one
+        direction = randomDirection;
     }
 
-    const currentMap = this.floors.get(this.currentFloor)!; // Get current floor map
-
+    const currentMap = this.floors.get(this.currentFloor)!;
     let newX = this.playerLocation.x;
     let newY = this.playerLocation.y;
 
     switch (direction) {
-      case "north":
-        newY--;
-        break;
-      case "south":
-        newY++;
-        break;
-      case "east":
-        newX++;
-        break;
-      case "west":
-        newX--;
-        break;
+      case "north": newY--; break;
+      case "south": newY++; break;
+      case "east": newX++; break;
+      case "west": newX--; break;
     }
 
-    if (
-      newX >= 0 &&
-      newX < this.MAP_WIDTH &&
-      newY >= 0 &&
-      newY < this.MAP_HEIGHT
-    ) {
-      if (currentMap[newY][newX] === 'wall') {
-        this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
-        return;
-      }
-
-      // Watcher of the Core: Red Light, Green Light check
-      if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
-          const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-          const newCoordStr = `${newX},${newY},${this.currentFloor}`;
-
-          const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
-          const isInPassage = this.bossPassageCoords.has(newCoordStr);
-
-          if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
-              // Player moved during Red Light in the passage
-              const damageTaken = 25; // AoE damage
-              this.playerHealth -= damageTaken;
-              this.playerStunnedTurns = 1; // Stun for 1 turn
-              this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
-              if (this.playerHealth <= 0) {
-                  if (!this._tryActivateWellBlessing(playerName, time)) {
-                      this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                      this.setGameOver('defeat', playerName, time);
-                      return; // Stop further processing
-                  }
-              }
-          } else if (this.bossState === 'green_light' && (wasInPassage || isInPassage)) {
-              // Player moved during Green Light in the passage - safe
-              // No message needed here, as it's the default safe state.
-          }
-      }
-
-      this.playerLocation = { x: newX, y: newY };
-      this.markVisited(this.playerLocation);
-
-      const currentRoom = this.getCurrentLogicalRoom();
-      if (currentRoom) {
-        this.addMessage(`You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}`);
-      } else {
-        this.addMessage(`You cautiously step ${direction} into the echoing darkness.`);
-      }
-
-      const trapTriggeredCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-      if (this.trapsLocations.has(trapTriggeredCoord)) {
-          this.playerHealth -= 10;
-          this.triggeredTraps.add(trapTriggeredCoord); // Mark trap as triggered
-          this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
-          if (this.playerHealth <= 0) {
-              if (!this._tryActivateWellBlessing(playerName, time)) {
-                  this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
-                  this.setGameOver('defeat', playerName, time);
-              }
-          }
-      }
-
-      // Check for game over condition (reaching the altar on the LAST floor)
-      if (this.currentFloor === this.NUM_FLOORS - 1 && newX === this.MAP_WIDTH - 1 && newY === this.MAP_HEIGHT - 1) {
-        const finalObjective = this.floorObjectives.get(this.currentFloor);
-        if (finalObjective?.isCompleted()) {
-          this.addMessage("A shimmering portal, bathed in ethereal light! You step through, escaping its grasp! Congratulations, brave adventurer!");
-          this.setGameOver('victory', playerName, time);
-        } else {
-          this.addMessage("The shimmering portal hums with energy, but it seems to require the completion of this floor's objective to activate fully. You cannot escape yet!");
-        }
-      }
-
-      // Check for enemy encounter (only if no combat is queued)
-      if (this.combatQueue.length === 0) {
-        const enemyId = this.enemyLocations.get(`${newX},${newY},${this.currentFloor}`);
-        if (enemyId && enemyId !== this.watcherOfTheCore?.id) { // Exclude Watcher from normal combat queue
-          const enemy = this.enemies.get(enemyId);
-          if (enemy && !enemy.defeated) {
-            this.addMessage(`As you enter, a monstrous shadow stirs in the corner! A ${enemy.name} lunges! Prepare for combat!`);
-            this.combatQueue.push(enemyId); // Add to queue for immediate combat
-          }
-        }
-      }
-    } else {
+    if (newX < 0 || newX >= this.MAP_WIDTH || newY < 0 || newY >= this.MAP_HEIGHT) {
       this.addMessage("You cannot go that way. You've reached the edge of the known labyrinth.");
+      return;
+    }
+
+    const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
+    const enemyId = this.enemyLocations.get(targetCoordStr);
+    if (enemyId) {
+        const enemy = this.enemies.get(enemyId);
+        if (enemy && !enemy.defeated) {
+            const damageDealt = this.getCurrentAttackDamage();
+            enemy.takeDamage(damageDealt);
+            this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
+            if (enemy.defeated) {
+                this.addMessage(`You have defeated the ${enemy.name}!`);
+                this.enemyLocations.delete(targetCoordStr);
+            }
+            return; // Player attacks and does not move
+        }
+    }
+
+    if (currentMap[newY][newX] === 'wall') {
+      this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
+      return;
+    }
+
+    if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
+        const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+        const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
+        const isInPassage = this.bossPassageCoords.has(targetCoordStr);
+        if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
+            const damageTaken = 25;
+            this.playerHealth -= damageTaken;
+            this.playerStunnedTurns = 1;
+            this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
+            if (this.playerHealth <= 0) {
+                if (!this._tryActivateWellBlessing(playerName, time)) {
+                    this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
+                    this.setGameOver('defeat', playerName, time);
+                    return;
+                }
+            }
+        }
+    }
+
+    this.playerLocation = { x: newX, y: newY };
+    this.markVisited(this.playerLocation);
+
+    const currentRoom = this.getCurrentLogicalRoom();
+    this.addMessage(currentRoom ? `You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}` : `You cautiously step ${direction} into the echoing darkness.`);
+
+    if (this.trapsLocations.has(targetCoordStr)) {
+        this.playerHealth -= 10;
+        this.triggeredTraps.add(targetCoordStr);
+        this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
+        if (this.playerHealth <= 0) {
+            if (!this._tryActivateWellBlessing(playerName, time)) {
+                this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
+                this.setGameOver('defeat', playerName, time);
+            }
+        }
     }
   }
 
@@ -1433,140 +1399,26 @@ export class Labyrinth {
     }
   }
 
-  public fight(playerChoice: "left" | "center" | "right", playerName: string, time: number) {
-    if (this.gameOver) {
-      this.addMessage("The game is over. Please restart.");
-      return;
-    }
-
-    let enemyId: string | undefined;
-
-    // If combat queue is active, fight the first enemy in the queue
-    if (this.combatQueue.length > 0) {
-        enemyId = this.combatQueue[0];
-    } else {
-        // Otherwise, check for an enemy at the current location
-        const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-        enemyId = this.enemyLocations.get(currentCoord);
-    }
-
-    if (!enemyId) {
-      this.addMessage("There's no enemy here to fight.");
-      return;
-    }
-
-    const enemy = this.enemies.get(enemyId);
-    if (!enemy || enemy.defeated) {
-      // This case should ideally not happen if combatQueue is managed well
-      // but as a safeguard, if the enemy is already defeated, remove from queue
-      if (this.combatQueue.length > 0 && this.combatQueue[0] === enemyId) {
-          this.combatQueue.shift();
-      }
-      this.addMessage("The enemy here has already been defeated.");
-      return;
-    }
-
-    const enemyChoices: ("left" | "center" | "right")[] = ["left", "center", "right"];
-    const enemyChoice = enemyChoices[Math.floor(Math.random() * enemyChoices.length)];
-
-    this.addMessage(`You prepare for battle, choosing to ${playerChoice}! The ${enemy.name} counters with ${enemyChoice}!`);
-
-    let playerWins = false;
-    let enemyWins = false;
-
-    const winningMoves = {
-      "left": "right",
-      "center": "left",
-      "right": "center",
-    };
-
-    if (playerChoice === enemyChoice) {
-      this.addMessage("Clash! Your moves mirror each other, a momentary stalemate.");
-    } else if (winningMoves[playerChoice] === enemyChoice) {
-      playerWins = true;
-    } else {
-      enemyWins = true;
-    }
-
-    // Enemy damage scales with floor
-    const enemyBaseDamage = 12; // Increased from 10
-    const enemyDamageMultiplier = 1 + (this.currentFloor * 0.3); // Increased from 0.2
-    const actualEnemyDamage = Math.floor(enemyBaseDamage * enemyDamageMultiplier);
-
-    if (playerWins) {
-      enemy.takeDamage(this.getCurrentAttackDamage());
-      this.addMessage(`A decisive blow! You hit the ${enemy.name} for ${this.getCurrentAttackDamage()} damage! Its health is now ${enemy.health}.`);
-      if (enemy.defeated) {
-        this.addMessage(`With a final, guttural cry, the ${enemy.name} collapses, defeated! The path is clear.`);
-        // Find and remove the defeated enemy from enemyLocations
-        let enemyLocationKey: string | undefined;
-        for (const [key, id] of this.enemyLocations.entries()) {
-            if (id === enemyId) {
-                enemyLocationKey = key;
-                break;
-            }
-        }
-        if (enemyLocationKey) {
-            this.enemyLocations.delete(enemyLocationKey);
-        }
-
-        // Remove from combat queue
-        const queueIndex = this.combatQueue.indexOf(enemyId);
-        if (queueIndex > -1) {
-            this.combatQueue.splice(queueIndex, 1);
-        }
-
-        // If there are more enemies in the queue, add a message
-        if (this.combatQueue.length > 0) {
-            const nextEnemyInQueue = this.enemies.get(this.combatQueue[0]);
-            if (nextEnemyInQueue) {
-                this.addMessage(`Another ${nextEnemyInQueue.name} is ready to attack!`);
-            }
-        }
-      }
-    } else if (enemyWins) {
-      const damageTaken = Math.max(0, actualEnemyDamage - this.getCurrentDefense());
-      this.playerHealth -= damageTaken;
-      this.addMessage(`The ${enemy.name} strikes true! You wince as you take ${damageTaken} damage. Your health is now ${this.playerHealth}.`);
-      if (this.playerHealth <= 0) {
-        if (!this._tryActivateWellBlessing(playerName, time)) {
-            this.addMessage("Darkness consumes you as your strength fails. The Labyrinth claims another victim... Game Over.");
-            this.setGameOver('defeat', playerName, time);
-        }
-      }
-    }
-  }
-
   private _isValidEnemyMove(x: number, y: number, currentFloorMap: (LogicalRoom | 'wall')[][]): boolean {
     return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
   }
 
-  public processEnemyMovement() {
-    // Enemies now move based on proximity, not objective completion
+  public processEnemyMovement(playerName: string, time: number) {
     if (this.gameOver) {
         return;
     }
 
-    // Check if enough time has passed since last enemy move
-    const enemyMoveInterval = 2000; // 2 seconds
-    if (Date.now() - this.lastEnemyMoveTimestamp < enemyMoveInterval) {
-        return;
-    }
-
-    this.lastEnemyMoveTimestamp = Date.now();
     const playerX = this.playerLocation.x;
     const playerY = this.playerLocation.y;
     const currentFloorMap = this.floors.get(this.currentFloor)!;
-
     const AGGRO_RADIUS = 3;
 
-    // First, update aggro status for all non-aggro'd enemies on the floor
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
         if (f === this.currentFloor) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated && !enemy.isAggro) {
-                const distance = Math.max(Math.abs(playerX - x), Math.abs(playerY - y)); // Chebyshev distance
+                const distance = Math.max(Math.abs(playerX - x), Math.abs(playerY - y));
                 if (distance <= AGGRO_RADIUS) {
                     enemy.isAggro = true;
                     this.addMessage(`A ${enemy.name} has spotted you and is now hunting you down!`);
@@ -1575,13 +1427,11 @@ export class Labyrinth {
         }
     }
 
-    // Now, find enemies that are aggro'd and need to move
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
-        const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === this.currentFloor && enemyId !== this.watcherOfTheCore?.id) { // Exclude Watcher
+        if (coordStr.endsWith(`,${this.currentFloor}`) && enemyId !== this.watcherOfTheCore?.id) {
             const enemy = this.enemies.get(enemyId);
-            if (enemy && !enemy.defeated && enemy.isAggro) { // Check for isAggro
+            if (enemy && !enemy.defeated && enemy.isAggro) {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
             }
         }
@@ -1596,65 +1446,42 @@ export class Labyrinth {
         let newX = oldX;
         let newY = oldY;
 
-        const targetX = playerX;
-        const targetY = playerY;
+        const dx = playerX - oldX;
+        const dy = playerY - oldY;
 
-        const dx = targetX - oldX;
-        const dy = targetY - oldY;
-
-        let movedThisTurn = false;
-
-        // Determine preferred move direction based on greater distance
         if (Math.abs(dx) > Math.abs(dy)) {
-            // Try moving horizontally
-            const potentialX = oldX + Math.sign(dx);
-            if (this._isValidEnemyMove(potentialX, oldY, currentFloorMap)) {
-                newX = potentialX;
-                movedThisTurn = true;
-            } else {
-                // If horizontal blocked, try vertical
-                const potentialY = oldY + Math.sign(dy);
-                if (this._isValidEnemyMove(oldX, potentialY, currentFloorMap)) {
-                    newY = potentialY;
-                    movedThisTurn = true;
-                }
-            }
-        } else {
-            // Try moving vertically
-            const potentialY = oldY + Math.sign(dy);
-            if (this._isValidEnemyMove(oldX, potentialY, currentFloorMap)) {
-                newY = potentialY;
-                movedThisTurn = true;
-            } else {
-                // If vertical blocked, try horizontal
-                const potentialX = oldX + Math.sign(dx);
-                if (this._isValidEnemyMove(potentialX, oldY, currentFloorMap)) {
-                    newX = potentialX;
-                    movedThisTurn = true;
-                }
-            }
+            newX += Math.sign(dx);
+        } else if (Math.abs(dy) > 0) {
+            newY += Math.sign(dy);
+        } else if (dx !== 0) {
+            newX += Math.sign(dx);
         }
 
-        if (!movedThisTurn) {
-            continue; // Skip to next enemy
+        if (!this._isValidEnemyMove(newX, newY, currentFloorMap)) {
+            continue;
         }
 
-        // Check if the new position is the player's current location
         if (newX === playerX && newY === playerY) {
-            if (!this.combatQueue.includes(enemyId)) {
-                this.combatQueue.push(enemyId);
-                this.addMessage(`A ${enemy.name} has caught up to you at your location! Prepare for combat!`);
+            const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
+            this.playerHealth -= damageDealt;
+            this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
+            if (this.playerHealth <= 0) {
+                if (!this._tryActivateWellBlessing(playerName, time)) {
+                    this.addMessage("You have been slain... Game Over.");
+                    this.setGameOver('defeat', playerName, time);
+                }
             }
-        } else {
-            // Move enemy to new position
-            this.enemyLocations.delete(coordStr); // Remove old location
-            this.enemyLocations.set(`${newX},${newY},${this.currentFloor}`, enemyId); // Add new location
+            continue;
         }
-    }
-  }
 
-  public getCombatQueue(): string[] {
-    return this.combatQueue;
+        const newCoordStr = `${newX},${newY},${this.currentFloor}`;
+        if (this.enemyLocations.has(newCoordStr)) {
+            continue;
+        }
+
+        this.enemyLocations.delete(coordStr);
+        this.enemyLocations.set(newCoordStr, enemyId);
+    }
   }
 
   public processBossLogic() {

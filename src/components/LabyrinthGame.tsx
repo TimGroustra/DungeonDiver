@@ -27,8 +27,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
   const [gameLog, setGameLog] = useState<string[]>([]);
-  const [showRPS, setShowRPS] = useState<boolean>(false);
-  const [currentEnemy, setCurrentEnemy] = useState<Enemy | undefined>(undefined);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false); // New state to prevent multiple dispatches
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -41,8 +39,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setLabyrinth(new Labyrinth());
       setGameVersion(0);
       setGameLog(["Game started!"]);
-      setShowRPS(false);
-      setCurrentEnemy(undefined);
       setHasGameOverBeenDispatched(false); // Reset the flag for a new game
     }
   }, [gameStarted]); // Only re-initialize when gameStarted changes (e.g., from false to true)
@@ -74,54 +70,33 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         return;
       }
 
-      if (showRPS) {
-        // If in combat, map arrow keys to combat choices
-        switch (event.key) {
-          case "ArrowLeft":
-            event.preventDefault();
-            handleRPSChoice("left");
-            break;
-          case "ArrowUp":
-            event.preventDefault();
-            handleRPSChoice("center");
-            break;
-          case "ArrowRight":
-            event.preventDefault();
-            handleRPSChoice("right");
-            break;
-          default:
-            break;
-        }
-      } else {
-        // If not in combat, map arrow keys to movement
-        switch (event.key) {
-          case "ArrowUp":
-            event.preventDefault();
-            handleMove("north");
-            break;
-          case "ArrowDown":
-            event.preventDefault();
-            handleMove("south");
-            break;
-          case "ArrowLeft":
-            event.preventDefault();
-            handleMove("west");
-            break;
-          case "ArrowRight":
-            event.preventDefault();
-            handleMove("east");
-            break;
-          case "Shift": // For Search
-            event.preventDefault();
-            handleSearch();
-            break;
-          case "Control": // For Interact
-            event.preventDefault();
-            handleInteract();
-            break;
-          default:
-            break;
-        }
+      switch (event.key) {
+        case "ArrowUp":
+          event.preventDefault();
+          handleMove("north");
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          handleMove("south");
+          break;
+        case "ArrowLeft":
+          event.preventDefault();
+          handleMove("west");
+          break;
+        case "ArrowRight":
+          event.preventDefault();
+          handleMove("east");
+          break;
+        case "Shift": // For Search
+          event.preventDefault();
+          handleSearch();
+          break;
+        case "Control": // For Interact
+          event.preventDefault();
+          handleInteract();
+          break;
+        default:
+          break;
       }
     };
 
@@ -130,7 +105,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [gameStarted, labyrinth, showRPS, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
+  }, [gameStarted, labyrinth, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
 
   // useEffect for enemy movement and boss logic
   useEffect(() => {
@@ -141,10 +116,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     if (!isGameOver) {
         intervalId = setInterval(() => {
-            // Process enemy movement (now based on aggro)
-            labyrinth.processEnemyMovement();
+            labyrinth.processEnemyMovement(playerName, elapsedTime);
             
-            // Always process boss logic on the last floor if not defeated
             if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
                 labyrinth.processBossLogic();
             }
@@ -157,7 +130,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             clearInterval(intervalId);
         }
     };
-  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.isBossDefeated()]); // Depend on labyrinth, gameVersion, current floor, and boss defeated status
+  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.isBossDefeated(), playerName, elapsedTime]); // Depend on labyrinth, gameVersion, current floor, and boss defeated status
 
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());
@@ -166,44 +139,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameLog((prevLog) => [...prevLog, ...newMessages]);
       labyrinth.clearMessages();
     }
-
-    const playerLoc = labyrinth.getPlayerLocation();
-    const enemyIdAtLocation = labyrinth["enemyLocations"].get(`${playerLoc.x},${playerLoc.y},${labyrinth.getCurrentFloor()}`);
-    const combatQueue = labyrinth.getCombatQueue();
-
-    // Prioritize combat queue
-    if (combatQueue.length > 0) {
-      const nextEnemyId = combatQueue[0];
-      const enemyInQueue = labyrinth.getEnemy(nextEnemyId);
-      if (enemyInQueue && !enemyInQueue.defeated) {
-        setCurrentEnemy(enemyInQueue);
-        setShowRPS(true);
-      } else {
-        // If the enemy at the head of the queue is defeated or invalid, remove it
-        // This should ideally be handled by fight() in game.ts, but as a fallback
-        if (enemyInQueue?.defeated) {
-            labyrinth.getCombatQueue().shift(); // Remove defeated enemy
-        }
-        // Re-evaluate after removing, might have another enemy in queue
-        setGameVersion(prev => prev + 1); // Force re-render to re-check queue
-      }
-    } else if (enemyIdAtLocation && enemyIdAtLocation !== labyrinth["watcherOfTheCore"]?.id) { // If no combat in queue, check current cell, exclude Watcher
-      const enemy = labyrinth.getEnemy(enemyIdAtLocation);
-      if (enemy && !enemy.defeated) {
-        setCurrentEnemy(enemy);
-        setShowRPS(true);
-      } else {
-        setShowRPS(false);
-        setCurrentEnemy(undefined);
-      }
-    } else { // No enemies at all
-      setShowRPS(false);
-      setCurrentEnemy(undefined);
-    }
   };
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (labyrinth.isGameOver() || showRPS) {
+    if (labyrinth.isGameOver()) {
       toast.info("Cannot move right now.");
       return;
     }
@@ -212,7 +151,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleSearch = () => {
-    if (labyrinth.isGameOver() || showRPS) {
+    if (labyrinth.isGameOver()) {
       toast.info("Cannot search right now.");
       return;
     }
@@ -221,7 +160,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleInteract = () => {
-    if (labyrinth.isGameOver() || showRPS) {
+    if (labyrinth.isGameOver()) {
       toast.info("Cannot interact right now.");
       return;
     }
@@ -229,15 +168,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     setGameVersion(prev => prev + 1); // Increment version to force re-render
   };
 
-  const handleRPSChoice = (choice: "left" | "center" | "right") => {
-    if (!currentEnemy) return;
-    labyrinth.fight(choice, playerName, elapsedTime);
-    setGameVersion(prev => prev + 1); // Increment version to force re-render
-    // The updateGameDisplay useEffect will handle showing/hiding RPS based on enemy status
-  };
-
   const handleUseItem = (itemId: string) => {
-    if (labyrinth.isGameOver() || showRPS) {
+    if (labyrinth.isGameOver()) {
       toast.info("Cannot use items right now.");
       return;
     }
@@ -459,7 +391,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             }
 
             const isConsumableWithUses = item.type === 'consumable' && item.stackable;
-            const canUse = !labyrinth.isGameOver() && !showRPS && (isConsumableWithUses ? quantity > 0 : true);
+            const canUse = !labyrinth.isGameOver() && (isConsumableWithUses ? quantity > 0 : true);
             const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
 
             return (
@@ -514,36 +446,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               {renderMap()}
 
               <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">
-                {showRPS && currentEnemy ? (
-                  <div className="p-2 border border-red-600 rounded-md bg-red-900/80 dark:bg-red-100/80 text-red-100 dark:text-red-900 w-full">
-                    <h3 className="text-lg font-bold text-red-400 dark:text-red-700 mb-1">Combat Encounter!</h3>
-                    <p className="text-sm mb-2">You face a fearsome {currentEnemy.name}: <span className="italic">{currentEnemy.description}</span></p>
-                    <p className="mb-2 text-sm">Choose your move wisely:</p>
-                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("left")}>Attack Left</Button>
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("center")}>Attack Center</Button>
-                      <Button size="sm" variant="destructive" className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white" onClick={() => handleRPSChoice("right")}>Attack Right</Button>
-                    </div>
+                <div>
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                    <div />
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver()}>North</Button>
+                    <div />
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver()}>West</Button>
+                    <div />
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver()}>East</Button>
+                    <div />
+                    <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver()}>South</Button>
+                    <div />
                   </div>
-                ) : (
-                  <div>
-                    <div className="grid grid-cols-3 gap-2 w-full">
-                      <div />
-                      <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("north")} disabled={labyrinth.isGameOver() || showRPS}>North</Button>
-                      <div />
-                      <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("west")} disabled={labyrinth.isGameOver() || showRPS}>West</Button>
-                      <div />
-                      <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("east")} disabled={labyrinth.isGameOver() || showRPS}>East</Button>
-                      <div />
-                      <Button size="sm" className="bg-green-700 hover:bg-green-800 text-white" onClick={() => handleMove("south")} disabled={labyrinth.isGameOver() || showRPS}>South</Button>
-                      <div />
-                    </div>
-                    <div className="flex gap-2 mt-2 justify-center">
-                      <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver() || showRPS}>Search</Button>
-                      <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver() || showRPS}>Interact</Button>
-                    </div>
+                  <div className="flex gap-2 mt-2 justify-center">
+                    <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver()}>Search</Button>
+                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver()}>Interact</Button>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 

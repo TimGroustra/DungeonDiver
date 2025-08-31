@@ -74,6 +74,7 @@ export class Enemy {
   description: string;
   health: number;
   defeated: boolean;
+  isAggro: boolean;
 
   constructor(id: string, name: string, description: string, health: number = 1) {
     this.id = id;
@@ -81,6 +82,7 @@ export class Enemy {
     this.description = description;
     this.health = health;
     this.defeated = false;
+    this.isAggro = false;
   }
 
   takeDamage(amount: number) {
@@ -1539,13 +1541,14 @@ export class Labyrinth {
   }
 
   public processEnemyMovement() {
-    // Enemies only move if the current floor's objective is completed and game is not over
-    if (this.gameOver || !this.getCurrentFloorObjective().isCompleted()) {
+    // Enemies now move based on proximity, not objective completion
+    if (this.gameOver) {
         return;
     }
 
-    // Check if 2 seconds have passed since last enemy move
-    if (Date.now() - this.lastEnemyMoveTimestamp < 2000) {
+    // Check if enough time has passed since last enemy move
+    const enemyMoveInterval = 2000; // 2 seconds
+    if (Date.now() - this.lastEnemyMoveTimestamp < enemyMoveInterval) {
         return;
     }
 
@@ -1554,12 +1557,30 @@ export class Labyrinth {
     const playerY = this.playerLocation.y;
     const currentFloorMap = this.floors.get(this.currentFloor)!;
 
+    const AGGRO_RADIUS = 3;
+
+    // First, update aggro status for all non-aggro'd enemies on the floor
+    for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === this.currentFloor) {
+            const enemy = this.enemies.get(enemyId);
+            if (enemy && !enemy.defeated && !enemy.isAggro) {
+                const distance = Math.max(Math.abs(playerX - x), Math.abs(playerY - y)); // Chebyshev distance
+                if (distance <= AGGRO_RADIUS) {
+                    enemy.isAggro = true;
+                    this.addMessage(`A ${enemy.name} has spotted you and is now hunting you down!`);
+                }
+            }
+        }
+    }
+
+    // Now, find enemies that are aggro'd and need to move
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === this.currentFloor && enemyId !== this.watcherOfTheCore?.id) { // Only consider enemies on the current floor, exclude Watcher
+        if (f === this.currentFloor && enemyId !== this.watcherOfTheCore?.id) { // Exclude Watcher
             const enemy = this.enemies.get(enemyId);
-            if (enemy && !enemy.defeated) {
+            if (enemy && !enemy.defeated && enemy.isAggro) { // Check for isAggro
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
             }
         }

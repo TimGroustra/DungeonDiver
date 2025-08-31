@@ -132,21 +132,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     };
   }, [gameStarted, labyrinth, showRPS, playerName, elapsedTime]); // Re-run effect if labyrinth or showRPS state changes
 
-  // useEffect for enemy movement and boss logic based on floor objective completion
+  // useEffect for enemy movement and boss logic
   useEffect(() => {
     let intervalId: NodeJS.Timeout | undefined;
-    // Check if the current floor's objective is completed and the game is not over
-    const isObjectiveCompleted = labyrinth.getCurrentFloorObjective().isCompleted();
     const isGameOver = labyrinth.isGameOver();
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000; // Default to 2s if somehow out of bounds
 
     if (!isGameOver) {
         intervalId = setInterval(() => {
-            // Process normal enemy movement only if objective is completed
-            if (isObjectiveCompleted) {
-                labyrinth.processEnemyMovement();
-            }
+            // Process enemy movement (now based on aggro)
+            labyrinth.processEnemyMovement();
+            
             // Always process boss logic on the last floor if not defeated
             if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
                 labyrinth.processBossLogic();
@@ -160,7 +157,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             clearInterval(intervalId);
         }
     };
-  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.getCurrentFloorObjective().isCompleted(), labyrinth.isBossDefeated()]); // Depend on labyrinth, gameVersion, current floor, and objective completion status
+  }, [labyrinth, gameVersion, labyrinth.getCurrentFloor(), labyrinth.isBossDefeated()]); // Depend on labyrinth, gameVersion, current floor, and boss defeated status
 
   const updateGameDisplay = () => {
     setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());

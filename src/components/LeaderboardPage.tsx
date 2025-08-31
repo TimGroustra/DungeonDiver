@@ -19,11 +19,6 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ leaderboard, onPlay }
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen p-4"
-      style={{
-        backgroundImage: "url('/background.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
     >
       <Card className="w-full max-w-md bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300">
         <CardHeader>

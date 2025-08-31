@@ -351,7 +351,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   if (!gameStarted) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/background.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+    <div className="flex flex-col items-center justify-center min-h-screen p-1">
       <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 border-gray-700 min-h-[calc(100vh-0.5rem)] flex flex-col">
         <CardHeader className="border-b border-gray-700 pb-2">
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>

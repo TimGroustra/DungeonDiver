@@ -23,11 +23,6 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen p-4"
-      style={{
-        backgroundImage: "url('/background.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
     >
       <Card className={cn(
         "w-full max-w-md text-center border-4",

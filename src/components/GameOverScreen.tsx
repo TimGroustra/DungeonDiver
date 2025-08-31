@@ -24,7 +24,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
     <div
       className="flex flex-col items-center justify-center min-h-screen p-4"
       style={{
-        backgroundImage: "url('/background.png')",
+        backgroundImage: "url('/Eldoria.png')",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

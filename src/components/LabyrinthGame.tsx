@@ -192,9 +192,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       case "west": targetX--; break;
     }
   
+    // Capitalize the direction for display
+    const capitalizedDirection = direction.charAt(0).toUpperCase() + direction.slice(1);
+
     // Check bounds first
     if (targetX < 0 || targetX >= labyrinth["MAP_WIDTH"] || targetY < 0 || targetY >= labyrinth["MAP_HEIGHT"]) {
-      return { text: direction, className: "bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+      return { text: capitalizedDirection, className: "bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
     }
   
     const targetCoordStr = `${targetX},${targetY},${currentFloor}`;
@@ -204,11 +207,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const hasUndefeatedEnemy = enemy && !enemy.defeated;
   
     if (isWall) {
-      return { text: direction, className: "bg-gray-500 hover:bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+      return { text: capitalizedDirection, className: "bg-gray-500 hover:bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
     } else if (hasUndefeatedEnemy) {
       return { text: "Attack", className: "bg-red-600 hover:bg-red-700 text-white", disabled: false };
     } else {
-      return { text: direction, className: "bg-green-700 hover:bg-green-800 text-white", disabled: false };
+      return { text: capitalizedDirection, className: "bg-green-700 hover:bg-green-800 text-white", disabled: false };
     }
   };
 

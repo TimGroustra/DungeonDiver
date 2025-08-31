@@ -10,6 +10,14 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
 import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"; // Import Dialog components
 
 interface LabyrinthGameProps {
   playerName: string;
@@ -28,6 +36,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false); // New state to prevent multiple dispatches
+  const [showControlsModal, setShowControlsModal] = useState(false); // State for controls modal
   const logRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile(); // Determine if on mobile
@@ -479,7 +488,30 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       }}
     >
       <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 relative">
+          <div className="absolute top-4 left-4">
+            <Dialog open={showControlsModal} onOpenChange={setShowControlsModal}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900">
+                  Controls
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
+                <DialogHeader>
+                  <DialogTitle className="text-yellow-400 dark:text-yellow-600">Game Controls</DialogTitle>
+                  <DialogDescription className="text-gray-300 dark:text-gray-700">
+                    Navigate the labyrinth and interact with your surroundings.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-2 py-4 text-gray-200 dark:text-gray-800">
+                  <p><span className="font-bold">Arrow Keys:</span> Move North, South, East, West</p>
+                  <p><span className="font-bold">Shift:</span> Search current area for hidden items or features</p>
+                  <p><span className="font-bold">Control:</span> Interact with objects (puzzles, mechanisms, altars)</p>
+                  <p className="mt-2 text-sm italic">Click 'Use'/'Equip'/'Unequip' buttons in Inventory for items.</p>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey into the unknown...</CardDescription>
         </CardHeader>

@@ -286,13 +286,13 @@ export class Labyrinth {
       floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
 
       // Add branching paths, loops, and open areas for each floor
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 10; i++) { // Increased iterations for more side passages
         for (let y = 0; y < this.MAP_HEIGHT; y++) {
           for (let x = 0; x < this.MAP_WIDTH; x++) {
             if (floorMap[y][x] === 'wall') {
               const neighbors = this.getValidNeighbors(x, y); // Use the new private method
               const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
-              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) {
+              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.2)) { // Increased probability
                 floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
               }
             }
@@ -300,12 +300,16 @@ export class Labyrinth {
         }
       }
 
+      // Post-process the map to enforce area constraints
+      this.postProcessMap(floorMap, floor);
+
       // Ensure boss passage is open on the last floor
       if (floor === this.NUM_FLOORS - 1) {
         const passageStartX = this.MAP_WIDTH - 40;
         const passageEndX = this.MAP_WIDTH - 1;
         const passageStartY = this.MAP_HEIGHT - 5;
         const passageEndY = this.MAP_HEIGHT - 1;
+        const passageMidY = passageStartY + Math.floor((passageEndY - passageStartY) / 2);
 
         for (let y = passageStartY; y <= passageEndY; y++) {
           for (let x = passageStartX; x <= passageEndX; x++) {
@@ -314,6 +318,18 @@ export class Labyrinth {
               this.bossPassageCoords.add(`${x},${y},${floor}`);
             }
           }
+        }
+        
+        // Add some pillars to break up the vastness of the boss passage
+        const numPillars = 20;
+        for (let i = 0; i < numPillars; i++) {
+            const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
+            const pY = passageStartY + Math.floor(Math.random() * (passageEndY - passageStartY + 1));
+            // Ensure pillar is not on the direct middle path
+            if (pY !== passageMidY) {
+                floorMap[pY][pX] = 'wall';
+                this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
+            }
         }
       }
 
@@ -356,8 +372,8 @@ export class Labyrinth {
     const currentFloorMap = this.floors.get(floor)!; // Get the map for the current floor
 
     // Difficulty scaling for enemies
-    const enemyHealthMultiplier = 1 + (floor * 0.7); // Increased from 0.5
-    const enemyDamageMultiplier = 1 + (floor * 0.3); // Increased from 0.2
+    const enemyHealthMultiplier = 1 + (floor * 1.0); // Increased health scaling
+    const enemyDamageMultiplier = 1 + (floor * 0.5); // Increased damage scaling
 
     // Prefixes for gear based on floor
     const prefixes = ["Rusty", "Iron", "Steel", "Mithril"];
@@ -371,11 +387,11 @@ export class Labyrinth {
     }
     this.placeElementRandomly(potionId, this.itemLocations, floor);
 
-    const sword = new Item(`sword-${floor}-1`, `${prefix} Blade of the Labyrinth`, `A ${prefix.toLowerCase()} sword, its edge humming with ancient power. Increases your attack.`, false, 'weapon', 15 + (floor * 5)); // Sword gets stronger
+    const sword = new Item(`sword-${floor}-1`, `${prefix} Blade of the Labyrinth`, `A ${prefix.toLowerCase()} sword, its edge humming with ancient power. Increases your attack.`, false, 'weapon', 10 + (floor * 3)); // Adjusted player weapon scaling
     this.items.set(sword.id, sword);
     this.placeElementRandomly(sword.id, this.itemLocations, floor);
 
-    const shield = new Item(`shield-${floor}-1`, `${prefix} Aegis of the Guardian`, `A sturdy ${prefix.toLowerCase()} shield emblazoned with a forgotten crest. Increases your defense.`, false, 'shield', 5 + (floor * 2)); // Shield gets stronger
+    const shield = new Item(`shield-${floor}-1`, `${prefix} Aegis of the Guardian`, `A sturdy ${prefix.toLowerCase()} shield emblazoned with a forgotten crest. Increases your defense.`, false, 'shield', 5 + (floor * 2)); // Shield scaling remains
     this.items.set(shield.id, shield);
     this.placeElementRandomly(shield.id, this.itemLocations, floor);
 
@@ -505,15 +521,15 @@ export class Labyrinth {
     // Add generic enemies (scaled)
     const numGenericEnemies = 10; // Increased number of generic enemies
     for (let i = 0; i < numGenericEnemies; i++) {
-      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(3 * enemyHealthMultiplier), Math.floor(8 * enemyDamageMultiplier));
+      const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(30 * enemyHealthMultiplier), Math.floor(15 * enemyDamageMultiplier)); // Adjusted base health and damage
       this.enemies.set(goblin.id, goblin);
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor, true);
 
-      const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(4 * enemyHealthMultiplier), Math.floor(10 * enemyDamageMultiplier));
+      const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(35 * enemyHealthMultiplier), Math.floor(18 * enemyDamageMultiplier)); // Adjusted base health and damage
       this.enemies.set(skeleton.id, skeleton);
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
-      const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(5 * enemyHealthMultiplier), Math.floor(12 * enemyDamageMultiplier));
+      const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(40 * enemyHealthMultiplier), Math.floor(20 * enemyDamageMultiplier)); // Adjusted base health and damage
       this.enemies.set(shadowBeast.id, shadowBeast);
       this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor, true);
     }
@@ -817,7 +833,7 @@ export class Labyrinth {
         this.inventory.delete("well-blessing-f1");
         this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality as the last charge is consumed.`);
       } else {
-        this.inventory.set("well-blessing-f1", blessingEntry);
+        this.inventory.set(blessingEntry.item.id, blessingEntry);
         this.addMessage(`The Whispering Well's Blessing activates, saving you from oblivion! You feel a surge of vitality! (${blessingEntry.quantity} uses left)`);
       }
       return true;
@@ -1552,5 +1568,93 @@ export class Labyrinth {
 
   public isBossDefeated(): boolean {
     return this.bossDefeated;
+  }
+  
+  private getContiguousArea(startX: number, startY: number, type: 'wall' | 'open', floorMap: (LogicalRoom | 'wall')[][], globalVisited: Set<string>): { size: number, cells: Coordinate[] } {
+    const areaCells: Coordinate[] = [];
+    const queue: Coordinate[] = [{ x: startX, y: startY }];
+    const visitedInArea = new Set<string>();
+    
+    const startCoord = `${startX},${startY}`;
+    
+    const startCellType = floorMap[startY][startX] === 'wall' ? 'wall' : 'open';
+    if (startCellType !== type) {
+        return { size: 0, cells: [] };
+    }
+
+    visitedInArea.add(startCoord);
+    globalVisited.add(startCoord);
+    
+    while (queue.length > 0) {
+        const { x, y } = queue.shift()!;
+        areaCells.push({x, y});
+
+        const neighbors = this.getValidNeighbors(x, y);
+        for (const neighbor of neighbors) {
+            const neighborCoord = `${neighbor.x},${neighbor.y}`;
+            if (!visitedInArea.has(neighborCoord)) {
+                const neighborType = floorMap[neighbor.y][neighbor.x] === 'wall' ? 'wall' : 'open';
+                if (neighborType === type) {
+                    visitedInArea.add(neighborCoord);
+                    globalVisited.add(neighborCoord);
+                    queue.push(neighbor);
+                }
+            }
+        }
+    }
+    return { size: areaCells.length, cells: areaCells };
+  }
+
+  private reduceOpenArea(areaCells: Coordinate[], floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const cellsToConvert = Math.floor(areaCells.length - 100);
+    
+    areaCells.sort((a, b) => {
+        const aNeighbors = this.getValidNeighbors(a.x, a.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        const bNeighbors = this.getValidNeighbors(b.x, b.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        return bNeighbors - aNeighbors;
+    });
+
+    for (let i = 0; i < cellsToConvert && i < areaCells.length; i++) {
+        const cell = areaCells[i];
+        if ((cell.x === 0 && cell.y === 0) || (cell.x === this.MAP_WIDTH - 1 && cell.y === this.MAP_HEIGHT - 1)) continue;
+        floorMap[cell.y][cell.x] = 'wall';
+    }
+  }
+
+  private breakUpWallArea(areaCells: Coordinate[], floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const cellsToConvert = Math.floor((areaCells.length - 225) / 10);
+
+    for (let i = 0; i < cellsToConvert; i++) {
+        if (areaCells.length === 0) break;
+        const randIndex = Math.floor(Math.random() * areaCells.length);
+        const cell = areaCells[randIndex];
+        
+        const neighbors = this.getValidNeighbors(cell.x, cell.y);
+        const openNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        if (openNeighbors === 0) {
+            floorMap[cell.y][cell.x] = new LogicalRoom(`room-${cell.x}-${cell.y}-f${floor}`, `Secluded Chamber ${cell.x},${cell.y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+        }
+        areaCells.splice(randIndex, 1);
+    }
+  }
+
+  private postProcessMap(floorMap: (LogicalRoom | 'wall')[][], floor: number) {
+    const visited = new Set<string>();
+
+    for (let y = 0; y < this.MAP_HEIGHT; y++) {
+        for (let x = 0; x < this.MAP_WIDTH; x++) {
+            const coord = `${x},${y}`;
+            if (!visited.has(coord)) {
+                const cellType = floorMap[y][x] === 'wall' ? 'wall' : 'open';
+                const { size, cells } = this.getContiguousArea(x, y, cellType, floorMap, visited);
+
+                if (cellType === 'open' && size > 100) {
+                    this.reduceOpenArea(cells, floorMap, floor);
+                } else if (cellType === 'wall' && size > 225) {
+                    this.breakUpWallArea(cells, floorMap, floor);
+                }
+            }
+        }
+    }
   }
 }

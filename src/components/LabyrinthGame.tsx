@@ -351,7 +351,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   if (!gameStarted) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+    <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/background.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 border-gray-700 min-h-[calc(100vh-0.5rem)] flex flex-col">
         <CardHeader className="border-b border-gray-700 pb-2">
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
@@ -361,7 +361,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col items-center relative">
               <h3 className="text-lg font-bold mb-2 text-orange-300">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
-              <div className="w-full sm:max-w-64 grid gap-0 p-1 border border-gray-700 bg-black overflow-hidden" style={{ gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)` }}>
+              <div className="w-full sm:max-w-64 grid gap-0 p-1 border border-gray-700 bg-gray-900 overflow-hidden" style={{ gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)` }}>
                 {renderMap()}
               </div>
               <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">

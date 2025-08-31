@@ -285,18 +285,95 @@ export class Labyrinth {
       // Set start room description for each floor
       floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
 
-      // Add branching paths, loops, and open areas for each floor
-      for (let i = 0; i < 5; i++) {
-        for (let y = 0; y < this.MAP_HEIGHT; y++) {
-          for (let x = 0; x < this.MAP_WIDTH; x++) {
+      // Add deeper, more complex side passages with a chance to connect
+      const numPassageAttempts = 100; // Attempt to create this many passages
+      const minPassageLength = 4;
+      const maxPassageLength = 12;
+
+      for (let i = 0; i < numPassageAttempts; i++) {
+        // Find a valid starting point: a wall next to an existing room
+        const potentialStarts: Coordinate[] = [];
+        for (let y = 1; y < this.MAP_HEIGHT - 1; y++) {
+          for (let x = 1; x < this.MAP_WIDTH - 1; x++) {
             if (floorMap[y][x] === 'wall') {
-              const neighbors = this.getValidNeighbors(x, y); // Use the new private method
-              const numOpenNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall').length;
-              if (numOpenNeighbors >= 1 && Math.random() < (numOpenNeighbors * 0.15)) {
-                floorMap[y][x] = new LogicalRoom(`room-${x}-${y}-f${floor}`, `Hidden Nook ${x},${y} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+              const neighbors = this.getValidNeighbors(x, y);
+              const openNeighbors = neighbors.filter(n => floorMap[n.y][n.x] !== 'wall');
+              if (openNeighbors.length === 1) { // Must be on the edge of an existing passage
+                potentialStarts.push({ x, y });
               }
             }
           }
+        }
+
+        if (potentialStarts.length === 0) {
+          break; // No more places to start a passage
+        }
+
+        const start = potentialStarts[Math.floor(Math.random() * potentialStarts.length)];
+        
+        // 50% chance to actually build this passage, which creates variation and potential for loops
+        if (Math.random() < 0.5) {
+          continue;
+        }
+
+        let currentX = start.x;
+        let currentY = start.y;
+        let lastDir: { dx: number, dy: number } | null = null;
+        const passageLength = minPassageLength + Math.floor(Math.random() * (maxPassageLength - minPassageLength + 1));
+
+        for (let j = 0; j < passageLength; j++) {
+          // Carve the current cell
+          floorMap[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}-f${floor}`, `Side Passage ${currentX},${currentY} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+
+          // Check if we've connected to another passage
+          const newNeighbors = this.getValidNeighbors(currentX, currentY);
+          const openNewNeighbors = newNeighbors.filter(n => floorMap[n.y][n.x] !== 'wall');
+          if (openNewNeighbors.length > 1) {
+            // We've hit another passage. Stop this digger to create a loop.
+            break;
+          }
+
+          const directions = [
+            { dx: 0, dy: -1 }, // North
+            { dx: 0, dy: 1 },  // South
+            { dx: -1, dy: 0 }, // West
+            { dx: 1, dy: 0 }   // East
+          ];
+
+          // Try to avoid immediately turning back
+          if (lastDir) {
+            const oppositeDirIndex = directions.findIndex(d => d.dx === -lastDir.dx && d.dy === -lastDir.dy);
+            if (oppositeDirIndex > -1 && directions.length > 1) {
+              directions.splice(oppositeDirIndex, 1);
+            }
+          }
+
+          const validMoves: { x: number, y: number, dir: { dx: number, dy: number } }[] = [];
+          for (const dir of directions) {
+            const nextX = currentX + dir.dx;
+            const nextY = currentY + dir.dy;
+
+            // Check bounds
+            if (nextX <= 0 || nextX >= this.MAP_WIDTH - 1 || nextY <= 0 || nextY >= this.MAP_HEIGHT - 1) {
+              continue;
+            }
+            
+            // The next cell must be a wall to be carved
+            if (floorMap[nextY][nextX] === 'wall') {
+                validMoves.push({ x: nextX, y: nextY, dir });
+            }
+          }
+
+          if (validMoves.length === 0) {
+            // Ran into a dead end, stop carving this one
+            break;
+          }
+
+          // Pick a random valid move
+          const move = validMoves[Math.floor(Math.random() * validMoves.length)];
+          currentX = move.x;
+          currentY = move.y;
+          lastDir = move.dir;
         }
       }
 

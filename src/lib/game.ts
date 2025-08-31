@@ -286,9 +286,9 @@ export class Labyrinth {
       floorMap[0][0] = new LogicalRoom(`room-0-0-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
 
       // Add deeper, more complex side passages with a chance to connect
-      const numPassageAttempts = 100; // Attempt to create this many passages
-      const minPassageLength = 4;
-      const maxPassageLength = 12;
+      const numPassageAttempts = 300; // Increased from 100
+      const minPassageLength = 8; // Increased from 4
+      const maxPassageLength = 25; // Increased from 12
 
       for (let i = 0; i < numPassageAttempts; i++) {
         // Find a valid starting point: a wall next to an existing room
@@ -311,8 +311,8 @@ export class Labyrinth {
 
         const start = potentialStarts[Math.floor(Math.random() * potentialStarts.length)];
         
-        // 50% chance to actually build this passage, which creates variation and potential for loops
-        if (Math.random() < 0.5) {
+        // 75% chance to actually build this passage (was 50%)
+        if (Math.random() < 0.25) {
           continue;
         }
 
@@ -322,13 +322,42 @@ export class Labyrinth {
         const passageLength = minPassageLength + Math.floor(Math.random() * (maxPassageLength - minPassageLength + 1));
 
         for (let j = 0; j < passageLength; j++) {
-          // Carve the current cell
-          floorMap[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}-f${floor}`, `Side Passage ${currentX},${currentY} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+          // NEW: 15% chance to carve a small room instead of a single tile
+          if (Math.random() < 0.15) {
+            const roomWidth = 3 + Math.floor(Math.random() * 3); // 3 to 5
+            const roomHeight = 3 + Math.floor(Math.random() * 3); // 3 to 5
+            const roomStartX = currentX - Math.floor(roomWidth / 2);
+            const roomStartY = currentY - Math.floor(roomHeight / 2);
+
+            let canPlaceRoom = true;
+            for (let ry = roomStartY; ry < roomStartY + roomHeight; ry++) {
+              for (let rx = roomStartX; rx < roomStartX + roomWidth; rx++) {
+                if (rx <= 0 || rx >= this.MAP_WIDTH - 1 || ry <= 0 || ry >= this.MAP_HEIGHT - 1) {
+                  canPlaceRoom = false;
+                  break;
+                }
+              }
+              if (!canPlaceRoom) break;
+            }
+
+            if (canPlaceRoom) {
+              for (let ry = roomStartY; ry < roomStartY + roomHeight; ry++) {
+                for (let rx = roomStartX; rx < roomStartX + roomWidth; rx++) {
+                  if (floorMap[ry][rx] === 'wall') {
+                    floorMap[ry][rx] = new LogicalRoom(`room-${rx}-${ry}-f${floor}`, `Side Chamber ${rx},${ry} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+                  }
+                }
+              }
+            }
+          } else {
+            // Original carving logic for a single tile
+            floorMap[currentY][currentX] = new LogicalRoom(`room-${currentX}-${currentY}-f${floor}`, `Side Passage ${currentX},${currentY} (Floor ${floor + 1})`, this.getRandomRoomDescription());
+          }
 
           // Check if we've connected to another passage
           const newNeighbors = this.getValidNeighbors(currentX, currentY);
           const openNewNeighbors = newNeighbors.filter(n => floorMap[n.y][n.x] !== 'wall');
-          if (openNewNeighbors.length > 1) {
+          if (openNewNeighbors.length > 1 && j > 0) { // Added j > 0 to ensure it doesn't stop at the start
             // We've hit another passage. Stop this digger to create a loop.
             break;
           }

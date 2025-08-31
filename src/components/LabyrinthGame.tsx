@@ -312,7 +312,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 cellClasses = "bg-indigo-600 text-white";
                 cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
-                cellContentIndicator = <Swords size={12} />; // Changed to Swords
+                cellContentIndicator = <img src="/enemy-ghost.png" alt="Enemy" className="w-3 h-3" />;
                 cellClasses = "bg-red-900 text-red-300 animate-pulse"; // Darker red, more menacing
                 cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {

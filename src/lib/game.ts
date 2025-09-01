@@ -130,6 +130,14 @@ interface Room {
   center: Coordinate;
 }
 
+// Updated GameResult interface to include causeOfDeath
+interface GameResult {
+  type: 'victory' | 'defeat';
+  name: string;
+  time: number;
+  causeOfDeath?: string; // Optional cause of death for defeat
+}
+
 export class Labyrinth {
   private floors: Map<number, (LogicalRoom | 'wall')[][]>; // Map of floor number to its grid
   private playerLocation: Coordinate;
@@ -192,7 +200,7 @@ export class Labyrinth {
   private readonly NUM_ROOMS_PER_FLOOR = 15; // Number of rooms per floor
   private readonly CORRIDOR_WIDTH = 3; // Width of corridors - CHANGED TO 3
 
-  private gameResult: { type: 'victory' | 'defeat', name: string, time: number } | null = null; // New: Stores game result
+  private gameResult: GameResult | null = null; // New: Stores game result
 
   constructor() {
     this.floors = new Map();
@@ -924,13 +932,13 @@ export class Labyrinth {
     return this.gameOver;
   }
 
-  public getGameResult(): { type: 'victory' | 'defeat', name: string, time: number } | null {
+  public getGameResult(): GameResult | null {
     return this.gameResult;
   }
 
-  private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number) {
+  private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, causeOfDeath?: string) {
     this.gameOver = true;
-    this.gameResult = { type, name: playerName, time };
+    this.gameResult = { type, name: playerName, time, causeOfDeath };
   }
 
   private markVisited(coord: Coordinate) {
@@ -970,7 +978,7 @@ export class Labyrinth {
   }
 
   public ascendFloor(playerName: string, time: number) {
-    if (this.currentFloor >= this.NUM_FLOORS - 1) {
+    if (this.gameOver) {
       this.addMessage("You are already on the deepest floor. There's no way further down.");
       return;
     }
@@ -988,7 +996,7 @@ export class Labyrinth {
     this.addMessage(this.getCurrentFloorObjective().description);
   }
 
-  private _tryActivateWellBlessing(playerName: string, time: number): boolean {
+  private _tryActivateWellBlessing(playerName: string, time: number, currentCause: string): boolean {
     const blessingEntry = this.inventory.get("well-blessing-f1");
     if (blessingEntry && blessingEntry.quantity > 0 && blessingEntry.item.effectValue) {
       blessingEntry.quantity--;
@@ -1066,9 +1074,9 @@ export class Labyrinth {
             this.playerStunnedTurns = 1;
             this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
             if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time)) {
+                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion")) {
                     this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time);
+                    this.setGameOver('defeat', playerName, time, "Temporal Distortion");
                     return;
                 }
             }
@@ -1086,9 +1094,9 @@ export class Labyrinth {
         this.triggeredTraps.add(targetCoordStr);
         this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
         if (this.playerHealth <= 0) {
-            if (!this._tryActivateWellBlessing(playerName, time)) {
+            if (!this._tryActivateWellBlessing(playerName, time, "Hidden Trap")) {
                 this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
-                this.setGameOver('defeat', playerName, time);
+                this.setGameOver('defeat', playerName, time, "Hidden Trap");
             }
         }
     }
@@ -1656,9 +1664,9 @@ export class Labyrinth {
                 this.playerHealth -= damageDealt;
                 this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
                 if (this.playerHealth <= 0) {
-                    if (!this._tryActivateWellBlessing(playerName, time)) {
+                    if (!this._tryActivateWellBlessing(playerName, time, `${enemy.name}'s Attack`)) {
                         this.addMessage("You have been slain... Game Over.");
-                        this.setGameOver('defeat', playerName, time);
+                        this.setGameOver('defeat', playerName, time, `${enemy.name}'s Attack`);
                     }
                 }
                 moved = true;

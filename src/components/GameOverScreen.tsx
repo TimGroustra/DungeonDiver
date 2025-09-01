@@ -6,10 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Crown, Skull } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Updated GameResult interface to include causeOfDeath
 interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
+  causeOfDeath?: string; // Optional cause of death for defeat
 }
 
 interface GameOverScreenProps {
@@ -60,6 +62,11 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
           <p className="text-2xl">
             Time: <span className="font-bold">{result.time.toFixed(2)}s</span>
           </p>
+          {!isVictory && result.causeOfDeath && (
+            <p className="text-xl mt-2">
+              Cause: <span className="font-bold">{result.causeOfDeath}</span>
+            </p>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button

@@ -12,10 +12,12 @@ interface LeaderboardEntry {
   time: number;
 }
 
+// Updated GameResult interface to include causeOfDeath
 interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
+  causeOfDeath?: string; // Optional cause of death for defeat
 }
 
 const Index = () => {

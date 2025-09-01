@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye, Goal } from "lucide-react"; // Importing new icons and aliasing Puzzle
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 import {
   Dialog,
@@ -478,6 +478,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const westProps = getButtonProps("west");
   const eastProps = getButtonProps("east");
 
+  const currentObjective = labyrinth.getCurrentFloorObjective();
+
   return (
     <div
       className="flex flex-col items-center justify-center min-h-screen p-1"
@@ -543,7 +545,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               </div>
             </div>
 
-            {/* Right Column: Adventurer's Status, Chronicles */}
+            {/* Right Column: Adventurer's Status, Floor Objective, Chronicles */}
             <div className="flex flex-col items-center">
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
@@ -579,6 +581,28 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 </div>
                 {renderInventory()}
               </div>
+
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
+
+              {/* Floor Objective Section */}
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-cyan-300 dark:text-cyan-600 mb-1 flex items-center justify-center">
+                  <Goal className="mr-2" size={20} /> Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):
+                </h3>
+                <p className={cn(
+                  "text-sm italic px-4",
+                  currentObjective.isCompleted() ? "text-green-400 dark:text-green-500" : "text-gray-300 dark:text-gray-700"
+                )}>
+                  {currentObjective.description}
+                </p>
+                <p className={cn(
+                  "text-xs font-semibold mt-1",
+                  currentObjective.isCompleted() ? "text-green-500 dark:text-green-600" : "text-red-400 dark:text-red-500"
+                )}>
+                  Status: {currentObjective.isCompleted() ? "Completed!" : "In Progress"}
+                </p>
+              </div>
+              {/* End Floor Objective Section */}
 
               <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
 

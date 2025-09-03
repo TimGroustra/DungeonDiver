@@ -802,7 +802,7 @@ export class Labyrinth {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
       const y = Math.floor(Math.random() * this.MAP_HEIGHT);
       const coordStr = `${x},${y},${floor}`; // Include floor in coordinate string
-      const currentFloorMap = this.floors.get(floor)!;
+      const currentFloorMap = this.floors.get(this.currentFloor)!;
 
       // Ensure not placed at player start (0,0) of this floor, or on an existing element, and only in an open room
       // Also, avoid placing elements on the boss's passage or altar location on the last floor
@@ -1074,9 +1074,9 @@ export class Labyrinth {
             this.playerStunnedTurns = 1;
             this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
             if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion")) {
+                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Moved during Red Light)")) {
                     this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time, "Temporal Distortion");
+                    this.setGameOver('defeat', playerName, time, "Temporal Distortion (Moved during Red Light)");
                     return;
                 }
             }

@@ -441,7 +441,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     return (
       <div
-        className="w-full sm:max-w-64 grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
+        className="w-full sm:max-w-72 grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono" // Changed sm:max-w-64 to sm:max-w-72
         style={{
           gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)`,
           gridTemplateRows: `repeat(${dynamicViewportSize}, 1fr)`,

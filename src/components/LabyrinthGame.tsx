@@ -441,7 +441,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     return (
       <div
-        className="w-full sm:max-w-72 grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono" // Changed sm:max-w-64 to sm:max-w-72
+        className="w-full sm:max-w-72 grid gap-0.5 p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
           gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)`,
           gridTemplateRows: `repeat(${dynamicViewportSize}, 1fr)`,
@@ -546,7 +546,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div className="absolute top-4 left-4">
             <Dialog open={showControlsModal} onOpenChange={setShowControlsModal}>
               <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900">
+                <Button variant="outline" size="default" className="bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900">
                   Controls
                 </Button>
               </DialogTrigger>

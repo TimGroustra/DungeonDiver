@@ -30,6 +30,47 @@ interface LabyrinthGameProps {
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500]; // Speeds for Floor 1, 2, 3, 4 (indices 0, 1, 2, 3)
 
+// Emoji mapping for game elements
+const emojiMap: { [key: string]: string } = {
+  // Enemies
+  "Grumbling Goblin": "👹",
+  "Rattling Skeleton": "💀",
+  "Whispering Shadow": "👻",
+  "The Watcher of the Core": "👁️",
+
+  // Items
+  "Vial of Lumina": "🧪",
+  "Blade of the Labyrinth": "🗡️",
+  "Aegis of the Guardian": "🛡️",
+  "Tattered Journal": "📖",
+  "Pulsating Crystal": "🔮",
+  "Scholar's Amulet": "💎",
+  "Enchanted Flask": "🍶",
+  "Living Water": "🌊",
+  "Whispering Well's Blessing": "✨",
+  "Broken Compass": "🧭",
+  "Artisan's Fine Tools": "🛠️",
+  "Prismatic Lens": "🌈",
+  "True Compass": "🗺️",
+  "Labyrinth Key": "🔑",
+  "Heart of the Labyrinth": "❤️‍🔥",
+
+  // Static Interactables
+  "Ancient Mechanism": "⚙️",
+  "Whispering Well": "💧",
+  "Hidden Spring": "🌿",
+  "Ancient Repair Bench": "🔨",
+  "Mysterious Box": "📦",
+  "Ancient Altar": "🛐",
+  "Mysterious Staircase": "🪜",
+
+  // Puzzles
+  "Grand Riddle of Eternity": "❓",
+
+  // Traps
+  "Triggered Trap": "☠️", // This is for triggered traps
+};
+
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0); // New state variable to force re-renders
@@ -226,6 +267,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
   };
 
+  const getEmojiForElement = (elementName: string): string => {
+    // Handle prefixed items like "Rusty Blade of the Labyrinth"
+    if (elementName.includes("Blade of the Labyrinth")) return emojiMap["Blade of the Labyrinth"];
+    if (elementName.includes("Aegis of the Guardian")) return emojiMap["Aegis of the Guardian"];
+    
+    return emojiMap[elementName] || "❓"; // Default to a question mark if no emoji is found
+  };
+
   const renderMap = () => {
     const mapGrid = labyrinth.getMapGrid();
     const playerLoc = labyrinth.getPlayerLocation();
@@ -285,7 +334,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
           } else if (isTrapTriggered) { // Prioritize triggered traps to show them
-              cellContentIndicator = "☠️"; // Emoji for triggered trap
+              cellContentIndicator = getEmojiForElement("Triggered Trap"); // Emoji for triggered trap
               cellClasses = "bg-orange-700 text-orange-200"; // A different color for triggered traps
               cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
           } else if (isVisited) { // Only show special indicators on visited cells if not a triggered trap
@@ -298,9 +347,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const hasUnsolvedPuzzle = puzzle && !puzzle.solved;
             const hasSolvedPuzzle = puzzle && puzzle.solved;
 
-            const hasUnpickedItem = labyrinth["itemLocations"].has(fullCoordStr);
+            const itemId = labyrinth["itemLocations"].get(fullCoordStr);
+            const item = itemId ? labyrinth.getItem(itemId) : undefined;
+            const hasUnpickedItem = item && !item.isStatic;
 
             const staticItemId = labyrinth["staticItemLocations"].get(fullCoordStr);
+            const staticItem = staticItemId ? labyrinth.getItem(staticItemId) : undefined;
             const hasStaticItemAtLocation = !!staticItemId;
             const isStaticItemCurrentlyRevealed = revealedStaticItems.has(fullCoordStr);
 
@@ -308,38 +360,38 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const staircaseLoc = labyrinth["floorExitStaircases"].get(currentFloor);
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
-            if (isAltar) {
-                cellContentIndicator = "👑"; // Emoji for Crown
+            if (isAltar && staticItem) {
+                cellContentIndicator = getEmojiForElement(staticItem.name);
                 cellClasses = "bg-purple-600 text-white animate-pulse";
-                cellTitle = `Ancient Altar (Final Objective)`;
-            } else if (isWatcherLocation && !isBossDefeated) {
-                cellContentIndicator = "👁️"; // Emoji for Eye
+                cellTitle = `${staticItem.name} (Final Objective)`;
+            } else if (isWatcherLocation && !isBossDefeated && enemy) {
+                cellContentIndicator = getEmojiForElement(enemy.name);
                 cellClasses = "bg-red-700 text-red-200 animate-pulse";
-                cellTitle = `The Watcher of the Core!`;
-            } else if (isStaircase) {
-                cellContentIndicator = "⬇️"; // Emoji for Down Arrow
+                cellTitle = `${enemy.name}!`;
+            } else if (isStaircase && staticItem) {
+                cellContentIndicator = getEmojiForElement(staticItem.name);
                 cellClasses = "bg-indigo-600 text-white";
-                cellTitle = `Staircase to Floor ${currentFloor + 2}`;
-            } else if (hasUndefeatedEnemy) {
-                cellContentIndicator = "⚔️"; // Emoji for Swords
+                cellTitle = `${staticItem.name} to Floor ${currentFloor + 2}`;
+            } else if (hasUndefeatedEnemy && enemy) {
+                cellContentIndicator = getEmojiForElement(enemy.name);
                 cellClasses = "bg-red-900 text-red-300 animate-pulse"; // Darker red, more menacing
-                cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
-            } else if (hasUnsolvedPuzzle) {
-                cellContentIndicator = "🧩"; // Emoji for Puzzle Piece
+                cellTitle = `Explored (${mapX},${mapY}) (${enemy.name} Lurks!)`;
+            } else if (hasUnsolvedPuzzle && puzzle) {
+                cellContentIndicator = getEmojiForElement(puzzle.name);
                 cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
-                cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
-            } else if (hasUnpickedItem) {
-                cellContentIndicator = "💎"; // Emoji for Gem
+                cellTitle = `Explored (${mapX},${mapY}) (${puzzle.name}!)`;
+            } else if (hasUnpickedItem && item) {
+                cellContentIndicator = getEmojiForElement(item.name);
                 cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
-                cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
+                cellTitle = `Explored (${mapX},${mapY}) (${item.name}!)`;
             } else if (hasTrap) { // Trap is present but not yet triggered
                 cellContentIndicator = " "; // Invisible until triggered
                 cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500"; // Same as visited empty room
                 cellTitle = `Explored (${mapX},${mapY})`; // Don't reveal trap in title
-            } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
-                cellContentIndicator = "📜"; // Emoji for Scroll
+            } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed && staticItem) {
+                cellContentIndicator = getEmojiForElement(staticItem.name);
                 cellClasses = "bg-green-700 text-green-200";
-                cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
+                cellTitle = `Explored (${mapX},${mapY}) (Revealed ${staticItem.name})`;
             } else if (hasSolvedPuzzle) {
                 cellContentIndicator = "✨"; // Emoji for Sparkles
                 cellClasses = "bg-purple-800 text-purple-200";

@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils"; // Utility for conditional class names
-import { PersonStanding, Sword, Puzzle as PuzzleIcon, Scroll, BookOpen, HelpCircle, Heart, Shield, Dices, ArrowDownCircle, Target, Gem, Compass, Swords, Crown, Sparkles, Eye, Goal } from "lucide-react"; // Importing new icons and aliasing Puzzle
+import { PersonStanding, Sword, Heart, Shield, Target, Goal } from "lucide-react"; // Keeping player, status icons
 import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile hook
 import {
   Dialog,
@@ -285,7 +285,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
             cellTitle = "Solid Wall";
           } else if (isTrapTriggered) { // Prioritize triggered traps to show them
-              cellContentIndicator = <Dices size={12} />;
+              cellContentIndicator = "☠️"; // Emoji for triggered trap
               cellClasses = "bg-orange-700 text-orange-200"; // A different color for triggered traps
               cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
           } else if (isVisited) { // Only show special indicators on visited cells if not a triggered trap
@@ -309,27 +309,27 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const isStaircase = staircaseLoc && staircaseLoc.x === mapX && staircaseLoc.y === mapY;
 
             if (isAltar) {
-                cellContentIndicator = <Crown size={12} />; // Changed to Crown
+                cellContentIndicator = "👑"; // Emoji for Crown
                 cellClasses = "bg-purple-600 text-white animate-pulse";
                 cellTitle = `Ancient Altar (Final Objective)`;
             } else if (isWatcherLocation && !isBossDefeated) {
-                cellContentIndicator = <Eye size={12} />; // Eye icon for the Watcher
+                cellContentIndicator = "👁️"; // Emoji for Eye
                 cellClasses = "bg-red-700 text-red-200 animate-pulse";
                 cellTitle = `The Watcher of the Core!`;
             } else if (isStaircase) {
-                cellContentIndicator = <ArrowDownCircle size={12} />; // Staircase icon
+                cellContentIndicator = "⬇️"; // Emoji for Down Arrow
                 cellClasses = "bg-indigo-600 text-white";
                 cellTitle = `Staircase to Floor ${currentFloor + 2}`;
             } else if (hasUndefeatedEnemy) {
-                cellContentIndicator = <Swords size={12} />; // Changed to Swords
+                cellContentIndicator = "⚔️"; // Emoji for Swords
                 cellClasses = "bg-red-900 text-red-300 animate-pulse"; // Darker red, more menacing
                 cellTitle = `Explored (${mapX},${mapY}) (Enemy Lurks!)`;
             } else if (hasUnsolvedPuzzle) {
-                cellContentIndicator = <PuzzleIcon size={12} />; // Keep PuzzleIcon
+                cellContentIndicator = "🧩"; // Emoji for Puzzle Piece
                 cellClasses = "bg-yellow-800 text-yellow-300 animate-pulse"; // More golden/mysterious
                 cellTitle = `Explored (${mapX},${mapY}) (Ancient Puzzle!)`;
             } else if (hasUnpickedItem) {
-                cellContentIndicator = <Gem size={12} />; // Changed to Gem
+                cellContentIndicator = "💎"; // Emoji for Gem
                 cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse"; // Green for treasure
                 cellTitle = `Explored (${mapX},${mapY}) (Glimmering Item!)`;
             } else if (hasTrap) { // Trap is present but not yet triggered
@@ -337,11 +337,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 cellClasses = "bg-gray-700 dark:bg-gray-600 text-gray-500"; // Same as visited empty room
                 cellTitle = `Explored (${mapX},${mapY})`; // Don't reveal trap in title
             } else if (hasStaticItemAtLocation && isStaticItemCurrentlyRevealed) {
-                cellContentIndicator = <BookOpen size={12} />;
+                cellContentIndicator = "📜"; // Emoji for Scroll
                 cellClasses = "bg-green-700 text-green-200";
                 cellTitle = `Explored (${mapX},${mapY}) (Revealed Feature)`;
             } else if (hasSolvedPuzzle) {
-                cellContentIndicator = <Sparkles size={12} />;
+                cellContentIndicator = "✨"; // Emoji for Sparkles
                 cellClasses = "bg-purple-800 text-purple-200";
                 cellTitle = `Explored (${mapX},${mapY}) (Solved Puzzle)`;
             } else {

@@ -426,7 +426,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div
             key={`${viewportX}-${viewportY}`} // Use viewport coordinates for key
             className={cn(
-              "w-full h-full flex items-center justify-center text-[10px] font-bold",
+              "w-full h-full flex items-center justify-center text-lg font-bold", // Changed text-[10px] to text-lg
               "border border-gray-800 dark:border-gray-500",
               cellClasses,
             )}

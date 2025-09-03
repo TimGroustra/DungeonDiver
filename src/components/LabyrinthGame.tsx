@@ -326,7 +326,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
 
           if (isPlayerHere) {
-            cellContentIndicator = <PersonStanding size={12} />;
+            cellContentIndicator = <PersonStanding size={16} />; // Adjusted size
             cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
@@ -426,7 +426,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div
             key={`${viewportX}-${viewportY}`} // Use viewport coordinates for key
             className={cn(
-              "w-full h-full flex items-center justify-center text-lg font-bold", // Changed text-[10px] to text-lg
+              "w-6 h-6 flex items-center justify-center text-base font-bold", // Fixed size, text-base
               "border border-gray-800 dark:border-gray-500",
               cellClasses,
             )}
@@ -634,7 +634,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 {renderInventory()}
               </div>
 
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
 
               <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
               <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono h-40 overflow-y-auto">

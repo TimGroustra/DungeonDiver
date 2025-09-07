@@ -95,12 +95,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameStarted || labyrinth.isGameOver()) return;
       switch (event.key) {
-        case "ArrowUp": case "w": event.preventDefault(); handleMove("north"); break;
-        case "ArrowDown": case "s": event.preventDefault(); handleMove("south"); break;
-        case "ArrowLeft": case "a": event.preventDefault(); handleMove("west"); break;
-        case "ArrowRight": case "d": event.preventDefault(); handleMove("east"); break;
-        case "Shift": case "f": event.preventDefault(); handleSearch(); break;
-        case "Control": case "e": event.preventDefault(); handleInteract(); break;
+        case "ArrowUp": event.preventDefault(); handleMove("north"); break;
+        case "ArrowDown": event.preventDefault(); handleMove("south"); break;
+        case "ArrowLeft": event.preventDefault(); handleMove("west"); break;
+        case "ArrowRight": event.preventDefault(); handleMove("east"); break;
+        case "Shift": event.preventDefault(); handleSearch(); break;
+        case "Control": event.preventDefault(); handleInteract(); break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -305,8 +305,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </h3>
           </div>
           {renderMap()}
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">WASD/Arrows</span> | Search: <span className="font-bold text-amber-200">F/Shift</span> | Interact: <span className="font-bold text-amber-200">E/Ctrl</span></p>
+          <div className="absolute top-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
+            <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
         </main>
 

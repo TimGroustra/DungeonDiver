@@ -225,6 +225,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <rect width="1" height="1" className="fill-stone-700" />
             <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-800" strokeWidth="0.05" fill="none" />
           </pattern>
+          <pattern id="wall-pattern-light" patternUnits="userSpaceOnUse" width="0.4" height="0.4">
+            <rect width="0.4" height="0.4" className="fill-gray-800" />
+            <path d="M -0.1 0.1 L 0.1 -0.1 M 0.3 0.5 L 0.5 0.3" className="stroke-gray-900" strokeWidth="0.04" />
+          </pattern>
+          <pattern id="wall-pattern-dark" patternUnits="userSpaceOnUse" width="0.4" height="0.4">
+            <rect width="0.4" height="0.4" className="fill-gray-900" />
+            <path d="M -0.1 0.1 L 0.1 -0.1 M 0.3 0.5 L 0.5 0.3" className="stroke-black" strokeWidth="0.04" />
+          </pattern>
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="white" />
             {Array.from(visitedCells).map(cellCoord => {
@@ -236,7 +244,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
         <path d={floorPath} className="fill-[url(#floor-pattern-light)] dark:fill-[url(#floor-pattern-dark)]" />
         <path d={floorPath} className="fill-stone-950/95 dark:fill-black/95" mask="url(#fog-mask)" />
-        <path d={wallPath} className="fill-gray-800 dark:fill-gray-900 stroke-gray-600 dark:stroke-gray-700" strokeWidth={0.05} />
+        <path d={wallPath} className="fill-[url(#wall-pattern-light)] dark:fill-[url(#wall-pattern-dark)] stroke-gray-600 dark:stroke-gray-700" strokeWidth={0.05} />
 
         {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
           const [x, y, f] = coordStr.split(',').map(Number);

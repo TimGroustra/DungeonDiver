@@ -1198,7 +1198,7 @@ export class Labyrinth {
                 if (itemId) {
                     const item = this.items.get(itemId);
                     if (item && !item.isStatic) {
-                        this._handleFoundItem(item, coordStr); // Use the new handler
+                        this.addMessage(`You see a ${item.name} lying on the ground here.`);
                         foundSomethingInRadius = true;
                     }
                 }
@@ -1283,6 +1283,16 @@ export class Labyrinth {
 
     const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
     let interacted = false;
+
+    // Check for loose items to pick up first.
+    const itemId = this.itemLocations.get(currentCoord);
+    if (itemId) {
+        const item = this.items.get(itemId);
+        if (item && !item.isStatic) {
+            this._handleFoundItem(item, currentCoord);
+            return; // Exit after picking up an item to prevent multiple interactions.
+        }
+    }
 
     // Check for floor exit staircase
     const staircaseCoord = this.floorExitStaircases.get(this.currentFloor);

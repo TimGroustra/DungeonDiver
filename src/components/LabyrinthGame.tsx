@@ -297,14 +297,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      <Card className="w-full max-w-7xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 h-[calc(100vh-0.5rem)] flex flex-col">
+      <Card className="w-full md:w-auto shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 h-[calc(100vh-0.5rem)] flex flex-col">
         <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 relative">
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey...</CardDescription>
         </CardHeader>
         <CardContent className="pt-2 flex-grow overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4 h-full">
-            <main className="flex-grow flex flex-col items-center justify-center p-2 relative">
+            <main className="flex-grow md:flex-grow-0 flex flex-col items-center justify-center p-2 relative">
               <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
               <div className="w-full flex-grow flex items-center justify-center min-h-0">
                 {renderMap()}

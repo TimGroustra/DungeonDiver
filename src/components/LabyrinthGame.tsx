@@ -231,14 +231,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
         })}
 
-        <rect 
-          x="0" 
-          y="0" 
-          width={mapWidth} 
-          height={mapHeight} 
-          fill="none" 
-          className="stroke-gray-600 dark:stroke-gray-500" 
-          strokeWidth="0.5" 
+        <rect
+          x={-0.25}
+          y={-0.25}
+          width={mapWidth + 0.5}
+          height={mapHeight + 0.5}
+          fill="none"
+          className="stroke-gray-600 dark:stroke-gray-500"
+          strokeWidth="0.5"
         />
 
         <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r={0.4} className="fill-blue-500 stroke-blue-300" strokeWidth={0.1} />

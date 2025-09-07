@@ -362,7 +362,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           const fullCoordStr = `${mapX},${mapY},${currentFloor}`;
           const isVisited = visitedCells.has(cellCoord);
           let cellContentIndicator: React.ReactNode = "·";
-          let cellClasses = isVisited ? "bg-gray-700 dark:bg-gray-600 text-gray-500" : "bg-gray-900 dark:bg-gray-800 text-gray-700";
+          let cellClasses = isVisited ? "bg-stone-700 dark:bg-stone-600 text-stone-400" : "bg-stone-900 dark:bg-stone-800 text-stone-600";
           let cellTitle = isVisited ? `Explored (${mapX},${mapY})` : `Unexplored (${mapX},${mapY})`;
 
           if (isVisited) {

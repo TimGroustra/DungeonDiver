@@ -1515,50 +1515,56 @@ export class Labyrinth {
         break;
       case 'weapon':
         if (this.equippedWeapon?.id === item.id) {
-          this.equippedWeapon = undefined;
-          this.addMessage(`You unequip the ${item.name}.`);
-          // When unequipped, it goes back to inventory with quantity 1
-          this.inventory.set(item.id, { item: item, quantity: 1 });
+          this.addMessage(`The ${item.name} is already equipped.`);
         } else {
-          // If another weapon is equipped, put it back into inventory (if not already there)
-          if (this.equippedWeapon) {
-            const oldEquipped = this.equippedWeapon;
-            const oldEntry = this.inventory.get(oldEquipped.id);
-            if (oldEntry) {
-              oldEntry.quantity++;
-              this.inventory.set(oldEquipped.id, oldEntry);
+          // Check if the new weapon is stronger than the currently equipped one
+          if (!this.equippedWeapon || (item.effectValue || 0) > (this.equippedWeapon.effectValue || 0)) {
+            if (this.equippedWeapon) {
+              // Put the old equipped weapon back into inventory
+              const oldEquipped = this.equippedWeapon;
+              const oldEntry = this.inventory.get(oldEquipped.id);
+              if (oldEntry) {
+                oldEntry.quantity++;
+                this.inventory.set(oldEquipped.id, oldEntry);
+              } else {
+                this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+              }
+              this.addMessage(`You unequip the ${oldEquipped.name} and equip the superior ${item.name}!`);
             } else {
-              this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+              this.addMessage(`You equip the ${item.name}!`);
             }
-            this.addMessage(`You unequip the ${oldEquipped.name} and equip the ${item.name}.`);
+            this.equippedWeapon = item;
+            this.inventory.delete(itemId); // Remove from inventory as it's now equipped
           } else {
-            this.addMessage(`You equip the ${item.name}.`);
+            this.addMessage(`You found a ${item.name}, but your current weapon is stronger.`);
           }
-          this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
       case 'shield':
         if (this.equippedShield?.id === item.id) {
-          this.equippedShield = undefined;
-          this.addMessage(`You unequip the ${item.name}.`);
-          // When unequipped, it goes back to inventory with quantity 1
-          this.inventory.set(item.id, { item: item, quantity: 1 });
+          this.addMessage(`The ${item.name} is already equipped.`);
         } else {
-          // If another shield is equipped, put it back into inventory (if not already there)
-          if (this.equippedShield) {
-            const oldEquipped = this.equippedShield;
-            const oldEntry = this.inventory.get(oldEquipped.id);
-            if (oldEntry) {
-              oldEntry.quantity++;
-              this.inventory.set(oldEquipped.id, oldEntry);
+          // Check if the new shield is stronger than the currently equipped one
+          if (!this.equippedShield || (item.effectValue || 0) > (this.equippedShield.effectValue || 0)) {
+            if (this.equippedShield) {
+              // Put the old equipped shield back into inventory
+              const oldEquipped = this.equippedShield;
+              const oldEntry = this.inventory.get(oldEquipped.id);
+              if (oldEntry) {
+                oldEntry.quantity++;
+                this.inventory.set(oldEquipped.id, oldEntry);
+              } else {
+                this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+              }
+              this.addMessage(`You unequip the ${oldEquipped.name} and equip the superior ${item.name}!`);
             } else {
-              this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+              this.addMessage(`You equip the ${item.name}!`);
             }
-            this.addMessage(`You unequip the ${oldEquipped.name} and equip the ${item.name}.`);
+            this.equippedShield = item;
+            this.inventory.delete(itemId); // Remove from inventory as it's now equipped
           } else {
-            this.addMessage(`You equip the ${item.name}.`);
+            this.addMessage(`You found a ${item.name}, but your current shield is stronger.`);
           }
-          this.inventory.delete(itemId); // Remove from inventory as it's now equipped
         }
         break;
       case 'accessory': // Handle accessory usage (equip/unequip)

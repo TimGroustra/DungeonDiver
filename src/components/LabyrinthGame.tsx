@@ -238,9 +238,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
                   <p className="text-xs text-stone-300 italic mt-1">{equippedWeapon.description}</p>
                 </div>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedWeapon.id)}>
-                  Unequip
-                </Button>
               </div>
             ) : (
               <p className="italic text-stone-400 text-center">No weapon equipped.</p>
@@ -251,9 +248,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
                   <p className="text-xs text-stone-300 italic mt-1">{equippedShield.description}</p>
                 </div>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedShield.id)}>
-                  Unequip
-                </Button>
               </div>
             ) : (
               <p className="italic text-stone-400 text-center">No shield equipped.</p>

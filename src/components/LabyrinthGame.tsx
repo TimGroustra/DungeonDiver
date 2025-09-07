@@ -268,26 +268,26 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   );
 
   const renderHud = () => (
-    <div className="absolute top-2 right-2 w-auto max-w-lg bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-2 px-6 shadow-2xl shadow-black/50">
-      <div className="flex justify-center items-center gap-x-6 gap-y-2 text-amber-50 flex-wrap">
-        <div className="flex items-center gap-2" title="Health">
-          <Heart className="text-red-500" size={20} />
-          <span className="font-bold text-lg">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+    <div className="absolute top-2 right-2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
+      <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
+        <div className="flex items-center gap-1" title="Health">
+          <Heart className="text-red-500" size={10} />
+          <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
         </div>
-        <Separator orientation="vertical" className="h-6 bg-amber-800" />
-        <div className="flex items-center gap-2" title="Attack">
-          <Sword className="text-orange-400" size={20} />
-          <span className="font-bold text-lg">{labyrinth.getCurrentAttackDamage()}</span>
+        <Separator orientation="vertical" className="h-3 bg-amber-800" />
+        <div className="flex items-center gap-1" title="Attack">
+          <Sword className="text-orange-400" size={10} />
+          <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
         </div>
-        <Separator orientation="vertical" className="h-6 bg-amber-800" />
-        <div className="flex items-center gap-2" title="Defense">
-          <Shield className="text-blue-400" size={20} />
-          <span className="font-bold text-lg">{labyrinth.getCurrentDefense()}</span>
+        <Separator orientation="vertical" className="h-3 bg-amber-800" />
+        <div className="flex items-center gap-1" title="Defense">
+          <Shield className="text-blue-400" size={10} />
+          <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
         </div>
-        <Separator orientation="vertical" className="h-6 bg-amber-800" />
-        <div className="flex items-center gap-2" title="Search Radius">
-          <Target className="text-purple-400" size={20} />
-          <span className="font-bold text-lg">{labyrinth.getSearchRadius()}</span>
+        <Separator orientation="vertical" className="h-3 bg-amber-800" />
+        <div className="flex items-center gap-1" title="Search Radius">
+          <Target className="text-purple-400" size={10} />
+          <span className="font-bold">{labyrinth.getSearchRadius()}</span>
         </div>
       </div>
     </div>
@@ -308,7 +308,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div className="absolute top-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
             <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
-          {renderHud()} {/* Moved HUD here */}
+          {renderHud()}
         </main>
 
         <aside className="w-full md:w-96 lg:w-[450px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">

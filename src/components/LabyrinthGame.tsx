@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Labyrinth } from '../lib/labyrinth';
+import { Labyrinth } from '../lib/game';
 import Controls from './Controls';
 import { Button } from './ui/button';
 

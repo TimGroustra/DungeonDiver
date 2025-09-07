@@ -343,14 +343,19 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">
                 <div>
                   <div className="grid grid-cols-3 gap-2 w-full">
-                    <div /><Button size="sm" className={northProps.className} onClick={() => handleMove("north")} disabled={northProps.disabled || labyrinth.isGameOver()}>{northProps.text}</Button><div />
-                    <Button size="sm" className={westProps.className} onClick={() => handleMove("west")} disabled={westProps.disabled || labyrinth.isGameOver()}>{westProps.text}</Button><div />
-                    <Button size="sm" className={eastProps.className} onClick={() => handleMove("east")} disabled={eastProps.disabled || labyrinth.isGameOver()}>{eastProps.text}</Button><div />
-                    <div /><Button size="sm" className={southProps.className} onClick={() => handleMove("south")} disabled={southProps.disabled || labyrinth.isGameOver()}>{southProps.text}</Button><div />
+                    <div />
+                    <Button size="sm" className={northProps.className} onClick={() => handleMove("north")} disabled={northProps.disabled || labyrinth.isGameOver()}>{northProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={westProps.className} onClick={() => handleMove("west")} disabled={westProps.disabled || labyrinth.isGameOver()}>{westProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={eastProps.className} onClick={() => handleMove("east")} disabled={eastProps.disabled || labyrinth.isGameOver()}>{eastProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={southProps.className} onClick={() => handleMove("south")} disabled={southProps.disabled || labyrinth.isGameOver()}>{southProps.text}</Button>
+                    <div />
                   </div>
                   <div className="flex gap-2 mt-2 justify-center">
                     <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver()}>Search</Button>
-                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={labyrinth.isGameOver()}>Interact</Button>
+                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={ labyrinth.isGameOver()}>Interact</Button>
                   </div>
                 </div>
               </div>

@@ -319,46 +319,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return rects;
   }, [mapGrid, currentFloor]);
 
-  const floorRects = useMemo(() => {
-    const rects: { x: number; y: number; width: number; height: number }[] = [];
-    if (!mapGrid || mapGrid.length === 0) return rects;
-
-    const height = mapGrid.length;
-    const width = mapGrid[0].length;
-    const visitedForMeshing = Array(height).fill(null).map(() => Array(width).fill(false));
-    const visitedCells = labyrinth.getVisitedCells();
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const cellCoord = `${x},${y}`;
-        if (mapGrid[y][x] !== 'wall' && visitedCells.has(cellCoord) && !visitedForMeshing[y][x]) {
-          let currentWidth = 1;
-          while (x + currentWidth < width && mapGrid[y][x + currentWidth] !== 'wall' && visitedCells.has(`${x + currentWidth},${y}`) && !visitedForMeshing[y][x + currentWidth]) {
-            currentWidth++;
-          }
-
-          let currentHeight = 1;
-          outer: while (y + currentHeight < height) {
-            for (let i = 0; i < currentWidth; i++) {
-              if (mapGrid[y + currentHeight][x + i] === 'wall' || !visitedCells.has(`${x + i},${y + currentHeight}`) || visitedForMeshing[y + currentHeight][x + i]) {
-                break outer;
-              }
-            }
-            currentHeight++;
-          }
-
-          rects.push({ x, y, width: currentWidth, height: currentHeight });
-          for (let h = 0; h < currentHeight; h++) {
-            for (let w = 0; w < currentWidth; w++) {
-              visitedForMeshing[y + h][x + w] = true;
-            }
-          }
-        }
-      }
-    }
-    return rects;
-  }, [mapGrid, labyrinth, currentFloor]);
-
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
@@ -370,14 +330,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const viewportMapStartX = playerLoc.x - halfViewport;
     const viewportMapStartY = playerLoc.y - halfViewport;
 
+    // Filter wall rects to only those visible in the viewport
     const visibleWallRects = wallRects.filter(rect =>
-      rect.x < viewportMapStartX + dynamicViewportSize &&
-      rect.x + rect.width > viewportMapStartX &&
-      rect.y < viewportMapStartY + dynamicViewportSize &&
-      rect.y + rect.height > viewportMapStartY
-    );
-
-    const visibleFloorRects = floorRects.filter(rect =>
       rect.x < viewportMapStartX + dynamicViewportSize &&
       rect.x + rect.width > viewportMapStartX &&
       rect.y < viewportMapStartY + dynamicViewportSize &&
@@ -386,75 +340,42 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     return (
       <div
-        className="relative w-full sm:max-w-72 grid p-1 border border-gray-700 dark:border-gray-300 bg-stone-900 dark:bg-stone-800 overflow-hidden font-mono"
+        className="relative w-full sm:max-w-72 grid p-1 border border-gray-700 dark:border-gray-300 bg-gray-900 dark:bg-gray-200 overflow-hidden font-mono"
         style={{
           gridTemplateColumns: `repeat(${dynamicViewportSize}, 1fr)`,
           gridTemplateRows: `repeat(${dynamicViewportSize}, 1fr)`,
           aspectRatio: '1 / 1',
         }}
       >
-        {/* Render Meshed Floor Rects */}
-        {visibleFloorRects.map((rect, index) => {
-          const isBossPassage = currentFloor === numFloors - 1 && !labyrinth.isBossDefeated() && labyrinth.isBossPassage(rect.x, rect.y, currentFloor);
-          return (
-            <div
-              key={`floor-${index}`}
-              className={cn(
-                "absolute",
-                isBossPassage
-                  ? (labyrinth.getBossState() === 'red_light' ? "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast" : "bg-green-900/50 dark:bg-green-200/50")
-                  : "bg-stone-700 dark:bg-stone-600"
-              )}
-              style={{
-                left: `calc(${(rect.x - viewportMapStartX) * (100 / dynamicViewportSize)}%)`,
-                top: `calc(${(rect.y - viewportMapStartY) * (100 / dynamicViewportSize)}%)`,
-                width: `calc(${rect.width * (100 / dynamicViewportSize)}%)`,
-                height: `calc(${rect.height * (100 / dynamicViewportSize)}%)`,
-              }}
-            />
-          );
-        })}
-
-        {/* Render Meshed Wall Rects */}
-        {visibleWallRects.map((rect, index) => (
-          <div
-            key={`wall-${index}`}
-            className="absolute"
-            style={{
-              left: `calc(${(rect.x - viewportMapStartX) * (100 / dynamicViewportSize)}%)`,
-              top: `calc(${(rect.y - viewportMapStartY) * (100 / dynamicViewportSize)}%)`,
-              width: `calc(${rect.width * (100 / dynamicViewportSize)}%)`,
-              height: `calc(${rect.height * (100 / dynamicViewportSize)}%)`,
-            }}
-          >
-            <div className="w-full h-full bg-gray-700 dark:bg-gray-800 rounded-sm border-t border-l border-gray-500 dark:border-gray-600 border-b border-r border-gray-900 dark:border-black" />
-          </div>
-        ))}
-
-        {/* Render Content Layer (items, enemies, etc.) */}
+        {/* Render Floor Cells */}
         {Array.from({ length: dynamicViewportSize * dynamicViewportSize }).map((_, index) => {
           const viewportX = index % dynamicViewportSize;
           const viewportY = Math.floor(index / dynamicViewportSize);
           const mapX = viewportMapStartX + viewportX;
           const mapY = viewportMapStartY + viewportY;
 
-          if (mapX < 0 || mapY < 0 || mapX >= mapGrid[0].length || mapY >= mapGrid.length || mapGrid[mapY][mapX] === 'wall' || !visitedCells.has(`${mapX},${mapY}`)) {
-            return null;
+          if (mapX < 0 || mapY < 0 || mapX >= mapGrid[0].length || mapY >= mapGrid.length || mapGrid[mapY][mapX] === 'wall') {
+            return <div key={index} className="bg-gray-950 dark:bg-gray-100" />; // Render a background for wall areas
           }
 
+          const cellCoord = `${mapX},${mapY}`;
           const fullCoordStr = `${mapX},${mapY},${currentFloor}`;
-          let cellContentIndicator: React.ReactNode = null;
-          let cellClasses = "";
-          let cellTitle = `Explored (${mapX},${mapY})`;
+          const isVisited = visitedCells.has(cellCoord);
+          let cellContentIndicator: React.ReactNode = " ";
+          let cellClasses = isVisited ? "bg-stone-700 dark:bg-stone-600 text-stone-400" : "bg-stone-900 dark:bg-stone-800 text-stone-600";
+          let cellTitle = isVisited ? `Explored (${mapX},${mapY})` : `Unexplored (${mapX},${mapY})`;
 
-          const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
-          const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
-          if (enemy && !enemy.defeated) {
-            cellContentIndicator = getEmojiForElement(enemy.name);
-            cellClasses = "text-red-300 animate-pulse";
-            cellTitle += ` (${enemy.name} Lurks!)`;
-          } else {
+          if (isVisited) {
+            const enemyId = labyrinth["enemyLocations"].get(fullCoordStr);
+            const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
+            if (enemy && !enemy.defeated) {
+              cellContentIndicator = getEmojiForElement(enemy.name);
+              cellClasses = "bg-red-900 text-red-300 animate-pulse";
+              cellTitle += ` (${enemy.name} Lurks!)`;
+            }
+            // ... other indicators for items, puzzles, etc.
             const isAltar = (currentFloor === numFloors - 1) && (labyrinth["staticItemLocations"].get(fullCoordStr) === "ancient-altar-f3");
+            const hasTrap = labyrinth["trapsLocations"].has(fullCoordStr);
             const isTrapTriggered = triggeredTraps.has(fullCoordStr);
             const isWatcherLocation = (currentFloor === numFloors - 1) && (labyrinth["watcherLocation"]?.x === mapX && labyrinth["watcherLocation"]?.y === mapY);
             const isBossDefeated = labyrinth.isBossDefeated();
@@ -467,54 +388,65 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
             if (isTrapTriggered) {
               cellContentIndicator = getEmojiForElement("Triggered Trap");
-              cellClasses = "text-orange-200";
+              cellClasses = "bg-orange-700 text-orange-200";
               cellTitle = `Explored (${mapX},${mapY}) (Triggered Trap!)`;
             } else if (isAltar && staticItem) {
               cellContentIndicator = getEmojiForElement(staticItem.name);
-              cellClasses = "text-white animate-pulse";
+              cellClasses = "bg-purple-600 text-white animate-pulse";
               cellTitle = `${staticItem.name} (Final Objective)`;
             } else if (isWatcherLocation && !isBossDefeated && enemy) {
               cellContentIndicator = getEmojiForElement(enemy.name);
-              cellClasses = "text-red-200 animate-pulse";
+              cellClasses = "bg-red-700 text-red-200 animate-pulse";
               cellTitle = `${enemy.name}!`;
             } else if (isStaircase && staticItem) {
               cellContentIndicator = getEmojiForElement(staticItem.name);
-              cellClasses = "text-white";
+              cellClasses = "bg-indigo-600 text-white";
               cellTitle = `${staticItem.name} to Floor ${currentFloor + 2}`;
             } else if (item) {
               cellContentIndicator = getEmojiForElement(item.name);
-              cellClasses = "text-emerald-300 animate-pulse";
+              cellClasses = "bg-emerald-800 text-emerald-300 animate-pulse";
               cellTitle += ` (${item.name}!)`;
             } else if (staticItem && revealedStaticItems.has(fullCoordStr)) {
               cellContentIndicator = getEmojiForElement(staticItem.name);
-              cellClasses = "text-green-200";
+              cellClasses = "bg-green-700 text-green-200";
               cellTitle += ` (Revealed ${staticItem.name})`;
             }
           }
 
-          if (!cellContentIndicator) return null;
+          const isBossPassage = labyrinth.isBossPassage(mapX, mapY, currentFloor);
+          if (currentFloor === numFloors - 1 && !labyrinth.isBossDefeated() && isBossPassage) {
+            cellClasses = cn(cellClasses, labyrinth.getBossState() === 'red_light' ? "bg-red-900/50 dark:bg-red-200/50 animate-pulse-fast" : "bg-green-900/50 dark:bg-green-200/50");
+          }
 
           return (
-            <div
-              key={`content-${index}`}
-              className={cn("absolute w-6 h-6 flex items-center justify-center text-base font-bold", cellClasses)}
-              style={{
-                left: `calc(${viewportX * (100 / dynamicViewportSize)}%)`,
-                top: `calc(${viewportY * (100 / dynamicViewportSize)}%)`,
-              }}
-              title={cellTitle}
-            >
+            <div key={index} className={cn("w-6 h-6 flex items-center justify-center text-base font-bold", cellClasses)} title={cellTitle}>
               {cellContentIndicator}
             </div>
           );
         })}
 
+        {/* Render Collective Wall Rects */}
+        {visibleWallRects.map((rect, index) => (
+          <div
+            key={`wall-${index}`}
+            className="absolute bg-gray-800 dark:bg-gray-950"
+            style={{
+              gridColumnStart: rect.x - viewportMapStartX + 1,
+              gridColumnEnd: rect.x + rect.width - viewportMapStartX + 1,
+              gridRowStart: rect.y - viewportMapStartY + 1,
+              gridRowEnd: rect.y + rect.height - viewportMapStartY + 1,
+            }}
+          >
+            <div className="w-full h-full bg-gray-700 dark:bg-gray-800 rounded-sm border-t border-l border-gray-500 dark:border-gray-600 border-b border-r border-gray-900 dark:border-black" />
+          </div>
+        ))}
+
         {/* Render Player */}
         <div
           className="absolute w-6 h-6 flex items-center justify-center text-base font-bold bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700"
           style={{
-            left: `calc(${halfViewport * (100 / dynamicViewportSize)}%)`,
-            top: `calc(${halfViewport * (100 / dynamicViewportSize)}%)`,
+            gridColumnStart: halfViewport + 1,
+            gridRowStart: halfViewport + 1,
           }}
           title="You are here"
         >

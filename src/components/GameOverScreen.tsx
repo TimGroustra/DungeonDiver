@@ -22,12 +22,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
 
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-screen p-4"
-      style={{
-        backgroundImage: "url('/Eldoria.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
+      className="flex flex-col items-center justify-center p-4"
     >
       <div className={cn(
         "w-full max-w-md text-center border-4 rounded-lg p-6 space-y-4",

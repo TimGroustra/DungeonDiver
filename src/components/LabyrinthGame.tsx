@@ -425,10 +425,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               top: `calc(${(rect.y - viewportMapStartY) * (100 / dynamicViewportSize)}%)`,
               width: `calc(${rect.width * (100 / dynamicViewportSize)}%)`,
               height: `calc(${rect.height * (100 / dynamicViewportSize)}%)`,
-              backgroundImage: "url('/background.png')",
-              backgroundSize: "24px 24px", // Match the cell size for a 1-to-1 texture mapping
             }}
-          />
+          >
+            <div className="w-full h-full bg-gray-700 dark:bg-gray-800 rounded-sm border-t border-l border-gray-500 dark:border-gray-600 border-b border-r border-gray-900 dark:border-black" />
+          </div>
         ))}
 
         {/* Render Content Layer (items, enemies, etc.) */}

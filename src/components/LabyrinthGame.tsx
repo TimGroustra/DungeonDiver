@@ -296,7 +296,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   if (!gameStarted) return null;
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+    <div className="flex items-center justify-center h-full p-4">
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-center z-10">

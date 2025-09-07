@@ -106,9 +106,9 @@ const Index: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center p-4">
+    <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       {!gameStarted && !showLeaderboard && (
-        <Card className="w-full max-w-md bg-stone-900 border-amber-700 text-amber-50 shadow-lg">
+        <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
             <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
@@ -135,7 +135,7 @@ const Index: React.FC = () => {
       )}
 
       {showLeaderboard && !gameStarted && (
-        <Card className="w-full max-w-md bg-stone-900 border-amber-700 text-amber-50 shadow-lg">
+        <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
             <CardDescription className="text-stone-400">Top adventurers who escaped the Labyrinth.</CardDescription>
@@ -167,16 +167,14 @@ const Index: React.FC = () => {
       )}
 
       {gameStarted && (
-        <>
-          <LabyrinthGame
-            playerName={playerName}
-            gameStarted={gameStarted}
-            startTime={startTime}
-            elapsedTime={elapsedTime}
-            onGameOver={handleGameOver}
-            onGameRestart={handleGameRestart}
-          />
-        </>
+        <LabyrinthGame
+          playerName={playerName}
+          gameStarted={gameStarted}
+          startTime={startTime}
+          elapsedTime={elapsedTime}
+          onGameOver={handleGameOver}
+          onGameRestart={handleGameRestart}
+        />
       )}
     </div>
   );

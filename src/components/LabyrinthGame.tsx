@@ -55,7 +55,7 @@ const emojiMap: { [key: string]: string } = {
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart }) => {
-  const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
+  const [labyrinth, setLabyrinth] = = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
   const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
   const [gameLog, setGameLog] = useState<string[]>([]);
@@ -178,7 +178,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return (
       <svg
         viewBox={viewBox}
-        className="w-full sm:max-w-72 border border-gray-700 dark:border-gray-300 bg-gray-950 dark:bg-black"
+        className="w-full h-full border border-gray-700 dark:border-gray-300 bg-gray-950 dark:bg-black"
         style={{ aspectRatio: '1 / 1' }}
         shapeRendering="crispEdges"
       >
@@ -259,8 +259,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     return (
       <div className="mt-2">
-        <p className="font-semibold text-base text-white">Your Inventory:</p>
-        <ul className="list-disc list-inside text-xs text-white">
+        <ul className="list-disc list-inside text-xs text-white space-y-2">
           {inventoryItems.map(({ item, quantity }) => {
             let equippedStatus = "";
             let isEquipped = false;
@@ -274,14 +273,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
 
             return (
-              <li key={item.id} className="flex items-center justify-between mb-1">
+              <li key={item.id} className="flex items-center justify-between">
                 <div>
                   <span className="font-medium text-white">{item.name}</span>
                   {isConsumableWithUses && <span className="ml-1 text-white"> (x{quantity})</span>}: {item.description}
                   {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
                 </div>
                 {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
-                  <Button variant="outline" size="sm" className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900" onClick={() => handleUseItem(item.id)} disabled={!canUse}>
+                  <Button variant="outline" size="sm" className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900 flex-shrink-0" onClick={() => handleUseItem(item.id)} disabled={!canUse}>
                     {buttonText}
                   </Button>
                 )}
@@ -299,51 +298,62 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
+      <Card className="w-full max-w-7xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
         <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 relative">
           <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
           <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey...</CardDescription>
         </CardHeader>
-        <CardContent className="pt-2 flex-grow">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col items-center relative">
+        <CardContent className="pt-2 flex-grow overflow-hidden">
+          <div className="flex flex-col md:flex-row gap-4 h-full">
+            <main className="flex-grow flex flex-col items-center justify-center p-2 relative">
               <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
-              {renderMap()}
-              <div className="mt-4 text-center text-gray-400 dark:text-gray-600 text-sm">
+              <div className="w-full flex-grow flex items-center justify-center min-h-0">
+                {renderMap()}
+              </div>
+              <div className="mt-2 text-center text-gray-400 dark:text-gray-600 text-sm">
                 <p>Use <span className="font-bold text-gray-300 dark:text-gray-500">Arrow Keys</span> to Move/Attack.</p>
                 <p><span className="font-bold text-gray-300 dark:text-gray-500">Shift</span> to Search, <span className="font-bold text-gray-300 dark:text-gray-500">Control</span> to Interact.</p>
               </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
-              <div className="mb-2 w-full text-center">
-                <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-1">Adventurer's Status:</h3>
-                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-gray-300 dark:text-gray-700">
-                  <p className="flex items-center"><Heart className="mr-1 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span></p>
-                  <p className="flex items-center"><Sword className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span></p>
-                  <p className="flex items-center"><Shield className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span></p>
-                  <p className="flex items-center"><Target className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span></p>
+            </main>
+            <aside className="w-full md:w-80 lg:w-96 flex-shrink-0 bg-gray-900/50 dark:bg-gray-200/50 rounded-lg border border-gray-700 dark:border-gray-300 flex flex-col">
+              <ScrollArea className="h-full w-full">
+                <div className="p-4 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-2 text-center">Adventurer's Status</h3>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-gray-300 dark:text-gray-700">
+                      <p className="flex items-center"><Heart className="mr-1.5 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span></p>
+                      <p className="flex items-center"><Sword className="mr-1.5 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span></p>
+                      <p className="flex items-center"><Shield className="mr-1.5 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span></p>
+                      <p className="flex items-center"><Target className="mr-1.5 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span></p>
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-600 mt-2 text-center space-y-1">
+                      {labyrinth.getEquippedWeapon() && (<p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>)}
+                      {labyrinth.getEquippedShield() && (<p>Shield: {labyrinth.getEquippedShield()?.name}</p>)}
+                      {labyrinth.getEquippedAmulet() && (<p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>)}
+                      {labyrinth.getEquippedCompass() && (<p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>)}
+                    </div>
+                  </div>
+                  <Separator className="bg-gray-700 dark:bg-gray-300" />
+                  <div>
+                    <h3 className="text-lg font-bold text-cyan-300 dark:text-cyan-600 mb-2 flex items-center justify-center"><Goal className="mr-2" size={20} /> Objective (Floor {labyrinth.getCurrentFloor() + 1})</h3>
+                    <p className={cn("text-sm italic text-center px-2", currentObjective.isCompleted() ? "text-green-400 dark:text-green-500" : "text-gray-300 dark:text-gray-700")}>{currentObjective.description}</p>
+                    <p className={cn("text-xs font-semibold mt-1 text-center", currentObjective.isCompleted() ? "text-green-500 dark:text-green-600" : "text-red-400 dark:text-red-500")}>Status: {currentObjective.isCompleted() ? "Completed!" : "In Progress"}</p>
+                  </div>
+                  <Separator className="bg-gray-700 dark:bg-gray-300" />
+                  <div>
+                    <h3 className="text-lg font-bold text-yellow-300 dark:text-yellow-600 mb-2 text-center">Inventory</h3>
+                    {renderInventory()}
+                  </div>
+                  <Separator className="bg-gray-700 dark:bg-gray-300" />
+                  <div>
+                    <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2 text-center">Chronicles</h3>
+                    <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono h-40 overflow-y-auto">
+                      {[...gameLog].reverse().map((message, index) => (<p key={index} className="mb-1 last:mb-0">{message}</p>))}
+                    </div>
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400 dark:text-gray-600 mt-1">
-                  {labyrinth.getEquippedWeapon() && (<p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>)}
-                  {labyrinth.getEquippedShield() && (<p>Shield: {labyrinth.getEquippedShield()?.name}</p>)}
-                  {labyrinth.getEquippedAmulet() && (<p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>)}
-                  {labyrinth.getEquippedCompass() && (<p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>)}
-                </div>
-                {renderInventory()}
-              </div>
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
-              <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
-              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono h-40 overflow-y-auto">
-                {[...gameLog].reverse().map((message, index) => (<p key={index} className="mb-1 last:mb-0">{message}</p>))}
-              </div>
-              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
-              <div className="mb-2 w-full text-center">
-                <h3 className="text-lg font-bold text-cyan-300 dark:text-cyan-600 mb-1 flex items-center justify-center"><Goal className="mr-2" size={20} /> Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
-                <p className={cn("text-sm italic px-4", currentObjective.isCompleted() ? "text-green-400 dark:text-green-500" : "text-gray-300 dark:text-gray-700")}>{currentObjective.description}</p>
-                <p className={cn("text-xs font-semibold mt-1", currentObjective.isCompleted() ? "text-green-500 dark:text-green-600" : "text-red-400 dark:text-red-500")}>Status: {currentObjective.isCompleted() ? "Completed!" : "In Progress"}</p>
-              </div>
-            </div>
+              </ScrollArea>
+            </aside>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2">

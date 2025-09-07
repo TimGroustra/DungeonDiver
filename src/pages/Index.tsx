@@ -127,7 +127,7 @@ const Index: React.FC = () => {
             <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
               Start New Game
             </Button>
-            <Button onClick={() => setShowLeaderboard(true)} variant="outline" className="w-full border-amber-600 text-amber-200 hover:bg-amber-900">
+            <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
               View Leaderboard
             </Button>
           </CardContent>

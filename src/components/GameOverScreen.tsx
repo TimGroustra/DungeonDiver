@@ -2,16 +2,14 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Crown, Skull } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Updated GameResult interface to include causeOfDeath
 interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
-  causeOfDeath?: string; // Optional cause of death for defeat
+  causeOfDeath?: string;
 }
 
 interface GameOverScreenProps {
@@ -31,11 +29,11 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
         backgroundPosition: "center",
       }}
     >
-      <Card className={cn(
-        "w-full max-w-md text-center border-4",
+      <div className={cn(
+        "w-full max-w-md text-center border-4 rounded-lg p-6 space-y-4",
         isVictory ? "bg-yellow-900/50 border-yellow-500 text-yellow-100" : "bg-red-900/50 border-red-500 text-red-100"
       )}>
-        <CardHeader>
+        <div>
           <div className="flex justify-center mb-4">
             {isVictory ? (
               <Crown className="w-24 h-24 text-yellow-400" />
@@ -43,22 +41,22 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
               <Skull className="w-24 h-24 text-red-400" />
             )}
           </div>
-          <CardTitle className={cn(
+          <h2 className={cn(
             "text-6xl font-extrabold tracking-widest",
             isVictory ? "text-yellow-300" : "text-red-300"
           )}>
             {isVictory ? "VICTORY" : "DEFEAT"}
-          </CardTitle>
-          <CardDescription className={cn(
-            "text-lg italic",
+          </h2>
+          <p className={cn(
+            "text-lg italic mt-2",
             isVictory ? "text-yellow-200" : "text-red-200"
           )}>
             {isVictory
               ? `Congratulations, ${result.name}! You have conquered the Labyrinth!`
               : `Alas, ${result.name}, the Labyrinth has claimed another soul.`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div>
           <p className="text-2xl">
             Time: <span className="font-bold">{result.time.toFixed(2)}s</span>
           </p>
@@ -67,8 +65,8 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
               Cause: <span className="font-bold">{result.causeOfDeath}</span>
             </p>
           )}
-        </CardContent>
-        <CardFooter className="flex justify-center">
+        </div>
+        <div className="flex justify-center pt-4">
           <Button
             onClick={onRestart}
             className={cn(
@@ -78,8 +76,8 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
           >
             Play Again
           </Button>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

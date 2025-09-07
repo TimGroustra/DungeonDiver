@@ -2,7 +2,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface LeaderboardEntry {
@@ -25,14 +24,14 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ leaderboard, onPlay }
         backgroundPosition: "center",
       }}
     >
-      <Card className="w-full max-w-md bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300">
-        <CardHeader>
-          <CardTitle className="text-yellow-400 dark:text-yellow-600 text-2xl text-center">Labyrinth Conquerors!</CardTitle>
-          <CardDescription className="text-gray-300 dark:text-gray-700 text-center">
+      <div className="w-full max-w-md bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border border-gray-700 dark:border-gray-300 rounded-lg p-6">
+        <div className="text-center">
+          <h2 className="text-yellow-400 dark:text-yellow-600 text-2xl font-semibold">Labyrinth Conquerors!</h2>
+          <p className="text-gray-300 dark:text-gray-700 text-sm mt-1">
             Top 10 fastest adventurers to escape the Labyrinth.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="mt-4">
           <ScrollArea className="h-[300px] w-full rounded-md border border-gray-700 dark:border-gray-300 p-4 bg-gray-900 dark:bg-gray-200">
             <ul className="space-y-2">
               {leaderboard.length === 0 ? (
@@ -55,8 +54,8 @@ const LeaderboardPage: React.FC<LeaderboardPageProps> = ({ leaderboard, onPlay }
               Play Game
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

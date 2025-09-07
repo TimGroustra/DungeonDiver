@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Labyrinth, LogicalRoom, Item, Enemy, Puzzle } from "@/lib/game";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
@@ -297,12 +296,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      <Card className="w-full max-w-7xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 h-[calc(100vh-0.5rem)] flex flex-col">
-        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 relative">
-          <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</CardTitle>
-          <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey...</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-2 flex-grow overflow-hidden">
+      <div className="w-full max-w-7xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border border-gray-700 dark:border-gray-300 rounded-lg h-[calc(100vh-0.5rem)] flex flex-col">
+        <div className="border-b border-gray-700 dark:border-gray-300 p-4 pb-2 relative">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg">The Labyrinth of Whispers</h2>
+          <p className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey...</p>
+        </div>
+        <div className="p-4 pt-2 flex-grow overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4 h-full">
             <main className="flex-grow flex flex-col items-center justify-center p-2 relative">
               <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
@@ -354,12 +353,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               </ScrollArea>
             </aside>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2">
+        </div>
+        <div className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 p-4 pt-2">
           {labyrinth.isGameOver() && (<Button onClick={onGameRestart} className="mt-2 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">Restart Journey</Button>)}
           <p className="text-xs text-gray-400 dark:text-gray-600 mt-2 text-center">Please consider supporting this project. Donations can be received at this ETN wallet address: <span className="font-mono text-gray-300 dark:text-gray-700 break-all">0x3Ab5cBFfa0C2A3f15641DCA0fbEEBa1EFb166EE8</span></p>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

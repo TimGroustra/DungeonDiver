@@ -60,6 +60,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
+  const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   useEffect(() => {
     if (gameStarted) {
@@ -103,8 +104,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "Control": event.preventDefault(); handleInteract(); break;
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    const gameElement = gameContainerRef.current;
+    if (gameElement) {
+      gameElement.addEventListener("keydown", handleKeyDown);
+      gameElement.focus(); // Automatically focus the game container when it mounts
+    }
+    return () => {
+      if (gameElement) {
+        gameElement.removeEventListener("keydown", handleKeyDown);
+      }
+    };
   }, [gameStarted, labyrinth, playerName, elapsedTime]);
 
   useEffect(() => {
@@ -296,7 +306,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   if (!gameStarted) return null;
 
   return (
-    <div className="flex items-center justify-center h-full p-4">
+    <div 
+      ref={gameContainerRef} // Attach the ref here
+      tabIndex={0} // Make the div focusable
+      className="flex items-center justify-center h-full p-4 focus:outline-none" // Add focus styling
+    >
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-center z-10">

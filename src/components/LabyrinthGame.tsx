@@ -178,8 +178,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return (
       <svg
         viewBox={viewBox}
-        className="w-full h-full border border-gray-700 dark:border-gray-300 bg-gray-950 dark:bg-black"
-        style={{ aspectRatio: '1 / 1' }}
+        className="max-w-full max-h-full aspect-square border border-gray-700 dark:border-gray-300 bg-gray-950 dark:bg-black"
         shapeRendering="crispEdges"
       >
         <defs>

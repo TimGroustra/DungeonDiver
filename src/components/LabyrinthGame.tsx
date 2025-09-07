@@ -215,6 +215,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         shapeRendering="crispEdges"
       >
         <defs>
+          <pattern id="floor-pattern-light" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" className="fill-stone-400" />
+            <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-500" strokeWidth="0.05" fill="none" />
+          </pattern>
+          <pattern id="floor-pattern-dark" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" className="fill-stone-700" />
+            <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-800" strokeWidth="0.05" fill="none" />
+          </pattern>
           <mask id="fog-mask">
             <rect x="0" y="0" width={labyrinth["MAP_WIDTH"]} height={labyrinth["MAP_HEIGHT"]} fill="black" />
             {Array.from(visitedCells).map(cellCoord => {
@@ -224,8 +232,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </mask>
         </defs>
 
-        <path d={floorPath} className="fill-stone-700 dark:fill-stone-600" />
+        {/* Searched Floor Layer */}
+        <path d={floorPath} fill="url(#floor-pattern-light)" className="dark:hidden" />
+        <path d={floorPath} fill="url(#floor-pattern-dark)" className="hidden dark:block" />
+        
+        {/* Unsearched "Fog" Layer */}
         <path d={floorPath} className="fill-stone-950 dark:fill-black" mask="url(#fog-mask)" />
+        
+        {/* Walls */}
         <path d={wallPath} className="fill-gray-800 dark:fill-gray-900 stroke-gray-600 dark:stroke-gray-700" strokeWidth={0.05} />
 
         {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {

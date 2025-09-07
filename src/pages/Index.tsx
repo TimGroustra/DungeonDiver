@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { GameResult } from "@/lib/game"; // Import GameResult interface
 
 interface LeaderboardEntry {
   id: number;
@@ -31,6 +32,7 @@ const Index: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+  const [gameResult, setGameResult] = useState<GameResult | null>(null); // New state for game result
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -81,21 +83,23 @@ const Index: React.FC = () => {
       setGameStarted(true);
       setStartTime(Date.now());
       setShowLeaderboard(false);
+      setGameResult(null); // Clear previous game result
     } else {
       toast.error("Please enter your player name.");
     }
   };
 
-  const handleGameOver = useCallback((result: { type: 'victory' | 'defeat', name: string, time: number }) => {
+  const handleGameOver = useCallback((result: GameResult) => { // Use GameResult interface
     setGameStarted(false);
     setStartTime(null);
+    setGameResult(result); // Store the game result
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
       addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
-    setShowLeaderboard(true);
+    setShowLeaderboard(false); // Don't show leaderboard immediately, show game over screen
   }, [addLeaderboardEntryMutation]);
 
   const handleGameRestart = () => {
@@ -103,11 +107,12 @@ const Index: React.FC = () => {
     setStartTime(Date.now());
     setElapsedTime(0);
     setShowLeaderboard(false);
+    setGameResult(null); // Clear game result on restart
   };
 
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      {!gameStarted && !showLeaderboard && (
+      {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if no game is started, no leaderboard, and no game result
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
@@ -134,7 +139,7 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {showLeaderboard && !gameStarted && (
+      {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if no game is started and no game result
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
@@ -174,7 +179,12 @@ const Index: React.FC = () => {
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
+          gameResult={gameResult} // Pass gameResult down
         />
+      )}
+
+      {gameResult && !gameStarted && ( // Display GameOverScreen when gameResult is present and game is not started
+        <GameOverScreen result={gameResult} onRestart={handleGameRestart} />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Labyrinth, LogicalRoom, Item } from "@/lib/game";
+import { Labyrinth, LogicalRoom, Item, GameResult } from "@/lib/game"; // Import GameResult
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -11,14 +11,16 @@ import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Co
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
   startTime: number | null;
   elapsedTime: number;
-  onGameOver: (result: { type: 'victory' | 'defeat', name: string, time: number }) => void;
+  onGameOver: (result: GameResult) => void; // Use GameResult interface
   onGameRestart: () => void;
+  gameResult: GameResult | null; // New prop for game result
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -54,7 +56,7 @@ const emojiMap: { [key: string]: string } = {
   "Triggered Trap": "☠️",
 };
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
   const [gameLog, setGameLog] = useState<string[]>([]);
@@ -366,7 +368,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     </div>
   );
 
-  if (!gameStarted) return null;
+  if (!gameStarted) return null; // LabyrinthGame only renders if gameStarted is true
 
   return (
     <div 
@@ -403,12 +405,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
           </div>
         </aside>
-        
-        {labyrinth.isGameOver() && (
-          <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
-            <Button onClick={onGameRestart} size="lg" className="bg-amber-600 hover:bg-amber-500 text-white text-xl px-8 py-6">Restart Journey</Button>
-          </div>
-        )}
       </div>
     </div>
   );

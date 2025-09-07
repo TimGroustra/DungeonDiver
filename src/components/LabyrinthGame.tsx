@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll } from "lucide-react";
+import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Gem and Compass icons
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -221,17 +221,86 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const renderInventory = () => {
+    const equippedWeapon = labyrinth.getEquippedWeapon();
+    const equippedShield = labyrinth.getEquippedShield();
+    const equippedAmulet = labyrinth.getEquippedAmulet();
+    const equippedCompass = labyrinth.getEquippedCompass();
     const inventoryItems = labyrinth.getInventoryItems();
+
     return (
       <ScrollArea className="h-full w-full">
         <div className="p-4 text-amber-50">
+          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center">Equipped Gear</h3>
+          <div className="space-y-3 mb-6">
+            {equippedWeapon ? (
+              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
+                  <p className="text-xs text-stone-300 italic mt-1">{equippedWeapon.description}</p>
+                </div>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedWeapon.id)}>
+                  Unequip
+                </Button>
+              </div>
+            ) : (
+              <p className="italic text-stone-400 text-center">No weapon equipped.</p>
+            )}
+            {equippedShield ? (
+              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
+                  <p className="text-xs text-stone-300 italic mt-1">{equippedShield.description}</p>
+                </div>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedShield.id)}>
+                  Unequip
+                </Button>
+              </div>
+            ) : (
+              <p className="italic text-stone-400 text-center">No shield equipped.</p>
+            )}
+            {equippedAmulet ? (
+              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
+                  <p className="text-xs text-stone-300 italic mt-1">{equippedAmulet.description}</p>
+                </div>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)}>
+                  Unequip
+                </Button>
+              </div>
+            ) : (
+              <p className="italic text-stone-400 text-center">No amulet equipped.</p>
+            )}
+            {equippedCompass ? (
+              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-amber-200 flex items-center"><Compass className="w-4 h-4 mr-2 text-green-400"/> {equippedCompass.name}</p>
+                  <p className="text-xs text-stone-300 italic mt-1">{equippedCompass.description}</p>
+                </div>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)}>
+                  Unequip
+                </Button>
+              </div>
+            ) : (
+              <p className="italic text-stone-400 text-center">No compass equipped.</p>
+            )}
+          </div>
+
+          <Separator className="my-4 bg-amber-800/60" />
+
+          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center">Backpack</h3>
           {inventoryItems.length === 0 ? (
             <p className="italic text-stone-400 text-center">Your backpack is empty.</p>
           ) : (
             <ul className="space-y-3">
               {inventoryItems.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
-                const isEquipped = (labyrinth.getEquippedWeapon()?.id === item.id) || (labyrinth.getEquippedShield()?.id === item.id) || (labyrinth.getEquippedAmulet()?.id === item.id) || (labyrinth.getEquippedCompass()?.id === item.id);
+                // Check if item is in an equipped slot (weapon, shield, amulet, compass)
+                const isCurrentlyEquipped = (equippedWeapon?.id === item.id) || (equippedShield?.id === item.id) || (equippedAmulet?.id === item.id) || (equippedCompass?.id === item.id);
+
+                // Only display items in the backpack that are not currently equipped in a dedicated slot
+                if (isCurrentlyEquipped) return null;
+
                 return (
                   <li key={item.id} className="p-2 bg-black/20 rounded border border-amber-900/50 text-sm">
                     <div className="flex justify-between items-start">
@@ -241,7 +310,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                       </div>
                       {(item.type === 'consumable' || isEquippable) && (
                         <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)}>
-                          {isEquippable ? (isEquipped ? 'Unequip' : 'Equip') : 'Use'}
+                          {isEquippable ? 'Equip' : 'Use'}
                         </Button>
                       )}
                     </div>

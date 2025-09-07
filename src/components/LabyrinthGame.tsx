@@ -206,6 +206,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const viewportSize = 15;
     const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
     const currentFloor = labyrinth.getCurrentFloor();
+    const mapWidth = labyrinth["MAP_WIDTH"];
+    const mapHeight = labyrinth["MAP_HEIGHT"];
 
     return (
       <svg
@@ -224,7 +226,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-800" strokeWidth="0.05" fill="none" />
           </pattern>
           <mask id="fog-mask">
-            <rect x="0" y="0" width={labyrinth["MAP_WIDTH"]} height={labyrinth["MAP_HEIGHT"]} fill="white" />
+            <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="white" />
             {Array.from(visitedCells).map(cellCoord => {
               const [x, y] = cellCoord.split(',').map(Number);
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="black" />;
@@ -255,6 +257,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           const item = labyrinth.getItem(itemId);
           return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
         })}
+
+        <rect 
+          x="0" 
+          y="0" 
+          width={mapWidth} 
+          height={mapHeight} 
+          fill="none" 
+          className="stroke-gray-600 dark:stroke-gray-500" 
+          strokeWidth="0.5" 
+        />
 
         <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r={0.4} className="fill-blue-500 stroke-blue-300" strokeWidth={0.1} />
       </svg>

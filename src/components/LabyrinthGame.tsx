@@ -323,7 +323,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <TabsContent value="objective" className="flex-grow relative">{renderObjective()}</TabsContent>
           </Tabs>
           <div className="p-2 border-t border-amber-800/60 bg-stone-950/50">
-            <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x3Ab5...6EE8</span></p>
+            <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
           </div>
         </aside>
         

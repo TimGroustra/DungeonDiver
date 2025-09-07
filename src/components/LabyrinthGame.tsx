@@ -163,31 +163,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     setGameVersion(prev => prev + 1);
   };
 
-  const getButtonProps = (direction: "north" | "south" | "east" | "west") => {
-    const { x: playerX, y: playerY } = labyrinth.getPlayerLocation();
-    const currentFloor = labyrinth.getCurrentFloor();
-    const mapGrid = labyrinth.getMapGrid();
-    let targetX = playerX, targetY = playerY;
-    switch (direction) {
-      case "north": targetY--; break;
-      case "south": targetY++; break;
-      case "east": targetX++; break;
-      case "west": targetX--; break;
-    }
-    const capitalizedDirection = direction.charAt(0).toUpperCase() + direction.slice(1);
-    if (targetX < 0 || targetX >= labyrinth["MAP_WIDTH"] || targetY < 0 || targetY >= labyrinth["MAP_HEIGHT"]) {
-      return { text: capitalizedDirection, className: "bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
-    }
-    const targetCoordStr = `${targetX},${targetY},${currentFloor}`;
-    const isWall = mapGrid[targetY][targetX] === 'wall';
-    const enemyId = labyrinth.enemyLocations.get(targetCoordStr);
-    const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
-    const hasUndefeatedEnemy = enemy && !enemy.defeated;
-    if (isWall) return { text: capitalizedDirection, className: "bg-gray-500 hover:bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
-    if (hasUndefeatedEnemy) return { text: "Attack", className: "bg-red-600 hover:bg-red-700 text-white", disabled: false };
-    return { text: capitalizedDirection, className: "bg-green-700 hover:bg-green-800 text-white", disabled: false };
-  };
-
   const getEmojiForElement = (elementName: string): string => {
     if (elementName.includes("Blade of the Labyrinth")) return emojiMap["Blade of the Labyrinth"];
     if (elementName.includes("Aegis of the Guardian")) return emojiMap["Aegis of the Guardian"];
@@ -329,10 +304,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   if (!gameStarted) return null;
 
-  const northProps = getButtonProps("north");
-  const southProps = getButtonProps("south");
-  const westProps = getButtonProps("west");
-  const eastProps = getButtonProps("east");
   const currentObjective = labyrinth.getCurrentFloorObjective();
 
   return (
@@ -360,24 +331,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <div className="flex flex-col items-center relative">
               <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
               {renderMap()}
-              <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">
-                <div>
-                  <div className="grid grid-cols-3 gap-2 w-full">
-                    <div />
-                    <Button size="sm" className={northProps.className} onClick={() => handleMove("north")} disabled={northProps.disabled || labyrinth.isGameOver()}>{northProps.text}</Button>
-                    <div />
-                    <Button size="sm" className={westProps.className} onClick={() => handleMove("west")} disabled={westProps.disabled || labyrinth.isGameOver()}>{westProps.text}</Button>
-                    <div />
-                    <Button size="sm" className={eastProps.className} onClick={() => handleMove("east")} disabled={eastProps.disabled || labyrinth.isGameOver()}>{eastProps.text}</Button>
-                    <div />
-                    <Button size="sm" className={southProps.className} onClick={() => handleMove("south")} disabled={southProps.disabled || labyrinth.isGameOver()}>{southProps.text}</Button>
-                    <div />
-                  </div>
-                  <div className="flex gap-2 mt-2 justify-center">
-                    <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver()}>Search</Button>
-                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={ labyrinth.isGameOver()}>Interact</Button>
-                  </div>
-                </div>
+              <div className="mt-4 text-center text-gray-400 dark:text-gray-600 text-sm">
+                <p>Use <span className="font-bold text-gray-300 dark:text-gray-500">Arrow Keys</span> to Move/Attack.</p>
+                <p><span className="font-bold text-gray-300 dark:text-gray-500">Shift</span> to Search, <span className="font-bold text-gray-300 dark:text-gray-500">Control</span> to Interact.</p>
               </div>
             </div>
             <div className="flex flex-col items-center">

@@ -1,176 +1,184 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import React, { useState, useEffect, useCallback } from "react";
 import LabyrinthGame from "@/components/LabyrinthGame";
-import StartGameModal from "@/components/StartGameModal";
-import LeaderboardModal from "@/components/LeaderboardModal";
-import LeaderboardPage from "@/components/LeaderboardPage";
-import GameOverScreen from "@/components/GameOverScreen";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface LeaderboardEntry {
-  name: string;
-  time: number;
+  id: number;
+  player_name: string;
+  score_time: number;
+  created_at: string;
 }
 
-// Updated GameResult interface to include causeOfDeath
-interface GameResult {
-  type: 'victory' | 'defeat';
-  name: string;
-  time: number;
-  causeOfDeath?: string; // Optional cause of death for defeat
-}
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
 
-const Index = () => {
-  const [showStartModal, setShowStartModal] = useState(false);
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
-  const [playerName, setPlayerName] = useState("");
-  const [gameStarted, setGameStarted] = useState(false);
+const Index: React.FC = () => {
+  const [playerName, setPlayerName] = useState<string>("");
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [highlightPlayer, setHighlightPlayer] = useState<string | null>(null);
-  const [gameOver, setGameOver] = useState(false);
-  const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
-  // Load leaderboard from Supabase on mount
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data, error } = await supabase
-        .from("leaderboard")
-        .select("player_name, score_time")
-        .order("score_time", { ascending: true })
-        .limit(10); // Fetch top 10 scores
-
-      if (error) {
-        console.error("Error fetching leaderboard:", error);
-        toast.error("Failed to load leaderboard.");
-      } else {
-        setLeaderboard(data.map(entry => ({ name: entry.player_name, time: entry.score_time })));
-      }
-    };
-
-    fetchLeaderboard();
-  }, []);
-
-  // Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
+    let interval: NodeJS.Timeout;
     if (gameStarted && startTime !== null) {
       interval = setInterval(() => {
         setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
-    } else if (!gameStarted && interval) {
-      clearInterval(interval);
+    } else {
+      setElapsedTime(0);
     }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, [gameStarted, startTime]);
 
-  const handleStartGame = (name: string) => {
-    setPlayerName(name);
+  const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
+    queryKey: ["leaderboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("*")
+        .order("score_time", { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: showLeaderboard,
+  });
+
+  const addLeaderboardEntryMutation = useMutation({
+    mutationFn: async (entry: { player_name: string; score_time: number }) => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .insert([entry]);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      toast.success("Score submitted to leaderboard!");
+    },
+    onError: (error) => {
+      toast.error(`Failed to submit score: ${error.message}`);
+    },
+  });
+
+  const handleStartGame = () => {
+    if (playerName.trim()) {
+      setGameStarted(true);
+      setStartTime(Date.now());
+      setShowLeaderboard(false);
+    } else {
+      toast.error("Please enter your player name.");
+    }
+  };
+
+  const handleGameOver = useCallback((result: { type: 'victory' | 'defeat', name: string, time: number }) => {
+    setGameStarted(false);
+    setStartTime(null);
+    if (result.type === 'victory') {
+      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
+      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
+    } else {
+      toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
+    }
+    setShowLeaderboard(true);
+  }, [addLeaderboardEntryMutation]);
+
+  const handleGameRestart = () => {
     setGameStarted(true);
     setStartTime(Date.now());
     setElapsedTime(0);
-    setShowStartModal(false);
-    setShowLeaderboardModal(false);
-    setHighlightPlayer(null);
-    setGameOver(false);
-    setGameResult(null);
-    toast.success(`Welcome, ${name}! Your journey begins.`);
+    setShowLeaderboard(false);
   };
-
-  const handleGameOver = async (result: GameResult) => {
-    setGameStarted(false);
-    setStartTime(null);
-    setGameOver(true);
-    setGameResult(result);
-
-    if (result.type === 'victory') {
-      toast.success(`Congratulations, ${result.name}! You escaped in ${result.time.toFixed(2)}s!`);
-      
-      // Save score to Supabase
-      const { error } = await supabase
-        .from("leaderboard")
-        .insert({ player_name: result.name, score_time: result.time });
-
-      if (error) {
-        console.error("Error saving score:", error);
-        toast.error("Failed to save your score to the leaderboard.");
-      } else {
-        toast.success("Your score has been recorded!");
-        // Re-fetch leaderboard to include new score
-        const { data, error: fetchError } = await supabase
-          .from("leaderboard")
-          .select("player_name, score_time")
-          .order("score_time", { ascending: true })
-          .limit(10);
-
-        if (fetchError) {
-          console.error("Error re-fetching leaderboard:", fetchError);
-        } else {
-          setLeaderboard(data.map(entry => ({ name: entry.player_name, time: entry.score_time })));
-        }
-      }
-    } else {
-      toast.error(`Alas, ${result.name}, the Labyrinth claims another victim.`);
-    }
-  };
-
-  const handleRestartGame = () => {
-    setShowLeaderboardModal(false);
-    setGameStarted(false);
-    setPlayerName("");
-    setStartTime(null);
-    setElapsedTime(0);
-    setHighlightPlayer(null);
-    setGameOver(false);
-    setGameResult(null);
-  };
-
-  const handlePlayClick = () => {
-    setShowStartModal(true);
-  };
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  if (gameOver && gameResult) {
-    return <GameOverScreen result={gameResult} onRestart={handleRestartGame} />;
-  }
-
-  if (gameStarted) {
-    return (
-      <>
-        <div className="absolute top-4 right-4 bg-gray-700 text-white px-3 py-1 rounded-md text-sm font-mono z-10">
-          Time: {formatTime(elapsedTime)}
-        </div>
-        <LabyrinthGame
-          playerName={playerName}
-          gameStarted={gameStarted}
-          startTime={startTime}
-          elapsedTime={elapsedTime}
-          onGameOver={handleGameOver}
-          onGameRestart={handleRestartGame}
-        />
-      </>
-    );
-  }
 
   return (
-    <>
-      <StartGameModal isOpen={showStartModal} onStartGame={handleStartGame} onClose={() => setShowStartModal(false)} />
-      <LeaderboardModal
-        isOpen={showLeaderboardModal}
-        onClose={handleRestartGame}
-        leaderboard={leaderboard}
-        highlightName={highlightPlayer}
-      />
-      <LeaderboardPage leaderboard={leaderboard} onPlay={handlePlayClick} />
-    </>
+    <div className="relative min-h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center p-4">
+      {!gameStarted && !showLeaderboard && (
+        <Card className="w-full max-w-md bg-stone-900 border-amber-700 text-amber-50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
+            <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
+              <Input
+                id="playerName"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                placeholder="Your adventurer name"
+                className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
+              />
+            </div>
+            <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+              Start New Game
+            </Button>
+            <Button onClick={() => setShowLeaderboard(true)} variant="outline" className="w-full border-amber-600 text-amber-200 hover:bg-amber-900">
+              View Leaderboard
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {showLeaderboard && !gameStarted && (
+        <Card className="w-full max-w-md bg-stone-900 border-amber-700 text-amber-50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-amber-300">Leaderboard</CardTitle>
+            <CardDescription className="text-stone-400">Top adventurers who escaped the Labyrinth.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingLeaderboard ? (
+              <div className="flex justify-center items-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
+              </div>
+            ) : leaderboardError ? (
+              <p className="text-red-400 text-center">Error loading leaderboard: {leaderboardError.message}</p>
+            ) : (
+              <ul className="space-y-2">
+                {leaderboard?.map((entry, index) => (
+                  <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
+                    <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
+                    <span className="text-stone-300">{formatTime(entry.score_time)}</span>
+                  </li>
+                ))}
+                {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet. Be the first!</p>}
+              </ul>
+            )}
+            <Separator className="my-4 bg-amber-800" />
+            <Button onClick={() => setShowLeaderboard(false)} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+              Back to Main Menu
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {gameStarted && (
+        <>
+          <LabyrinthGame
+            playerName={playerName}
+            gameStarted={gameStarted}
+            startTime={startTime}
+            elapsedTime={elapsedTime}
+            onGameOver={handleGameOver}
+            onGameRestart={handleGameRestart}
+          />
+        </>
+      )}
+    </div>
   );
 };
 

@@ -12,6 +12,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { GameResult } from "@/lib/game"; // Import GameResult interface
+import GameOverScreen from "@/components/GameOverScreen"; // <--- ADDED THIS LINE
 
 interface LeaderboardEntry {
   id: number;

@@ -330,8 +330,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             cellClasses = "bg-blue-600 text-white ring-2 ring-blue-300 dark:ring-blue-700";
             cellTitle = "You are here";
           } else if (isWall) {
-            cellContentIndicator = "█";
-            cellClasses = "bg-gray-800 dark:bg-gray-950 text-gray-600";
+            cellContentIndicator = (
+              <div className="w-full h-full bg-gray-700 dark:bg-gray-800 rounded-sm border-t border-l border-gray-500 dark:border-gray-600 border-b border-r border-gray-900 dark:border-black"></div>
+            );
+            cellClasses = "bg-gray-800 dark:bg-gray-950 p-0.5";
             cellTitle = "Solid Wall";
           } else if (isTrapTriggered) { // Prioritize triggered traps to show them
               cellContentIndicator = getEmojiForElement("Triggered Trap"); // Emoji for triggered trap

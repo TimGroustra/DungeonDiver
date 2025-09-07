@@ -308,6 +308,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <div className="absolute top-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
             <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
+          {renderHud()} {/* Moved HUD here */}
         </main>
 
         <aside className="w-full md:w-96 lg:w-[450px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">
@@ -325,8 +326,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x3Ab5...6EE8</span></p>
           </div>
         </aside>
-
-        {renderHud()}
         
         {labyrinth.isGameOver() && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">

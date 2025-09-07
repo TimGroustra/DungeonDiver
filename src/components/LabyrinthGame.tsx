@@ -1,252 +1,422 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Labyrinth, Item, Enemy, Puzzle } from '../lib/game';
-import { generateSvgPaths } from '../lib/map-renderer';
-import { Button } from './ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { ScrollArea } from './ui/scroll-area';
-import { Progress } from './ui/progress';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Sword, Shield, Heart, HelpCircle, Search, Hand, Key, Gem, Bone, Ghost, Box, BrainCircuit, Compass, BookOpen, FlaskConical, Star } from 'lucide-react';
+"use client";
 
-const TILE_SIZE = 32;
-const VIEWPORT_RADIUS_TILES = 12;
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Labyrinth, LogicalRoom, Item, Enemy, Puzzle } from "@/lib/game";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { PersonStanding, Sword, Heart, Shield, Target, Goal } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { generateSvgPaths } from "@/lib/map-renderer";
 
 interface LabyrinthGameProps {
   playerName: string;
-  onGameOver: (result: any) => void;
+  gameStarted: boolean;
+  startTime: number | null;
   elapsedTime: number;
+  onGameOver: (result: { type: 'victory' | 'defeat', name: string, time: number }) => void;
+  onGameRestart: () => void;
 }
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, onGameOver, elapsedTime }) => {
-  const [game, setGame] = useState(() => new Labyrinth());
-  const [gameState, setGameState] = useState<any | null>(null);
-  const [svgPaths, setSvgPaths] = useState({ wallPath: '', floorPath: '' });
+const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 
-  const syncGameState = useCallback(() => {
-    setGameState({
-      playerLocation: game.getPlayerLocation(),
-      health: game.getPlayerHealth(),
-      maxHealth: game.getPlayerMaxHealth(),
-      attack: game.getCurrentAttackDamage(),
-      defense: game.getCurrentDefense(),
-      inventory: game.getInventoryItems(),
-      equippedWeapon: game.getEquippedWeapon(),
-      equippedShield: game.getEquippedShield(),
-      equippedAmulet: game.getEquippedAmulet(),
-      equippedCompass: game.getEquippedCompass(),
-      messages: [...game.getMessages()],
-      visitedCells: new Set(game.getVisitedCells()),
-      currentFloor: game.getCurrentFloor(),
-      bossState: game.getBossState(),
-      isBossDefeated: game.isBossDefeated(),
-    });
-    game.clearMessages();
+const emojiMap: { [key: string]: string } = {
+  "Grumbling Goblin": "👹",
+  "Rattling Skeleton": "💀",
+  "Whispering Shadow": "👻",
+  "The Watcher of the Core": "👁️",
+  "Vial of Lumina": "🧪",
+  "Blade of the Labyrinth": "🗡️",
+  "Aegis of the Guardian": "🛡️",
+  "Tattered Journal": "📖",
+  "Pulsating Crystal": "🔮",
+  "Scholar's Amulet": "💎",
+  "Enchanted Flask": "🍶",
+  "Living Water": "🌊",
+  "Whispering Well's Blessing": "✨",
+  "Broken Compass": "🧭",
+  "Artisan's Fine Tools": "🛠️",
+  "Prismatic Lens": "🌈",
+  "True Compass": "🗺️",
+  "Labyrinth Key": "🔑",
+  "Heart of the Labyrinth": "❤️‍🔥",
+  "Ancient Mechanism": "⚙️",
+  "Whispering Well": "💧",
+  "Hidden Spring": "🌿",
+  "Ancient Repair Bench": "🔨",
+  "Mysterious Box": "📦",
+  "Ancient Altar": "🛐",
+  "Mysterious Staircase": "🪜",
+  "Grand Riddle of Eternity": "❓",
+  "Triggered Trap": "☠️",
+};
 
-    if (game.isGameOver()) {
-      onGameOver(game.getGameResult()!);
-    }
-  }, [game, onGameOver]);
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart }) => {
+  const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
+  const [gameVersion, setGameVersion] = useState(0);
+  const [currentLogicalRoom, setCurrentLogicalRoom] = useState<LogicalRoom | undefined>(labyrinth.getCurrentLogicalRoom());
+  const [gameLog, setGameLog] = useState<string[]>([]);
+  const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
+  const [showControlsModal, setShowControlsModal] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    syncGameState();
-    const grid = game.getMapGrid();
-    const paths = generateSvgPaths(grid);
-    setSvgPaths(paths);
-  }, []);
-
-  const handleGameAction = useCallback((action: () => void) => {
-    action();
-    game.processEnemyMovement(playerName, elapsedTime);
-    game.processBossLogic();
-    // Create a new object reference to trigger re-render for the mutable game object
-    setGame(Object.create(Object.getPrototypeOf(game), Object.getOwnPropertyDescriptors(game)));
-    syncGameState();
-  }, [game, playerName, elapsedTime, syncGameState]);
-
-  const handleMove = (direction: 'north' | 'south' | 'east' | 'west') => handleGameAction(() => game.move(direction, playerName, elapsedTime));
-  const handleSearch = () => handleGameAction(() => game.search());
-  const handleInteract = () => handleGameAction(() => game.interact(playerName, elapsedTime));
-  const handleUseItem = (itemId: string) => handleGameAction(() => game.useItem(itemId, playerName, elapsedTime));
+  const isMobile = useIsMobile();
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'w': case 'ArrowUp': handleMove('north'); break;
-        case 's': case 'ArrowDown': handleMove('south'); break;
-        case 'a': case 'ArrowLeft': handleMove('west'); break;
-        case 'd': case 'ArrowRight': handleMove('east'); break;
-        case 'e': handleInteract(); break;
-        case 'f': handleSearch(); break;
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleMove, handleInteract, handleSearch]);
+    if (gameStarted) {
+      setLabyrinth(new Labyrinth());
+      setGameVersion(0);
+      setGameLog(["Game started!"]);
+      setHasGameOverBeenDispatched(false);
+    }
+  }, [gameStarted]);
 
-  const renderableObjects = useMemo(() => {
-    if (!gameState) return [];
-    const objects = [];
-    const { playerLocation, visitedCells } = gameState;
-
-    const isVisible = (x: number, y: number) => {
-      const dx = Math.abs(x - playerLocation.x);
-      const dy = Math.abs(y - playerLocation.y);
-      return dx <= VIEWPORT_RADIUS_TILES && dy <= VIEWPORT_RADIUS_TILES && visitedCells.has(`${x},${y}`);
-    };
-
-    for (const [coord, id] of game.enemyLocations.entries()) {
-      const [x, y, floor] = coord.split(',').map(Number);
-      if (floor === game.getCurrentFloor() && isVisible(x, y)) {
-        const enemy = game.getEnemy(id as string);
-        if (enemy && !enemy.defeated) objects.push({ x, y, type: 'enemy', data: enemy });
+  useEffect(() => {
+    updateGameDisplay();
+    if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
+      const result = labyrinth.getGameResult();
+      if (result) {
+        onGameOver(result);
+        setHasGameOverBeenDispatched(true);
       }
     }
-    for (const [coord, id] of game.itemLocations.entries()) {
-      const [x, y, floor] = coord.split(',').map(Number);
-      if (floor === game.getCurrentFloor() && isVisible(x, y)) {
-        const item = game.getItem(id as string);
-        if (item) objects.push({ x, y, type: 'item', data: item });
-      }
+  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = 0;
     }
-    return objects;
-  }, [gameState, game]);
+  }, [gameLog]);
 
-  if (!gameState) return <div>Loading...</div>;
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!gameStarted || labyrinth.isGameOver()) return;
+      switch (event.key) {
+        case "ArrowUp": event.preventDefault(); handleMove("north"); break;
+        case "ArrowDown": event.preventDefault(); handleMove("south"); break;
+        case "ArrowLeft": event.preventDefault(); handleMove("west"); break;
+        case "ArrowRight": event.preventDefault(); handleMove("east"); break;
+        case "Shift": event.preventDefault(); handleSearch(); break;
+        case "Control": event.preventDefault(); handleInteract(); break;
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [gameStarted, labyrinth, playerName, elapsedTime]);
 
-  const { playerLocation } = gameState;
-  const viewBox = `${(playerLocation.x - VIEWPORT_RADIUS_TILES) * TILE_SIZE} ${(playerLocation.y - VIEWPORT_RADIUS_TILES) * TILE_SIZE} ${VIEWPORT_RADIUS_TILES * 2 * TILE_SIZE} ${VIEWPORT_RADIUS_TILES * 2 * TILE_SIZE}`;
+  useEffect(() => {
+    if (!gameStarted || labyrinth.isGameOver()) return;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
+    const intervalId = setInterval(() => {
+      const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+      labyrinth.processEnemyMovement(playerName, currentElapsedTime);
+      if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
+        labyrinth.processBossLogic();
+      }
+      setGameVersion(prev => prev + 1);
+    }, moveSpeed);
+    return () => clearInterval(intervalId);
+  }, [gameStarted, labyrinth, labyrinth.isGameOver(), labyrinth.getCurrentFloor(), playerName, startTime]);
 
-  const getIconForItem = (item: Item) => {
-    switch (item.type) {
-        case 'key': return <Key className="w-4 h-4 text-gray-400" />;
-        case 'artifact': return <Gem className="w-4 h-4 text-yellow-400" />;
-        case 'quest': return <BookOpen className="w-4 h-4 text-purple-400" />;
-        case 'consumable': return <FlaskConical className="w-4 h-4 text-green-400" />;
-        case 'accessory': return <Star className="w-4 h-4 text-blue-400" />;
-        default: return <Box className="w-4 h-4 text-orange-300" />;
+  const updateGameDisplay = () => {
+    setCurrentLogicalRoom(labyrinth.getCurrentLogicalRoom());
+    const newMessages = labyrinth.getMessages();
+    if (newMessages.length > 0) {
+      setGameLog((prevLog) => [...prevLog, ...newMessages]);
+      labyrinth.clearMessages();
     }
   };
 
-  const getIconForEnemy = (enemy: Enemy) => {
-    if (enemy.name.includes("Goblin")) return <span className="text-lg">👺</span>;
-    if (enemy.name.includes("Skeleton")) return <Bone className="w-5 h-5 text-gray-200" />;
-    if (enemy.name.includes("Shadow")) return <Ghost className="w-5 h-5 text-purple-300" />;
-    if (enemy.name.includes("Watcher")) return <span className="text-2xl">👁️</span>;
-    return <span className="text-lg">❓</span>;
+  const handleMove = (direction: "north" | "south" | "east" | "west") => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
+    labyrinth.move(direction, playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
   };
+
+  const handleSearch = () => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot search right now."); return; }
+    labyrinth.search();
+    setGameVersion(prev => prev + 1);
+  };
+
+  const handleInteract = () => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot interact right now."); return; }
+    labyrinth.interact(playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  };
+
+  const handleUseItem = (itemId: string) => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot use items right now."); return; }
+    labyrinth.useItem(itemId, playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  };
+
+  const getButtonProps = (direction: "north" | "south" | "east" | "west") => {
+    const { x: playerX, y: playerY } = labyrinth.getPlayerLocation();
+    const currentFloor = labyrinth.getCurrentFloor();
+    const mapGrid = labyrinth.getMapGrid();
+    let targetX = playerX, targetY = playerY;
+    switch (direction) {
+      case "north": targetY--; break;
+      case "south": targetY++; break;
+      case "east": targetX++; break;
+      case "west": targetX--; break;
+    }
+    const capitalizedDirection = direction.charAt(0).toUpperCase() + direction.slice(1);
+    if (targetX < 0 || targetX >= labyrinth["MAP_WIDTH"] || targetY < 0 || targetY >= labyrinth["MAP_HEIGHT"]) {
+      return { text: capitalizedDirection, className: "bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+    }
+    const targetCoordStr = `${targetX},${targetY},${currentFloor}`;
+    const isWall = mapGrid[targetY][targetX] === 'wall';
+    const enemyId = labyrinth.enemyLocations.get(targetCoordStr);
+    const enemy = enemyId ? labyrinth.getEnemy(enemyId) : undefined;
+    const hasUndefeatedEnemy = enemy && !enemy.defeated;
+    if (isWall) return { text: capitalizedDirection, className: "bg-gray-500 hover:bg-gray-500 text-gray-300 cursor-not-allowed", disabled: true };
+    if (hasUndefeatedEnemy) return { text: "Attack", className: "bg-red-600 hover:bg-red-700 text-white", disabled: false };
+    return { text: capitalizedDirection, className: "bg-green-700 hover:bg-green-800 text-white", disabled: false };
+  };
+
+  const getEmojiForElement = (elementName: string): string => {
+    if (elementName.includes("Blade of the Labyrinth")) return emojiMap["Blade of the Labyrinth"];
+    if (elementName.includes("Aegis of the Guardian")) return emojiMap["Aegis of the Guardian"];
+    return emojiMap[elementName] || "❓";
+  };
+
+  const { wallPath, floorPath } = useMemo(() => {
+    const grid = labyrinth.getMapGrid();
+    if (!grid || grid.length === 0) return { wallPath: '', floorPath: '' };
+    return generateSvgPaths(grid);
+  }, [gameVersion === 0]);
+
+  const renderMap = () => {
+    const playerLoc = labyrinth.getPlayerLocation();
+    const visitedCells = labyrinth.getVisitedCells();
+    const viewportSize = 15;
+    const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const mapWidth = labyrinth["MAP_WIDTH"];
+    const mapHeight = labyrinth["MAP_HEIGHT"];
+
+    return (
+      <svg
+        viewBox={viewBox}
+        className="w-full sm:max-w-72 border border-gray-700 dark:border-gray-300 bg-gray-950 dark:bg-black"
+        style={{ aspectRatio: '1 / 1' }}
+        shapeRendering="crispEdges"
+      >
+        <defs>
+          <pattern id="floor-pattern-light" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" className="fill-stone-400" />
+            <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-500" strokeWidth="0.05" fill="none" />
+          </pattern>
+          <pattern id="floor-pattern-dark" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" className="fill-stone-700" />
+            <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-800" strokeWidth="0.05" fill="none" />
+          </pattern>
+          <pattern id="wall-pattern-light" patternUnits="userSpaceOnUse" width="0.4" height="0.4">
+            <rect width="0.4" height="0.4" className="fill-gray-800" />
+            <path d="M -0.1 0.1 L 0.1 -0.1 M 0.3 0.5 L 0.5 0.3" className="stroke-gray-900" strokeWidth="0.04" />
+          </pattern>
+          <pattern id="wall-pattern-dark" patternUnits="userSpaceOnUse" width="0.4" height="0.4">
+            <rect width="0.4" height="0.4" className="fill-gray-900" />
+            <path d="M -0.1 0.1 L 0.1 -0.1 M 0.3 0.5 L 0.5 0.3" className="stroke-black" strokeWidth="0.04" />
+          </pattern>
+          <mask id="fog-mask">
+            <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="white" />
+            {Array.from(visitedCells).map(cellCoord => {
+              const [x, y] = cellCoord.split(',').map(Number);
+              return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="black" />;
+            })}
+          </mask>
+        </defs>
+
+        <path d={floorPath} className="fill-[url(#floor-pattern-light)] dark:fill-[url(#floor-pattern-dark)]" />
+        <path d={floorPath} className="fill-stone-950/95 dark:fill-black/95" mask="url(#fog-mask)" />
+        <path d={wallPath} className="fill-[url(#wall-pattern-light)] dark:fill-[url(#wall-pattern-dark)] stroke-gray-600 dark:stroke-gray-700" strokeWidth={0.05} />
+
+        {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
+          const [x, y, f] = coordStr.split(',').map(Number);
+          if (f !== currentFloor || !visitedCells.has(`${x},${y}`)) return null;
+          const enemy = labyrinth.getEnemy(enemyId);
+          if (!enemy || enemy.defeated) return null;
+          return <text key={`enemy-${enemyId}`} x={x + 0.5} y={y + 0.5} fontSize="0.8" textAnchor="middle" dominantBaseline="central" className={cn(enemy.id.includes('watcher') && 'animate-pulse')}>{getEmojiForElement(enemy.name)}</text>;
+        })}
+        {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
+          const [x, y, f] = coordStr.split(',').map(Number);
+          if (f !== currentFloor || !visitedCells.has(`${x},${y}`)) return null;
+          const item = labyrinth.getItem(itemId);
+          return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central" className="animate-pulse">{getEmojiForElement(item.name)}</text>;
+        })}
+        {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
+          const [x, y, f] = coordStr.split(',').map(Number);
+          if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
+          const item = labyrinth.getItem(itemId);
+          return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
+        })}
+
+        <rect 
+          x="0" 
+          y="0" 
+          width={mapWidth} 
+          height={mapHeight} 
+          fill="none" 
+          className="stroke-gray-600 dark:stroke-gray-500" 
+          strokeWidth="0.5" 
+        />
+
+        <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r={0.4} className="fill-blue-500 stroke-blue-300" strokeWidth={0.1} />
+      </svg>
+    );
+  };
+
+  const renderInventory = () => {
+    const inventoryItems = labyrinth.getInventoryItems();
+    const equippedWeapon = labyrinth.getEquippedWeapon();
+    const equippedShield = labyrinth.getEquippedShield();
+    const equippedAmulet = labyrinth.getEquippedAmulet();
+    const equippedCompass = labyrinth.getEquippedCompass();
+
+    if (inventoryItems.length === 0) {
+      return <p className="text-white text-sm italic">Your inventory is empty.</p>;
+    }
+    return (
+      <div className="mt-2">
+        <p className="font-semibold text-base text-white">Your Inventory:</p>
+        <ul className="list-disc list-inside text-xs text-white">
+          {inventoryItems.map(({ item, quantity }) => {
+            let equippedStatus = "";
+            let isEquipped = false;
+            if (item.type === 'weapon' && equippedWeapon?.id === item.id) { equippedStatus = "(Equipped Weapon)"; isEquipped = true; }
+            else if (item.type === 'shield' && equippedShield?.id === item.id) { equippedStatus = "(Equipped Shield)"; isEquipped = true; }
+            else if (item.id === "scholar-amulet-f0" && equippedAmulet?.id === item.id) { equippedStatus = "(Equipped Amulet)"; isEquipped = true; }
+            else if (item.id === "true-compass-f2" && equippedCompass?.id === item.id) { equippedStatus = "(Equipped Compass)"; isEquipped = true; }
+            
+            const isConsumableWithUses = item.type === 'consumable' && item.stackable;
+            const canUse = !labyrinth.isGameOver() && (isConsumableWithUses ? quantity > 0 : true);
+            const buttonText = isConsumableWithUses ? 'Use' : (isEquipped ? 'Unequip' : 'Equip');
+
+            return (
+              <li key={item.id} className="flex items-center justify-between mb-1">
+                <div>
+                  <span className="font-medium text-white">{item.name}</span>
+                  {isConsumableWithUses && <span className="ml-1 text-white"> (x{quantity})</span>}: {item.description}
+                  {equippedStatus && <span className="ml-2 text-green-400 dark:text-green-600">{equippedStatus}</span>}
+                </div>
+                {(item.type === 'consumable' || item.type === 'weapon' || item.type === 'shield' || item.type === 'accessory') && (
+                  <Button variant="outline" size="sm" className="ml-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900" onClick={() => handleUseItem(item.id)} disabled={!canUse}>
+                    {buttonText}
+                  </Button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
+  if (!gameStarted) return null;
+
+  const northProps = getButtonProps("north");
+  const southProps = getButtonProps("south");
+  const westProps = getButtonProps("west");
+  const eastProps = getButtonProps("east");
+  const currentObjective = labyrinth.getCurrentFloorObjective();
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-900 text-gray-200 font-mono">
-      {/* Game View */}
-      <div className="flex-grow flex flex-col items-center justify-center p-2 relative">
-        <div className="absolute top-2 left-2 bg-black/50 p-2 rounded">
-          Floor {gameState.currentFloor + 1}
-        </div>
-        <div className="w-full h-full border-2 border-gray-700 rounded-lg overflow-hidden bg-black">
-          <svg className="w-full h-full" viewBox={viewBox}>
-            <path d={svgPaths.floorPath} fill="#2d3748" transform={`scale(${TILE_SIZE})`} />
-            <path d={svgPaths.wallPath} fill="#1a202c" transform={`scale(${TILE_SIZE})`} />
-            
-            {/* Render Fog of War */}
-            <defs>
-              <mask id="fogMask">
-                <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                {Array.from(gameState.visitedCells).map(cell => {
-                  const [x, y] = cell.split(',').map(Number);
-                  return <rect key={cell} x={x * TILE_SIZE} y={y * TILE_SIZE} width={TILE_SIZE} height={TILE_SIZE} fill="black" />;
-                })}
-              </mask>
-            </defs>
-            {/* <rect x="0" y="0" width={100 * TILE_SIZE} height={100 * TILE_SIZE} fill="rgba(0,0,0,0.7)" mask="url(#fogMask)" /> */}
-
-            {/* Render Objects */}
-            {renderableObjects.map(({ x, y, type, data }, index) => (
-              <foreignObject key={index} x={x * TILE_SIZE} y={y * TILE_SIZE} width={TILE_SIZE} height={TILE_SIZE}>
-                <div className="flex items-center justify-center w-full h-full">
-                  {type === 'enemy' ? getIconForEnemy(data) : getIconForItem(data)}
+    <div className="flex flex-col items-center justify-center min-h-screen p-1" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <Card className="w-full max-w-4xl shadow-2xl bg-gray-800/90 text-gray-100 dark:bg-gray-100/90 dark:text-gray-900 border-gray-700 dark:border-gray-300 min-h-[calc(100vh-0.5rem)] flex flex-col">
+        <CardHeader className="border-b border-gray-700 dark:border-gray-300 pb-2 relative">
+          <div className="absolute top-4 left-4">
+            <Dialog open={showControlsModal} onOpenChange={setShowControlsModal}>
+              <DialogTrigger asChild><Button variant="outline" size="sm" className="bg-gray-700 hover:bg-gray-600 text-white dark:bg-gray-300 dark:hover:bg-gray-400 dark:text-gray-900">Controls</Button></DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300">
+                <DialogHeader><DialogTitle className="text-yellow-400 dark:text-yellow-600">Game Controls</DialogTitle><DialogDescription className="text-gray-300 dark:text-gray-700">Navigate and interact with the labyrinth.</DialogDescription></DialogHeader>
+                <div className="grid gap-2 py-4 text-gray-200 dark:text-gray-800">
+                  <p><span className="font-bold">Arrow Keys:</span> Move/Attack</p>
+                  <p><span className="font-bold">Shift:</span> Search</p>
+                  <p><span className="font-bold">Control:</span> Interact</p>
                 </div>
-              </foreignObject>
-            ))}
-
-            {/* Player */}
-            <circle cx={playerLocation.x * TILE_SIZE + TILE_SIZE / 2} cy={playerLocation.y * TILE_SIZE + TILE_SIZE / 2} r={TILE_SIZE / 3} fill="cyan" />
-          </svg>
-        </div>
-      </div>
-
-      {/* UI Panel */}
-      <div className="w-full md:w-96 flex-shrink-0 bg-gray-800 p-2 flex flex-col gap-2">
-        <Card className="bg-gray-900/50 border-gray-700">
-          <CardHeader>
-            <CardTitle>{playerName}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Heart className="text-red-500" />
-              <Progress value={(gameState.health / gameState.maxHealth) * 100} className="w-full" />
-              <span>{gameState.health}/{gameState.maxHealth}</span>
-            </div>
-            <div className="flex justify-around text-sm">
-              <span><Sword className="inline-block mr-1" /> ATK: {gameState.attack}</span>
-              <span><Shield className="inline-block mr-1" /> DEF: {gameState.defense}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700">
-          <CardHeader><CardTitle>Equipment</CardTitle></CardHeader>
-          <CardContent className="text-sm space-y-1">
-            <p><Sword className="inline-block mr-2" />{gameState.equippedWeapon?.name || 'None'}</p>
-            <p><Shield className="inline-block mr-2" />{gameState.equippedShield?.name || 'None'}</p>
-            <p><Star className="inline-block mr-2" />{gameState.equippedAmulet?.name || 'None'}</p>
-            <p><Compass className="inline-block mr-2" />{gameState.equippedCompass?.name || 'None'}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700 flex-grow flex flex-col">
-          <CardHeader><CardTitle>Inventory</CardTitle></CardHeader>
-          <CardContent className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="space-y-2 pr-4">
-                {gameState.inventory.length === 0 && <p className="text-gray-500 italic">Empty</p>}
-                {gameState.inventory.map(({ item, quantity }: { item: Item, quantity: number }) => (
-                  <Tooltip key={item.id}>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center justify-between bg-gray-800 p-2 rounded">
-                        <div className="flex items-center gap-2">
-                          {getIconForItem(item)}
-                          <span>{item.name} {quantity > 1 ? `(x${quantity})` : ''}</span>
-                        </div>
-                        <Button size="sm" variant="ghost" onClick={() => handleUseItem(item.id)}>Use</Button>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{item.description}</TooltipContent>
-                  </Tooltip>
-                ))}
+              </DialogContent>
+            </Dialog>
+          </div>
+          <CardTitle className="text-xl sm:text-2xl font-extrabold text-center text-yellow-400 dark:text-yellow-600 drop-shadow-lg mx-16">The Labyrinth of Whispers</CardTitle>
+          <CardDescription className="text-sm italic text-center text-gray-300 dark:text-gray-700">A perilous journey...</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-2 flex-grow">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col items-center relative">
+              <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
+              {renderMap()}
+              <div className="w-full sm:max-w-64 mt-3 flex flex-col justify-center items-center min-h-[12rem]">
+                <div>
+                  <div className="grid grid-cols-3 gap-2 w-full">
+                    <div />
+                    <Button size="sm" className={northProps.className} onClick={() => handleMove("north")} disabled={northProps.disabled || labyrinth.isGameOver()}>{northProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={westProps.className} onClick={() => handleMove("west")} disabled={westProps.disabled || labyrinth.isGameOver()}>{westProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={eastProps.className} onClick={() => handleMove("east")} disabled={eastProps.disabled || labyrinth.isGameOver()}>{eastProps.text}</Button>
+                    <div />
+                    <Button size="sm" className={southProps.className} onClick={() => handleMove("south")} disabled={southProps.disabled || labyrinth.isGameOver()}>{southProps.text}</Button>
+                    <div />
+                  </div>
+                  <div className="flex gap-2 mt-2 justify-center">
+                    <Button size="sm" className="bg-indigo-700 hover:bg-indigo-800 text-white" onClick={handleSearch} disabled={labyrinth.isGameOver()}>Search</Button>
+                    <Button size="sm" className="bg-purple-700 hover:bg-purple-800 text-white" onClick={handleInteract} disabled={ labyrinth.isGameOver()}>Interact</Button>
+                  </div>
+                </div>
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700">
-          <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2">
-            <Button onClick={handleSearch}><Search className="mr-2" />Search (F)</Button>
-            <Button onClick={handleInteract}><Hand className="mr-2" />Interact (E)</Button>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gray-900/50 border-gray-700 flex-grow flex flex-col">
-          <CardHeader><CardTitle>Log</CardTitle></CardHeader>
-          <CardContent className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="space-y-1 pr-4 text-xs">
-                {gameState.messages.map((msg: string, i: number) => <p key={i}>{msg}</p>)}
+            </div>
+            <div className="flex flex-col items-center">
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-lime-300 dark:text-lime-600 mb-1">Adventurer's Status:</h3>
+                <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm text-gray-300 dark:text-gray-700">
+                  <p className="flex items-center"><Heart className="mr-1 text-red-500" size={16} /> <span className="font-bold text-red-400">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span></p>
+                  <p className="flex items-center"><Sword className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-orange-400">{labyrinth.getCurrentAttackDamage()}</span></p>
+                  <p className="flex items-center"><Shield className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-blue-400">{labyrinth.getCurrentDefense()}</span></p>
+                  <p className="flex items-center"><Target className="mr-1 text-gray-400" size={16} /> <span className="font-bold text-purple-400">{labyrinth.getSearchRadius()}</span></p>
+                </div>
+                <div className="text-xs text-gray-400 dark:text-gray-600 mt-1">
+                  {labyrinth.getEquippedWeapon() && (<p>Weapon: {labyrinth.getEquippedWeapon()?.name}</p>)}
+                  {labyrinth.getEquippedShield() && (<p>Shield: {labyrinth.getEquippedShield()?.name}</p>)}
+                  {labyrinth.getEquippedAmulet() && (<p>Accessory: {labyrinth.getEquippedAmulet()?.name}</p>)}
+                  {labyrinth.getEquippedCompass() && (<p>Accessory: {labyrinth.getEquippedCompass()?.name}</p>)}
+                </div>
+                {renderInventory()}
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      </div>
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300 md:hidden" />
+              <h3 className="text-lg font-bold text-blue-300 dark:text-blue-600 mb-2">Chronicles:</h3>
+              <div ref={logRef} className="w-full rounded-md border border-gray-700 dark:border-gray-300 p-2 bg-gray-900 dark:bg-gray-200 text-gray-200 dark:text-gray-800 text-xs font-mono h-40 overflow-y-auto">
+                {[...gameLog].reverse().map((message, index) => (<p key={index} className="mb-1 last:mb-0">{message}</p>))}
+              </div>
+              <Separator className="my-2 w-full bg-gray-700 dark:bg-gray-300" />
+              <div className="mb-2 w-full text-center">
+                <h3 className="text-lg font-bold text-cyan-300 dark:text-cyan-600 mb-1 flex items-center justify-center"><Goal className="mr-2" size={20} /> Current Objective (Floor {labyrinth.getCurrentFloor() + 1}):</h3>
+                <p className={cn("text-sm italic px-4", currentObjective.isCompleted() ? "text-green-400 dark:text-green-500" : "text-gray-300 dark:text-gray-700")}>{currentObjective.description}</p>
+                <p className={cn("text-xs font-semibold mt-1", currentObjective.isCompleted() ? "text-green-500 dark:text-green-600" : "text-red-400 dark:text-red-500")}>Status: {currentObjective.isCompleted() ? "Completed!" : "In Progress"}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col justify-center items-center border-t border-gray-700 dark:border-gray-300 pt-2">
+          {labyrinth.isGameOver() && (<Button onClick={onGameRestart} className="mt-2 bg-amber-500 hover:bg-amber-600 text-white text-base px-4 py-2">Restart Journey</Button>)}
+          <p className="text-xs text-gray-400 dark:text-gray-600 mt-2 text-center">Please consider supporting this project. Donations can be received at this ETN wallet address: <span className="font-mono text-gray-300 dark:text-gray-700 break-all">0x3Ab5cBFfa0C2A3f15641DCA0fbEEBa1EFb166EE8</span></p>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

@@ -304,11 +304,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <div className="p-4 pt-2 flex-grow overflow-hidden">
           <div className="flex flex-col md:flex-row gap-4 h-full">
             <main className="flex-grow flex flex-col items-center justify-center p-2 relative">
-              <h3 className="text-lg font-bold mb-2 text-orange-300 dark:text-orange-600">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
-              <div className="w-full flex-grow flex items-center justify-center min-h-0">
+              <h3 className="absolute top-2 left-1/2 -translate-x-1/2 text-lg font-bold text-orange-300 dark:text-orange-600 z-10 bg-gray-800/50 dark:bg-gray-100/50 px-2 rounded">Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})</h3>
+              <div className="w-full h-full flex items-center justify-center">
                 {renderMap()}
               </div>
-              <div className="mt-2 text-center text-gray-400 dark:text-gray-600 text-sm">
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center text-gray-400 dark:text-gray-600 text-sm z-10 bg-gray-800/50 dark:bg-gray-100/50 p-1 rounded">
                 <p>Use <span className="font-bold text-gray-300 dark:text-gray-500">Arrow Keys</span> to Move/Attack.</p>
                 <p><span className="font-bold text-gray-300 dark:text-gray-500">Shift</span> to Search, <span className="font-bold text-gray-300 dark:text-gray-500">Control</span> to Interact.</p>
               </div>

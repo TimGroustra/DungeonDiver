@@ -235,7 +235,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </defs>
 
         <path d={floorPath} className="fill-[url(#floor-pattern-light)] dark:fill-[url(#floor-pattern-dark)]" />
-        <path d={floorPath} className="fill-stone-950 dark:fill-black" mask="url(#fog-mask)" />
+        <path d={floorPath} className="fill-stone-950/75 dark:fill-black/75" mask="url(#fog-mask)" />
         <path d={wallPath} className="fill-gray-800 dark:fill-gray-900 stroke-gray-600 dark:stroke-gray-700" strokeWidth={0.05} />
 
         {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {

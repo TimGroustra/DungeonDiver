@@ -131,11 +131,17 @@ interface Room {
 }
 
 // Updated GameResult interface to include causeOfDeath
-interface GameResult {
+export interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
   causeOfDeath?: string; // Optional cause of death for defeat
+}
+
+export type SoundType = 'sword' | 'fist' | 'trap' | 'enemy';
+
+export interface GameEvent {
+  sound?: SoundType;
 }
 
 export class Labyrinth {
@@ -1019,10 +1025,11 @@ export class Labyrinth {
     return false;
   }
 
-  public move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
+  public move(direction: "north" | "south" | "east" | "west", playerName: string, time: number): GameEvent {
+    const event: GameEvent = {};
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
-      return;
+      return event;
     }
 
     if (this.playerStunnedTurns > 0) {
@@ -1046,7 +1053,7 @@ export class Labyrinth {
 
     if (newX < 0 || newX >= this.MAP_WIDTH || newY < 0 || newY >= this.MAP_HEIGHT) {
       this.addMessage("You cannot go that way. You've reached the edge of the known labyrinth.");
-      return;
+      return event;
     }
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
@@ -1057,18 +1064,19 @@ export class Labyrinth {
             const damageDealt = this.getCurrentAttackDamage();
             enemy.takeDamage(damageDealt);
             this.lastHit = { id: enemy.id, type: this.equippedWeapon ? 'sword' : 'fist' };
+            event.sound = this.equippedWeapon ? 'sword' : 'fist';
             this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
             if (enemy.defeated) {
                 this.addMessage(`You have defeated the ${enemy.name}!`);
                 this.enemyLocations.delete(targetCoordStr);
             }
-            return; // Player attacks and does not move
+            return event; // Player attacks and does not move
         }
     }
 
     if (currentMap[newY][newX] === 'wall') {
       this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
-      return;
+      return event;
     }
 
     if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
@@ -1079,13 +1087,14 @@ export class Labyrinth {
             const damageTaken = 25;
             this.playerHealth -= damageTaken;
             this.lastHit = { id: 'player', type: 'trap' };
+            event.sound = 'trap';
             this.playerStunnedTurns = 1;
             this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
             if (this.playerHealth <= 0) {
                 if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Moved during Red Light)")) {
                     this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
                     this.setGameOver('defeat', playerName, time, "Temporal Distortion (Moved during Red Light)");
-                    return;
+                    return event;
                 }
             }
         }
@@ -1101,6 +1110,7 @@ export class Labyrinth {
     if (this.trapsLocations.has(targetCoordStr)) {
         this.playerHealth -= 10;
         this.lastHit = { id: 'player', type: 'trap' };
+        event.sound = 'trap';
         this.triggeredTraps.add(targetCoordStr);
         this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
         if (this.playerHealth <= 0) {
@@ -1110,6 +1120,7 @@ export class Labyrinth {
             }
         }
     }
+    return event;
   }
 
   private _handleFoundItem(foundItem: Item, coordStr: string) {
@@ -1624,9 +1635,10 @@ export class Labyrinth {
     return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
   }
 
-  public processEnemyMovement(playerName: string, time: number) {
+  public processEnemyMovement(playerName: string, time: number): GameEvent[] {
+    const events: GameEvent[] = [];
     if (this.gameOver) {
-        return;
+        return events;
     }
 
     const playerX = this.playerLocation.x;
@@ -1660,7 +1672,7 @@ export class Labyrinth {
     }
 
     if (enemiesToMove.length === 0) {
-        return;
+        return events;
     }
 
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
@@ -1689,6 +1701,7 @@ export class Labyrinth {
                 const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
                 this.playerHealth -= damageDealt;
                 this.lastHit = { id: 'player', type: 'enemy' };
+                events.push({ sound: 'enemy' });
                 this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
                 if (this.playerHealth <= 0) {
                     if (!this._tryActivateWellBlessing(playerName, time, `${enemy.name}'s Attack`)) {
@@ -1712,6 +1725,7 @@ export class Labyrinth {
             break; // Enemy moved, stop trying other moves
         }
     }
+    return events;
   }
 
   public processBossLogic() {

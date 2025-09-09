@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Labyrinth, LogicalRoom, Item, GameResult } from "@/lib/game"; // Import GameResult
+import { Labyrinth, LogicalRoom, Item, GameResult, SoundType, GameEvent } from "@/lib/game";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Volume2, VolumeX, Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Volume icons
+import { Volume2, VolumeX, Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
+import GameOverScreen from "@/components/GameOverScreen";
 import { playSound } from "@/utils/audio";
 
 // Import adventurer sprites from the new assets location
@@ -25,9 +25,9 @@ interface LabyrinthGameProps {
   gameStarted: boolean;
   startTime: number | null;
   elapsedTime: number;
-  onGameOver: (result: GameResult) => void; // Use GameResult interface
+  onGameOver: (result: GameResult) => void;
   onGameRestart: () => void;
-  gameResult: GameResult | null; // New prop for game result
+  gameResult: GameResult | null;
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -69,10 +69,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(true); // Sound toggle state, default to muted
+  const [isMuted, setIsMuted] = useState(true);
   const audioUnlocked = useRef(false);
   const logRef = useRef<HTMLDivElement>(null);
-  const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (gameStarted) {
@@ -98,6 +98,26 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
   };
 
+  const playSoundForType = (type: SoundType) => {
+    if (isMuted) return;
+    let soundFile = '/audio/hit.mp3';
+    switch (type) {
+      case 'sword':
+        soundFile = '/audio/hit-sword.mp3';
+        break;
+      case 'fist':
+        soundFile = '/audio/hit.mp3';
+        break;
+      case 'enemy':
+        soundFile = '/audio/hit-enemy.mp3';
+        break;
+      case 'trap':
+        soundFile = '/audio/hit.mp3';
+        break;
+    }
+    playSound(soundFile);
+  };
+
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
     if (newMessages.length > 0) {
@@ -113,31 +133,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     const lastHit = labyrinth.lastHit;
     if (lastHit) {
-      if (!isMuted) {
-        let soundFile = '/audio/hit.mp3'; // default
-        switch (lastHit.type) {
-          case 'sword':
-            soundFile = '/audio/hit-sword.mp3';
-            break;
-          case 'fist':
-            soundFile = '/audio/hit.mp3';
-            break;
-          case 'enemy':
-            soundFile = '/audio/hit-enemy.mp3';
-            break;
-          case 'trap':
-            soundFile = '/audio/hit.mp3';
-            break;
-        }
-        playSound(soundFile);
-      }
       setFlashingEntityId(lastHit.id);
       setTimeout(() => {
         setFlashingEntityId(null);
       }, 200);
       labyrinth.clearLastHit();
     }
-  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, isMuted]);
+  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
 
   useEffect(() => {
     if (logRef.current) {
@@ -161,14 +163,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const gameElement = gameContainerRef.current;
     if (gameElement) {
       gameElement.addEventListener("keydown", handleKeyDown);
-      gameElement.focus(); // Automatically focus the game container when it mounts
+      gameElement.focus();
     }
     return () => {
       if (gameElement) {
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, isMuted]);
 
   useEffect(() => {
     if (!gameStarted || labyrinth.isGameOver()) return;
@@ -176,18 +178,26 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const intervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-      labyrinth.processEnemyMovement(playerName, currentElapsedTime);
+      const gameEvents = labyrinth.processEnemyMovement(playerName, currentElapsedTime);
+      gameEvents.forEach(event => {
+        if (event.sound) {
+          playSoundForType(event.sound);
+        }
+      });
       if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
         labyrinth.processBossLogic();
       }
       setGameVersion(prev => prev + 1);
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime]);
+  }, [gameStarted, labyrinth, playerName, startTime, isMuted]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
-    labyrinth.move(direction, playerName, elapsedTime);
+    const gameEvent = labyrinth.move(direction, playerName, elapsedTime);
+    if (gameEvent.sound) {
+      playSoundForType(gameEvent.sound);
+    }
     setGameVersion(prev => prev + 1);
   };
 
@@ -226,7 +236,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const mapWidth = labyrinth["MAP_WIDTH"];
     const mapHeight = labyrinth["MAP_HEIGHT"];
 
-    // Determine which adventurer sprite to use
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
     let adventurerSprite = AdventurerDefault;
@@ -238,8 +247,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       adventurerSprite = AdventurerShieldOnly;
     }
 
-    // Determine rotation based on lastMoveDirection
-    let rotation = 0; // Default to north
+    let rotation = 0;
     switch (labyrinth.lastMoveDirection) {
       case "east": rotation = 90; break;
       case "south": rotation = 180; break;
@@ -289,7 +297,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
         </g>
-        {/* Adventurer Sprite */}
         <image
           href={adventurerSprite}
           x={playerLoc.x - 0.1}
@@ -372,10 +379,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <ul className="space-y-3">
               {inventoryItems.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
-                // Check if item is in an equipped slot (weapon, shield, amulet, compass)
                 const isCurrentlyEquipped = (equippedWeapon?.id === item.id) || (equippedShield?.id === item.id) || (equippedAmulet?.id === item.id) || (equippedCompass?.id === item.id);
 
-                // Only display items in the backpack that are not currently equipped in a dedicated slot
                 if (isCurrentlyEquipped) return null;
 
                 return (
@@ -449,13 +454,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     </div>
   );
 
-  if (!gameStarted) return null; // LabyrinthGame only renders if gameStarted is true
+  if (!gameStarted) return null;
 
   return (
     <div 
-      ref={gameContainerRef} // Attach the ref here
-      tabIndex={0} // Make the div focusable
-      className="flex items-center justify-center h-full p-4 focus:outline-none" // Add focus styling
+      ref={gameContainerRef}
+      tabIndex={0}
+      className="flex items-center justify-center h-full p-4 focus:outline-none"
     >
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">

@@ -13,12 +13,6 @@ import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
-// Import adventurer sprites
-import AdventurerDefault from "/sprites/adventurer/top-down-adventurer.svg";
-import AdventurerShieldOnly from "/sprites/adventurer/top-down-adventurer-shield-only.svg";
-import AdventurerSwordOnly from "/sprites/adventurer/top-down-adventurer-sword-only.svg";
-import AdventurerSwordAndShield from "/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
-
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -184,13 +178,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     // Determine which adventurer sprite to use
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
-    let adventurerSprite = AdventurerDefault;
+    let adventurerSprite = "/sprites/adventurer/top-down-adventurer.svg";
     if (equippedWeapon && equippedShield) {
-      adventurerSprite = AdventurerSwordAndShield;
+      adventurerSprite = "/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
     } else if (equippedWeapon) {
-      adventurerSprite = AdventurerSwordOnly;
+      adventurerSprite = "/sprites/adventurer/top-down-adventurer-sword-only.svg";
     } else if (equippedShield) {
-      adventurerSprite = AdventurerShieldOnly;
+      adventurerSprite = "/sprites/adventurer/top-down-adventurer-shield-only.svg";
     }
 
     // Determine rotation based on lastMoveDirection

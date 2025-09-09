@@ -166,7 +166,7 @@ export class Labyrinth {
   public items: Map<string, Item>;
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
-  public lastMoveDirection: "north" | "south" | "east" | "west" = "north"; // New: Track last move direction
+  public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
 
   // New quest-related states

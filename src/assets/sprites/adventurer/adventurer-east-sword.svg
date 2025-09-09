@@ -1,10 +1,13 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M14 2L16 6H12L14 2Z" fill="#D4C2A4"/>
-<path d="M12 6H16V9H12V6Z" fill="#4A3F30"/>
-<path d="M9 9H15V15H9V9Z" fill="#6D5F48"/>
-<path d="M9 15H15V18H9V15Z" fill="#4A3F30"/>
-<path d="M9 18H11V22H9V18Z" fill="#332E22"/>
-<path d="M13 18H15V22H13V18Z" fill="#332E22"/>
-<path d="M16 11H22V13H16V11Z" fill="#C0C0C0"/>
-<path d="M15 10H16V14H15V10Z" fill="#8B4513"/>
+<path d="M10 20H12V22H10V20Z" fill="#654321"/>
+<path d="M13 20H15V22H13V20Z" fill="#654321"/>
+<path d="M10 16H15V20H10V16Z" fill="#708090"/>
+<path d="M9 9H16V16H9V9Z" fill="#4682B4"/>
+<path d="M11 6H16V9H11V6Z" fill="#DEB887"/>
+<path d="M12 5H16V6H12V5Z" fill="#8B4513"/>
+<path d="M11 4H17V5H11V4Z" fill="#556B2F"/>
+<path d="M17 5H18V6H17V5Z" fill="#556B2F"/>
+<path d="M15 10H17V12H15V10Z" fill="#8B4513"/>
+<path d="M14 9H18V11H14V9Z" fill="#8B4513"/>
+<path d="M17 10H22V11H17V10Z" fill="#C0C0C0"/>
 </svg>

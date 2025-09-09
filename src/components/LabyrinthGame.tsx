@@ -13,6 +13,12 @@ import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
+// Import adventurer sprites
+import AdventurerDefault from "/public/sprites/adventurer/top-down-adventurer.svg";
+import AdventurerShieldOnly from "/public/sprites/adventurer/top-down-adventurer-shield-only.svg";
+import AdventurerSwordOnly from "/public/sprites/adventurer/top-down-adventurer-sword-only.svg";
+import AdventurerSwordAndShield from "/public/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
+
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -175,6 +181,27 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const mapWidth = labyrinth["MAP_WIDTH"];
     const mapHeight = labyrinth["MAP_HEIGHT"];
 
+    // Determine which adventurer sprite to use
+    const equippedWeapon = labyrinth.getEquippedWeapon();
+    const equippedShield = labyrinth.getEquippedShield();
+    let adventurerSprite = AdventurerDefault;
+    if (equippedWeapon && equippedShield) {
+      adventurerSprite = AdventurerSwordAndShield;
+    } else if (equippedWeapon) {
+      adventurerSprite = AdventurerSwordOnly;
+    } else if (equippedShield) {
+      adventurerSprite = AdventurerShieldOnly;
+    }
+
+    // Determine rotation based on lastMoveDirection
+    let rotation = 0; // Default to north
+    switch (labyrinth.lastMoveDirection) {
+      case "east": rotation = 90; break;
+      case "south": rotation = 180; break;
+      case "west": rotation = 270; break;
+      case "north": rotation = 0; break;
+    }
+
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
@@ -217,7 +244,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
         </g>
-        <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r={0.4} className="fill-blue-500 stroke-blue-300" strokeWidth={0.1} />
+        {/* Adventurer Sprite */}
+        <image
+          href={adventurerSprite}
+          x={playerLoc.x}
+          y={playerLoc.y}
+          width="1"
+          height="1"
+          transform={`rotate(${rotation} ${playerLoc.x + 0.5} ${playerLoc.y + 0.5})`}
+        />
       </svg>
     );
   };

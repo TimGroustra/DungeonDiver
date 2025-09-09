@@ -12,6 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
+import { playSound } from "@/utils/audio";
 
 // Import adventurer sprites from the new assets location
 import AdventurerDefault from "@/assets/sprites/adventurer/top-down-adventurer.svg";
@@ -95,6 +96,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     const hitId = labyrinth.lastHitEntityId;
     if (hitId) {
+      playSound('/audio/hit.mp3'); // Play the sound effect
       setFlashingEntityId(hitId);
       setTimeout(() => {
         setFlashingEntityId(null);

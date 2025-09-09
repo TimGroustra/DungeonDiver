@@ -166,7 +166,6 @@ export class Labyrinth {
   public items: Map<string, Item>;
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
-  public lastMoveDirection: "north" | "south" | "east" | "west" = "north"; // New: Track last move direction
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -489,7 +488,7 @@ export class Labyrinth {
 
     // Carve the main boss passage
     for (let x = passageStartX; x <= passageEndX; x++) {
-      for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfWidth; y++) {
+      for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfCorridor; y++) {
         if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
           floorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
           this.bossPassageCoords.add(`${x},${y},${floor}`);
@@ -657,7 +656,7 @@ export class Labyrinth {
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
-      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
+      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2); // Center the passage vertically
 
       // Place The Watcher of the Core (Boss) at the start of the passage
       const watcherX = passageStartX + Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
@@ -1085,7 +1084,6 @@ export class Labyrinth {
     }
 
     this.playerLocation = { x: newX, y: newY };
-    this.lastMoveDirection = direction; // Update last move direction
     this.markVisited(this.playerLocation);
 
     const currentRoom = this.getCurrentLogicalRoom();

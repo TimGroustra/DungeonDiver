@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Gem and Compass icons
+import { Volume2, VolumeX, Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Volume icons
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,6 +69,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
+  const [isMuted, setIsMuted] = useState(true); // Sound toggle state, default to muted
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
@@ -96,29 +97,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     const lastHit = labyrinth.lastHit;
     if (lastHit) {
-      let soundFile = '/audio/hit.mp3'; // default
-      switch (lastHit.type) {
-        case 'sword':
-          soundFile = '/audio/hit-sword.mp3';
-          break;
-        case 'fist':
-          soundFile = '/audio/hit.mp3';
-          break;
-        case 'enemy':
-          soundFile = '/audio/hit-enemy.mp3';
-          break;
-        case 'trap':
-          soundFile = '/audio/hit.mp3';
-          break;
+      if (!isMuted) {
+        let soundFile = '/audio/hit.mp3'; // default
+        switch (lastHit.type) {
+          case 'sword':
+            soundFile = '/audio/hit-sword.mp3';
+            break;
+          case 'fist':
+            soundFile = '/audio/hit.mp3';
+            break;
+          case 'enemy':
+            soundFile = '/audio/hit-enemy.mp3';
+            break;
+          case 'trap':
+            soundFile = '/audio/hit.mp3';
+            break;
+        }
+        playSound(soundFile);
       }
-      playSound(soundFile);
       setFlashingEntityId(lastHit.id);
       setTimeout(() => {
         setFlashingEntityId(null);
       }, 200);
       labyrinth.clearLastHit();
     }
-  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
+  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, isMuted]);
 
   useEffect(() => {
     if (logRef.current) {
@@ -440,13 +443,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     >
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsMuted(!isMuted)}
+            className="absolute top-2 left-2 z-20 text-amber-200 hover:bg-amber-900/50 hover:text-amber-100"
+            title={isMuted ? "Unmute" : "Mute"}
+          >
+            {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </Button>
           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-center z-10">
             <h3 className="text-lg font-bold text-orange-300 bg-black/50 px-3 py-1 rounded">
               Ancient Map ({labyrinth.getPlayerLocation().x},{labyrinth.getPlayerLocation().y})
             </h3>
           </div>
           {renderMap()}
-          <div className="absolute top-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
             <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
           {renderHud()}

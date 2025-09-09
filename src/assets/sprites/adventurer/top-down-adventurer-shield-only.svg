@@ -2,11 +2,10 @@
   <defs>
     <style>
       .outline { stroke: #422d1a; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
-      .hat-main { fill: #8c6d46; }
-      .hat-brim { fill: #6b5234; }
+      .hat { fill: #5a6e42; }
+      .hair { fill: #e6c86e; }
       .tunic { fill: #5a6e42; }
       .backpack { fill: #a57b52; }
-      .backpack-strap { fill: #8c6d46; }
       .skin { fill: #e0b88b; }
       .boots { fill: #6b5234; }
       .shield-main { fill: #808080; }
@@ -14,28 +13,31 @@
     </style>
   </defs>
   
-  <!-- Tunic -->
-  <path class="tunic outline" d="M 30 55 C 25 65, 25 80, 35 85 L 65 85 C 75 80, 75 65, 70 55 Z" />
-  
   <!-- Boots -->
   <path class="boots outline" d="M 35 82 C 28 85, 28 95, 38 95 C 48 95, 48 85, 41 82 Z" />
   <path class="boots outline" d="M 65 82 C 58 85, 58 95, 68 95 C 78 95, 78 85, 71 82 Z" />
   
+  <!-- Tunic -->
+  <path class="tunic outline" d="M 25 50 L 75 50 L 65 85 L 35 85 Z" />
+  
   <!-- Backpack -->
-  <rect x="35" y="50" width="30" height="25" rx="5" class="backpack outline" />
-  <rect x="38" y="52" width="24" height="10" rx="3" class="backpack-strap outline" />
+  <rect x="40" y="55" width="20" height="20" rx="5" class="backpack outline" />
   
   <!-- Arms -->
-  <path class="tunic outline" d="M 80 60 C 85 65, 85 70, 78 72" />
-  <path class="skin outline" d="M 82 70 C 87 75, 82 80, 75 75" />
+  <path class="tunic outline" d="M 80 55 C 85 60, 85 65, 78 67" />
+  <path class="skin outline" d="M 82 65 C 87 70, 82 75, 75 70" />
   
   <!-- Shield Arm -->
-  <path class="tunic outline" d="M 20 60 C 15 65, 15 70, 22 72" />
-  <path class="skin outline" d="M 18 70 C 13 75, 18 80, 25 75" />
+  <path class="tunic outline" d="M 20 55 C 15 60, 15 65, 22 67" />
+  <path class="skin outline" d="M 18 65 C 13 70, 18 75, 25 70" />
   
-  <!-- Head/Hat -->
-  <circle cx="50" cy="50" r="20" class="hat-main outline" />
-  <circle cx="50" cy="50" r="12" class="hat-brim outline" />
+  <!-- Head -->
+  <g transform="translate(0, -5)">
+    <!-- Hair -->
+    <path class="hair outline" d="M 35 40 C 25 50, 25 60, 40 60 L 60 60 C 75 60, 75 50, 65 40 Z" />
+    <!-- Hat -->
+    <path class="hat outline" d="M 40 35 C 35 40, 35 50, 50 50 C 65 50, 65 40, 60 35 Z" />
+  </g>
 
   <!-- Shield -->
   <ellipse cx="20" cy="70" rx="12" ry="15" class="shield-main outline" />

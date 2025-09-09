@@ -14,10 +14,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
 // Import adventurer sprites from the new assets location
-import AdventurerDefault from "@/assets/sprites/adventurer/top-down-adventurer.svg";
-import AdventurerShieldOnly from "@/assets/sprites/adventurer/top-down-adventurer-shield-only.svg";
-import AdventurerSwordOnly from "@/assets/sprites/adventurer/top-down-adventurer-sword-only.svg";
-import AdventurerSwordAndShield from "@/assets/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
+import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
+import AdventurerSouth from "@/assets/sprites/adventurer/adventurer-south.svg";
+import AdventurerEast from "@/assets/sprites/adventurer/adventurer-east.svg";
+import AdventurerWest from "@/assets/sprites/adventurer/adventurer-west.svg";
+import AdventurerNorthSword from "@/assets/sprites/adventurer/adventurer-north-sword.svg";
+import AdventurerSouthSword from "@/assets/sprites/adventurer/adventurer-south-sword.svg";
+import AdventurerEastSword from "@/assets/sprites/adventurer/adventurer-east-sword.svg";
+import AdventurerWestSword from "@/assets/sprites/adventurer/adventurer-west-sword.svg";
+import AdventurerNorthShield from "@/assets/sprites/adventurer/adventurer-north-shield.svg";
+import AdventurerSouthShield from "@/assets/sprites/adventurer/adventurer-south-shield.svg";
+import AdventurerEastShield from "@/assets/sprites/adventurer/adventurer-east-shield.svg";
+import AdventurerWestShield from "@/assets/sprites/adventurer/adventurer-west-shield.svg";
+import AdventurerNorthSwordShield from "@/assets/sprites/adventurer/adventurer-north-sword-shield.svg";
+import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-south-sword-shield.svg";
+import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
+import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
 interface LabyrinthGameProps {
   playerName: string;
@@ -190,26 +202,47 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const mapWidth = labyrinth["MAP_WIDTH"];
     const mapHeight = labyrinth["MAP_HEIGHT"];
 
-    // Determine which adventurer sprite to use
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
-    let adventurerSprite = AdventurerDefault;
+    const direction = labyrinth.lastMoveDirection;
+
+    const spriteMap = {
+      default: {
+        north: AdventurerNorth,
+        south: AdventurerSouth,
+        east: AdventurerEast,
+        west: AdventurerWest,
+      },
+      sword: {
+        north: AdventurerNorthSword,
+        south: AdventurerSouthSword,
+        east: AdventurerEastSword,
+        west: AdventurerWestSword,
+      },
+      shield: {
+        north: AdventurerNorthShield,
+        south: AdventurerSouthShield,
+        east: AdventurerEastShield,
+        west: AdventurerWestShield,
+      },
+      sword_shield: {
+        north: AdventurerNorthSwordShield,
+        south: AdventurerSouthSwordShield,
+        east: AdventurerEastSwordShield,
+        west: AdventurerWestSwordShield,
+      },
+    };
+
+    let equipmentState: keyof typeof spriteMap = 'default';
     if (equippedWeapon && equippedShield) {
-      adventurerSprite = AdventurerSwordAndShield;
+      equipmentState = 'sword_shield';
     } else if (equippedWeapon) {
-      adventurerSprite = AdventurerSwordOnly;
+      equipmentState = 'sword';
     } else if (equippedShield) {
-      adventurerSprite = AdventurerShieldOnly;
+      equipmentState = 'shield';
     }
 
-    // Determine rotation based on lastMoveDirection
-    let rotation = 0; // Default to north
-    switch (labyrinth.lastMoveDirection) {
-      case "east": rotation = 90; break;
-      case "south": rotation = 180; break;
-      case "west": rotation = 270; break;
-      case "north": rotation = 0; break;
-    }
+    const adventurerSprite = spriteMap[equipmentState][direction];
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -261,7 +294,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           width="1.2"
           height="1.2"
           className={cn(flashingEntityId === 'player' && 'is-flashing')}
-          transform={`rotate(${rotation} ${playerLoc.x + 0.5} ${playerLoc.y + 0.5})`}
         />
       </svg>
     );

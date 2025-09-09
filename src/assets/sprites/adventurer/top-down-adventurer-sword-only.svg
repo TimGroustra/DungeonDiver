@@ -1,11 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .outline { stroke: #422d1a; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .hat-main { fill: #8c6d46; }
+      .hat-brim { fill: #6b5234; }
+      .tunic { fill: #5a6e42; }
+      .backpack { fill: #a57b52; }
+      .backpack-strap { fill: #8c6d46; }
+      .skin { fill: #e0b88b; }
+      .boots { fill: #6b5234; }
+      .sword-blade { fill: #c0c0c0; }
+      .sword-hilt { fill: #ffd700; }
+      .sword-pommel { fill: #e0b88b; }
+    </style>
+  </defs>
+  
+  <!-- Tunic -->
+  <path class="tunic outline" d="M 30 55 C 25 65, 25 80, 35 85 L 65 85 C 75 80, 75 65, 70 55 Z" />
+  
+  <!-- Boots -->
+  <path class="boots outline" d="M 35 82 C 28 85, 28 95, 38 95 C 48 95, 48 85, 41 82 Z" />
+  <path class="boots outline" d="M 65 82 C 58 85, 58 95, 68 95 C 78 95, 78 85, 71 82 Z" />
+  
+  <!-- Backpack -->
+  <rect x="35" y="50" width="30" height="25" rx="5" class="backpack outline" />
+  <rect x="38" y="52" width="24" height="10" rx="3" class="backpack-strap outline" />
+  
+  <!-- Arms -->
+  <path class="tunic outline" d="M 20 60 C 15 65, 15 70, 22 72" />
+  <path class="skin outline" d="M 18 70 C 13 75, 18 80, 25 75" />
+  
+  <!-- Sword Arm -->
+  <path class="tunic outline" d="M 80 60 C 85 65, 85 70, 78 72" />
+  <path class="skin outline" d="M 82 70 C 87 75, 82 80, 75 75" />
+  
+  <!-- Head/Hat -->
+  <circle cx="50" cy="40" r="20" class="hat-main outline" />
+  <circle cx="50" cy="40" r="12" class="hat-brim outline" />
+
   <!-- Sword -->
-  <g transform="rotate(45 18 8)">
-    <line x1="18" y1="2" x2="18" y2="14" stroke="#C0C0C0" stroke-width="1.5"/>
-    <line x1="16" y1="11" x2="20" y2="11" stroke="#8B4513" stroke-width="2"/>
+  <g transform="translate(80, 65) rotate(-45)">
+    <path class="sword-blade outline" d="M -5 0 L 5 0 L 5 -35 L 0 -45 L -5 -35 Z" />
+    <rect x="-10" y="0" width="20" height="5" rx="2" class="sword-hilt outline" />
+    <circle cx="0" cy="8" r="4" class="sword-pommel outline" />
   </g>
-  <!-- Body -->
-  <rect x="8" y="10" width="8" height="10" rx="2" fill="#8B4513" stroke="#000" stroke-width="0.5"/>
-  <!-- Head -->
-  <circle cx="12" cy="7" r="3" fill="#F5DEB3" stroke="#000" stroke-width="0.5"/>
 </svg>

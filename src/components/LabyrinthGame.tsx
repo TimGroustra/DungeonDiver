@@ -70,6 +70,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(true); // Sound toggle state, default to muted
+  const audioUnlocked = useRef(false);
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
@@ -81,6 +82,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setHasGameOverBeenDispatched(false);
     }
   }, [gameStarted]);
+
+  const handleToggleMute = () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+
+    if (!newMutedState && !audioUnlocked.current) {
+      const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+      audio.volume = 0;
+      audio.play().then(() => {
+        audioUnlocked.current = true;
+      }).catch(e => {
+        console.error("Could not unlock audio context:", e);
+      });
+    }
+  };
 
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
@@ -446,7 +462,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsMuted(!isMuted)}
+            onClick={handleToggleMute}
             className="absolute top-2 left-2 z-20 text-amber-200 hover:bg-amber-900/50 hover:text-amber-100"
             title={isMuted ? "Unmute" : "Mute"}
           >

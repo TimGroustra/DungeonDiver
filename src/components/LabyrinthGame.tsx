@@ -94,10 +94,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setHasGameOverBeenDispatched(true);
       }
     }
-    const hitId = labyrinth.lastHitEntityId;
-    if (hitId) {
-      playSound('/audio/hit.mp3'); // Play the sound effect
-      setFlashingEntityId(hitId);
+    const lastHit = labyrinth.lastHit;
+    if (lastHit) {
+      let soundFile = '/audio/hit.mp3'; // default
+      switch (lastHit.type) {
+        case 'sword':
+          soundFile = '/audio/hit-sword.mp3';
+          break;
+        case 'fist':
+          soundFile = '/audio/hit.mp3';
+          break;
+        case 'enemy':
+          soundFile = '/audio/hit-enemy.mp3';
+          break;
+        case 'trap':
+          soundFile = '/audio/hit.mp3';
+          break;
+      }
+      playSound(soundFile);
+      setFlashingEntityId(lastHit.id);
       setTimeout(() => {
         setFlashingEntityId(null);
       }, 200);

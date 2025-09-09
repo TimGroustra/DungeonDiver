@@ -35,8 +35,8 @@
   <path class="skin outline" d="M 82 70 C 87 75, 82 80, 75 75" />
   
   <!-- Head/Hat -->
-  <circle cx="50" cy="40" r="20" class="hat-main outline" />
-  <circle cx="50" cy="40" r="12" class="hat-brim outline" />
+  <circle cx="50" cy="50" r="20" class="hat-main outline" />
+  <circle cx="50" cy="50" r="12" class="hat-brim outline" />
 
   <!-- Sword -->
   <g transform="translate(80, 65) rotate(-45)">

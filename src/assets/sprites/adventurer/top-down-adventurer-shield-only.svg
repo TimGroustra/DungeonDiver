@@ -34,8 +34,8 @@
   <path class="skin outline" d="M 18 70 C 13 75, 18 80, 25 75" />
   
   <!-- Head/Hat -->
-  <circle cx="50" cy="40" r="20" class="hat-main outline" />
-  <circle cx="50" cy="40" r="12" class="hat-brim outline" />
+  <circle cx="50" cy="50" r="20" class="hat-main outline" />
+  <circle cx="50" cy="50" r="12" class="hat-brim outline" />
 
   <!-- Shield -->
   <ellipse cx="20" cy="70" rx="12" ry="15" class="shield-main outline" />

@@ -11,8 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { GameResult } from "@/lib/game"; // Import GameResult interface
-import GameOverScreen from "@/components/GameOverScreen"; // <--- ADDED THIS LINE
+import { GameResult } from "@/lib/game";
+import GameOverScreen from "@/components/GameOverScreen";
+import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
 
 interface LeaderboardEntry {
   id: number;
@@ -33,8 +34,9 @@ const Index: React.FC = () => {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
-  const [gameResult, setGameResult] = useState<GameResult | null>(null); // New state for game result
+  const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile(); // Use the hook
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -84,23 +86,23 @@ const Index: React.FC = () => {
       setGameStarted(true);
       setStartTime(Date.now());
       setShowLeaderboard(false);
-      setGameResult(null); // Clear previous game result
+      setGameResult(null);
     } else {
       toast.error("Please enter your player name.");
     }
   };
 
-  const handleGameOver = useCallback((result: GameResult) => { // Use GameResult interface
+  const handleGameOver = useCallback((result: GameResult) => {
     setGameStarted(false);
     setStartTime(null);
-    setGameResult(result); // Store the game result
+    setGameResult(result);
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
       addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
-    setShowLeaderboard(false); // Don't show leaderboard immediately, show game over screen
+    setShowLeaderboard(false);
   }, [addLeaderboardEntryMutation]);
 
   const handleGameRestart = () => {
@@ -108,31 +110,37 @@ const Index: React.FC = () => {
     setStartTime(Date.now());
     setElapsedTime(0);
     setShowLeaderboard(false);
-    setGameResult(null); // Clear game result on restart
+    setGameResult(null);
   };
 
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if no game is started, no leaderboard, and no game result
+      {!gameStarted && !showLeaderboard && !gameResult && (
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
             <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
-              <Input
-                id="playerName"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                placeholder="Your adventurer name"
-                className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
-              />
-            </div>
-            <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
-              Start New Game
-            </Button>
+            {isMobile ? (
+              <p className="text-red-400 text-center font-bold text-lg">To play this game, visit this site from your desktop browser.</p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
+                  <Input
+                    id="playerName"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    placeholder="Your adventurer name"
+                    className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
+                  />
+                </div>
+                <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+                  Start New Game
+                </Button>
+              </>
+            )}
             <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
               View Leaderboard
             </Button>
@@ -140,7 +148,7 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if no game is started and no game result
+      {showLeaderboard && !gameStarted && !gameResult && (
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
@@ -180,11 +188,11 @@ const Index: React.FC = () => {
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
-          gameResult={gameResult} // Pass gameResult down
+          gameResult={gameResult}
         />
       )}
 
-      {gameResult && !gameStarted && ( // Display GameOverScreen when gameResult is present and game is not started
+      {gameResult && !gameStarted && (
         <GameOverScreen result={gameResult} onRestart={handleGameRestart} />
       )}
     </div>

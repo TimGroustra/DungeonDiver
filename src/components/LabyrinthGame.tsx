@@ -12,7 +12,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen";
-import { playSound } from "@/utils/audio";
+import { audioManager } from "@/utils/audioManager";
 
 // Import adventurer sprites from the new assets location
 import AdventurerDefault from "@/assets/sprites/adventurer/top-down-adventurer.svg";
@@ -69,8 +69,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(true);
-  const audioUnlocked = useRef(false);
+  const [isMuted, setIsMuted] = useState(audioManager.getIsMuted());
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null);
 
@@ -83,39 +82,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
   }, [gameStarted]);
 
-  const handleToggleMute = () => {
-    const newMutedState = !isMuted;
+  const handleToggleMute = async () => {
+    const newMutedState = await audioManager.toggleMute();
     setIsMuted(newMutedState);
-
-    if (!newMutedState && !audioUnlocked.current) {
-      const audio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-      audio.volume = 0;
-      audio.play().then(() => {
-        audioUnlocked.current = true;
-      }).catch(e => {
-        console.error("Could not unlock audio context:", e);
-      });
-    }
-  };
-
-  const playSoundForType = (type: SoundType) => {
-    if (isMuted) return;
-    let soundFile = '/audio/hit.mp3';
-    switch (type) {
-      case 'sword':
-        soundFile = '/audio/hit-sword.mp3';
-        break;
-      case 'fist':
-        soundFile = '/audio/hit.mp3';
-        break;
-      case 'enemy':
-        soundFile = '/audio/hit-enemy.mp3';
-        break;
-      case 'trap':
-        soundFile = '/audio/hit.mp3';
-        break;
-    }
-    playSound(soundFile);
   };
 
   useEffect(() => {
@@ -170,7 +139,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, isMuted]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime]);
 
   useEffect(() => {
     if (!gameStarted || labyrinth.isGameOver()) return;
@@ -181,7 +150,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const gameEvents = labyrinth.processEnemyMovement(playerName, currentElapsedTime);
       gameEvents.forEach(event => {
         if (event.sound) {
-          playSoundForType(event.sound);
+          audioManager.playSound(event.sound);
         }
       });
       if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
@@ -190,13 +159,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameVersion(prev => prev + 1);
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime, isMuted]);
+  }, [gameStarted, labyrinth, playerName, startTime]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
     const gameEvent = labyrinth.move(direction, playerName, elapsedTime);
     if (gameEvent.sound) {
-      playSoundForType(gameEvent.sound);
+      audioManager.playSound(gameEvent.sound);
     }
     setGameVersion(prev => prev + 1);
   };

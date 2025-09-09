@@ -166,6 +166,7 @@ export class Labyrinth {
   public items: Map<string, Item>;
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
+  public lastMoveDirection: "north" | "south" | "east" | "west" = "north"; // New: Track last move direction
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -656,7 +657,7 @@ export class Labyrinth {
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
-      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2); // Center the passage vertically
+      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
 
       // Place The Watcher of the Core (Boss) at the start of the passage
       const watcherX = passageStartX + Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
@@ -1084,6 +1085,7 @@ export class Labyrinth {
     }
 
     this.playerLocation = { x: newX, y: newY };
+    this.lastMoveDirection = direction; // Update last move direction
     this.markVisited(this.playerLocation);
 
     const currentRoom = this.getCurrentLogicalRoom();

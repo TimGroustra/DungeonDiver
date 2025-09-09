@@ -67,6 +67,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0);
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
+  const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
@@ -91,6 +92,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         onGameOver(result);
         setHasGameOverBeenDispatched(true);
       }
+    }
+    const hitId = labyrinth.lastHitEntityId;
+    if (hitId) {
+      setFlashingEntityId(hitId);
+      setTimeout(() => {
+        setFlashingEntityId(null);
+      }, 200);
+      labyrinth.clearLastHit();
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
 
@@ -229,7 +238,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
             if (!enemy || enemy.defeated) return null;
-            return <text key={`enemy-${enemyId}`} x={x + 0.5} y={y + 0.5} fontSize="0.8" textAnchor="middle" dominantBaseline="central" className={cn(enemy.id.includes('watcher') && 'animate-pulse')}>{getEmojiForElement(enemy.name)}</text>;
+            return <text key={`enemy-${enemyId}`} x={x + 0.5} y={y + 0.5} fontSize="0.8" textAnchor="middle" dominantBaseline="central" className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId === enemy.id && 'is-flashing')}>{getEmojiForElement(enemy.name)}</text>;
           })}
           {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
@@ -251,6 +260,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           y={playerLoc.y - 0.1}
           width="1.2"
           height="1.2"
+          className={cn(flashingEntityId === 'player' && 'is-flashing')}
           transform={`rotate(${rotation} ${playerLoc.x + 0.5} ${playerLoc.y + 0.5})`}
         />
       </svg>

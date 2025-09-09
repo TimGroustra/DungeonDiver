@@ -167,6 +167,7 @@ export class Labyrinth {
   private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "north"; // New: Track last move direction
+  public lastHitEntityId: string | null = null; // For flash effect
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -841,6 +842,10 @@ export class Labyrinth {
     this.messages = [];
   }
 
+  public clearLastHit() {
+    this.lastHitEntityId = null;
+  }
+
   public getMessages(): string[] {
     return this.messages;
   }
@@ -1051,6 +1056,7 @@ export class Labyrinth {
         if (enemy && !enemy.defeated) {
             const damageDealt = this.getCurrentAttackDamage();
             enemy.takeDamage(damageDealt);
+            this.lastHitEntityId = enemy.id;
             this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
             if (enemy.defeated) {
                 this.addMessage(`You have defeated the ${enemy.name}!`);
@@ -1072,6 +1078,7 @@ export class Labyrinth {
         if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
             const damageTaken = 25;
             this.playerHealth -= damageTaken;
+            this.lastHitEntityId = 'player';
             this.playerStunnedTurns = 1;
             this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
             if (this.playerHealth <= 0) {
@@ -1093,6 +1100,7 @@ export class Labyrinth {
 
     if (this.trapsLocations.has(targetCoordStr)) {
         this.playerHealth -= 10;
+        this.lastHitEntityId = 'player';
         this.triggeredTraps.add(targetCoordStr);
         this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
         if (this.playerHealth <= 0) {
@@ -1680,6 +1688,7 @@ export class Labyrinth {
             if (move.x === playerX && move.y === playerY) {
                 const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
                 this.playerHealth -= damageDealt;
+                this.lastHitEntityId = 'player';
                 this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
                 if (this.playerHealth <= 0) {
                     if (!this._tryActivateWellBlessing(playerName, time, `${enemy.name}'s Attack`)) {

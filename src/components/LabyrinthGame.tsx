@@ -14,10 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
 // Import adventurer sprites
-import AdventurerDefault from "/public/sprites/adventurer/top-down-adventurer.svg";
-import AdventurerShieldOnly from "/public/sprites/adventurer/top-down-adventurer-shield-only.svg";
-import AdventurerSwordOnly from "/public/sprites/adventurer/top-down-adventurer-sword-only.svg";
-import AdventurerSwordAndShield from "/public/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
+import AdventurerDefault from "/sprites/adventurer/top-down-adventurer.svg";
+import AdventurerShieldOnly from "/sprites/adventurer/top-down-adventurer-shield-only.svg";
+import AdventurerSwordOnly from "/sprites/adventurer/top-down-adventurer-sword-only.svg";
+import AdventurerSwordAndShield from "/sprites/adventurer/top-down-adventurer-sword-and-shield.svg";
 
 interface LabyrinthGameProps {
   playerName: string;

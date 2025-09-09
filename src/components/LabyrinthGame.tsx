@@ -247,10 +247,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         {/* Adventurer Sprite */}
         <image
           href={adventurerSprite}
-          x={playerLoc.x}
-          y={playerLoc.y}
-          width="1"
-          height="1"
+          x={playerLoc.x - 0.1}
+          y={playerLoc.y - 0.1}
+          width="1.2"
+          height="1.2"
           transform={`rotate(${rotation} ${playerLoc.x + 0.5} ${playerLoc.y + 0.5})`}
         />
       </svg>

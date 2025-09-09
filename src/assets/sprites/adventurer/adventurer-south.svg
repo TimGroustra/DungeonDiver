@@ -3,7 +3,10 @@
 <path d="M13 20H15V22H13V20Z" fill="#654321"/>
 <path d="M9 16H15V20H9V16Z" fill="#708090"/>
 <path d="M8 9H16V16H8V9Z" fill="#4682B4"/>
-<path d="M9 5H15V9H9V5Z" fill="#8B4513"/>
+<path d="M9 6H15V9H9V6Z" fill="#DEB887"/>
+<path d="M10 7H11V8H10V7Z" fill="#000000"/>
+<path d="M13 7H14V8H13V7Z" fill="#000000"/>
+<path d="M9 5H15V6H9V5Z" fill="#8B4513"/>
 <path d="M8 4H16V5H8V4Z" fill="#556B2F"/>
 <path d="M9 3H15V4H9V3Z" fill="#556B2F"/>
 </svg>

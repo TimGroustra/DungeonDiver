@@ -289,10 +289,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         {/* Adventurer Sprite */}
         <image
           href={adventurerSprite}
-          x={playerLoc.x - 0.1}
-          y={playerLoc.y - 0.1}
-          width="1.2"
-          height="1.2"
+          x={playerLoc.x - 0.3}
+          y={playerLoc.y - 0.3}
+          width="1.6"
+          height="1.6"
           className={cn(flashingEntityId === 'player' && 'is-flashing')}
         />
       </svg>

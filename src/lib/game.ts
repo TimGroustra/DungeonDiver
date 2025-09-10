@@ -784,8 +784,10 @@ export class Labyrinth {
                 !this.decorativeElements.has(coordStr) && // Don't place on existing decoration
                 (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor) // Not on player start
             ) {
-                const randomType = floorDecorativeTypes[Math.floor(Math.random() * floorDecorativeTypes.length)];
-                this.decorativeElements.set(coordStr, randomType);
+                const randomTypeBase = floorDecorativeTypes[Math.floor(Math.random() * floorDecorativeTypes.length)];
+                const numVariations = 3; // Assuming 3 variations per type (e.g., rubble-1, rubble-2, rubble-3)
+                const randomVariation = Math.floor(Math.random() * numVariations) + 1;
+                this.decorativeElements.set(coordStr, `${randomTypeBase}-${randomVariation}`);
                 placed = true;
             }
             attempts++;

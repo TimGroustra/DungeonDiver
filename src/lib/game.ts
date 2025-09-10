@@ -718,39 +718,80 @@ export class Labyrinth {
 
   private _placeDecorativeElements(floor: number) {
     const currentFloorMap = this.floors.get(floor)!;
-    // Updated decorative types based on Dungeon_Tileset.png
-    const decorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks', 'bones', 'crate', 'torch_unlit', 'torch_lit'];
-    const numDecorativeElements = 50; // Number of decorative elements per floor
+    const lightFixtureTypes = ['torch_unlit', 'torch_lit'];
+    const floorDecorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks', 'bones', 'crate'];
+    const numDecorativeElements = 50; // Total number of decorative elements per floor
 
-    for (let i = 0; i < numDecorativeElements; i++) {
-      let placed = false;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 500;
+    // Distribute elements: e.g., 20% torches, 80% floor decorations
+    const numTorches = Math.floor(numDecorativeElements * 0.2);
+    const numFloorDecorations = numDecorativeElements - numTorches;
 
-      while (!placed && attempts < MAX_ATTEMPTS) {
-        const x = Math.floor(Math.random() * this.MAP_WIDTH);
-        const y = Math.floor(Math.random() * this.MAP_HEIGHT);
-        const coordStr = `${x},${y},${floor}`;
+    // Place light fixtures
+    for (let i = 0; i < numTorches; i++) {
+        let placed = false;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 500;
 
-        // Ensure it's an open cell and not overlapping with critical game elements
-        if (
-          currentFloorMap[y][x] !== 'wall' &&
-          !this.enemyLocations.has(coordStr) &&
-          !this.puzzleLocations.has(coordStr) &&
-          !this.itemLocations.has(coordStr) &&
-          !this.staticItemLocations.has(coordStr) &&
-          !this.trapsLocations.has(coordStr) &&
-          !this.decorativeElements.has(coordStr) && // Don't place on existing decoration
-          (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor) // Not on player start
-        ) {
-          const randomType = decorativeTypes[Math.floor(Math.random() * decorativeTypes.length)];
-          this.decorativeElements.set(coordStr, randomType);
-          placed = true;
+        while (!placed && attempts < MAX_ATTEMPTS) {
+            const x = Math.floor(Math.random() * this.MAP_WIDTH);
+            const y = Math.floor(Math.random() * this.MAP_HEIGHT);
+            const coordStr = `${x},${y},${floor}`;
+
+            // Check if it's a wall tile
+            if (currentFloorMap[y][x] === 'wall') {
+                // Check if it's adjacent to an open tile
+                const neighbors = this.getValidNeighbors(x, y);
+                const hasAdjacentOpenTile = neighbors.some(n => currentFloorMap[n.y][n.x] !== 'wall');
+
+                if (
+                    hasAdjacentOpenTile &&
+                    !this.enemyLocations.has(coordStr) &&
+                    !this.puzzleLocations.has(coordStr) &&
+                    !this.itemLocations.has(coordStr) &&
+                    !this.staticItemLocations.has(coordStr) &&
+                    !this.trapsLocations.has(coordStr) &&
+                    !this.decorativeElements.has(coordStr) &&
+                    (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor)
+                ) {
+                    const randomType = lightFixtureTypes[Math.floor(Math.random() * lightFixtureTypes.length)];
+                    this.decorativeElements.set(coordStr, randomType);
+                    placed = true;
+                }
+            }
+            attempts++;
         }
-        attempts++;
-      }
     }
-  }
+
+    // Place floor decorative elements
+    for (let i = 0; i < numFloorDecorations; i++) {
+        let placed = false;
+        let attempts = 0;
+        const MAX_ATTEMPTS = 500;
+
+        while (!placed && attempts < MAX_ATTEMPTS) {
+            const x = Math.floor(Math.random() * this.MAP_WIDTH);
+            const y = Math.floor(Math.random() * this.MAP_HEIGHT);
+            const coordStr = `${x},${y},${floor}`;
+
+            // Ensure it's an open cell and not overlapping with critical game elements
+            if (
+                currentFloorMap[y][x] !== 'wall' && // Must be an open cell
+                !this.enemyLocations.has(coordStr) &&
+                !this.puzzleLocations.has(coordStr) &&
+                !this.itemLocations.has(coordStr) &&
+                !this.staticItemLocations.has(coordStr) &&
+                !this.trapsLocations.has(coordStr) &&
+                !this.decorativeElements.has(coordStr) && // Don't place on existing decoration
+                (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor) // Not on player start
+            ) {
+                const randomType = floorDecorativeTypes[Math.floor(Math.random() * floorDecorativeTypes.length)];
+                this.decorativeElements.set(coordStr, randomType);
+                placed = true;
+            }
+            attempts++;
+        }
+    }
+}
 
   private getCoordForElement(id: string, locationMap: Map<string, string | boolean>, floor: number): Coordinate | undefined {
     for (const [coordStr, elementId] of locationMap.entries()) {

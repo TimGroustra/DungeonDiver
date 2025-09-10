@@ -718,7 +718,8 @@ export class Labyrinth {
 
   private _placeDecorativeElements(floor: number) {
     const currentFloorMap = this.floors.get(floor)!;
-    const decorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks'];
+    // Updated decorative types based on Dungeon_Tileset.png
+    const decorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks', 'bones', 'crate', 'torch_unlit', 'torch_lit'];
     const numDecorativeElements = 50; // Number of decorative elements per floor
 
     for (let i = 0; i < numDecorativeElements; i++) {

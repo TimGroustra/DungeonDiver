@@ -51,11 +51,11 @@ const emojiMap: { [key: string]: string } = {
   "Vial of Lumina": "🧪",
   "Blade of the Labyrinth": "🗡️",
   "Aegis of the Guardian": "🛡️",
-  "Tattered Journal": "📖",
+  "Tattered Journal": "📜", // Changed from 📖 to 📜 for a more ancient feel
   "Pulsating Crystal": "🔮",
   "Scholar's Amulet": "💎",
   "Enchanted Flask": "🍶",
-  "Living Water": "🌊",
+  "Living Water": "💧", // Changed from 🌊 to 💧 for consistency with puddle
   "Whispering Well's Blessing": "✨",
   "Broken Compass": "🧭",
   "Artisan's Fine Tools": "🛠️",
@@ -64,7 +64,7 @@ const emojiMap: { [key: string]: string } = {
   "Labyrinth Key": "🔑",
   "Heart of the Labyrinth": "❤️‍🔥",
   "Ancient Mechanism": "⚙️",
-  "Whispering Well": "💧",
+  "Whispering Well": "🕳️", // Changed from 💧 to 🕳️ for a well
   "Hidden Spring": "🌿",
   "Ancient Repair Bench": "🔨",
   "Mysterious Box": "📦",
@@ -72,12 +72,16 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
-  // New decorative elements
+  // New decorative elements based on Dungeon_Tileset.png
   "rubble": "🪨",
   "moss": "🌿",
   "glowing_fungi": "🍄",
   "puddle": "💧",
   "cracks": "〰️",
+  "bones": "🦴",
+  "crate": "📦", // Reusing box emoji for crate
+  "torch_unlit": "🕯️",
+  "torch_lit": "🔥",
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
@@ -262,13 +266,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
+          {/* Floor Pattern inspired by tileset */}
           <pattern id="floor-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
-            <rect width="1" height="1" className="fill-stone-700" />
-            <path d="M 0 1 L 1 1 L 1 0" className="stroke-stone-800" strokeWidth="0.05" fill="none" />
+            <rect width="1" height="1" fill="#3a2d3c" /> {/* Dark purple-brown base */}
+            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" /> {/* Subtle grid lines */}
+            <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
+            <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
           </pattern>
-          <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="0.4" height="0.4">
-            <rect width="0.4" height="0.4" className="fill-gray-900" />
-            <path d="M -0.1 0.1 L 0.1 -0.1 M 0.3 0.5 L 0.5 0.3" className="stroke-black" strokeWidth="0.04" />
+          {/* Wall Pattern inspired by tileset */}
+          <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" fill="#5a4d5c" /> {/* Slightly lighter purple-brown base */}
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" /> {/* Brick-like lines */}
           </pattern>
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="black" />
@@ -280,12 +288,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
-          <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-gray-700" strokeWidth={0.05} />
+          <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} /> {/* Adjusted stroke color */}
           {/* Render decorative elements */}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
             const emoji = emojiMap[type] || "✨"; // Default emoji for unknown types
-            const animationClass = type === 'glowing_fungi' ? 'animate-pulse-slow' : '';
+            const animationClass = type === 'glowing_fungi' ? 'animate-pulse-slow' : (type === 'torch_lit' ? 'animate-pulse-fast' : ''); // Torch lit uses pulse-fast
             return (
               <text
                 key={`deco-${coordStr}`}
@@ -294,7 +302,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 fontSize="0.6"
                 textAnchor="middle"
                 dominantBaseline="central"
-                className={cn("text-gray-400", animationClass)}
+                className={cn("text-gray-400", animationClass)} // Keep text-gray-400 for general color, animation class will override brightness
               >
                 {emoji}
               </text>

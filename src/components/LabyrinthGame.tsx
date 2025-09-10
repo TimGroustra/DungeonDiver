@@ -385,9 +385,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </symbol>
           <symbol id="torch_lit" viewBox="0 0 1 1">
             <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" /> {/* Stick */}
+            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /> {/* Wall mount detail */}
             <path d="M0.5 0.2 L0.4 0.4 L0.5 0.3 L0.6 0.4 Z" fill="#ffa500" className="animate-pulse-fast" /> {/* Flame */}
             <circle cx="0.5" cy="0.3" r="0.2" fill="rgba(255,165,0,0.3)" className="animate-pulse-fast" /> {/* Glow */}
-            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /> {/* Wall mount detail */}
           </symbol>
 
         </defs>
@@ -397,7 +397,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {/* Render decorative elements using <use> tags */}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
-            const animationClass = type.includes('glowing_fungi') ? 'animate-pulse-slow' : (type.includes('torch_lit') ? 'animate-pulse-fast' : '');
+            // The animation class is now part of the symbol definition for glowing_fungi and torch_lit
             return (
               <use
                 key={`deco-${coordStr}`}
@@ -406,7 +406,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 y={y}
                 width="1"
                 height="1"
-                className={animationClass}
               />
             );
           })}

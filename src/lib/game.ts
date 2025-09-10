@@ -1570,6 +1570,37 @@ export class Labyrinth {
       }
     }
 
+    // If no interaction happened at the player's location, check adjacent tile for torches.
+    if (!interacted) {
+      let targetX = this.playerLocation.x;
+      let targetY = this.playerLocation.y;
+
+      switch (this.lastMoveDirection) {
+        case "north": targetY--; break;
+        case "south": targetY++; break;
+        case "east":  targetX++; break;
+        case "west":  targetX--; break;
+      }
+
+      // Check if target is within bounds
+      if (targetX >= 0 && targetX < this.MAP_WIDTH && targetY >= 0 && targetY < this.MAP_HEIGHT) {
+        const targetCoord = `${targetX},${targetY},${this.currentFloor}`;
+        const decorativeElement = this.decorativeElements.get(targetCoord);
+
+        if (decorativeElement) {
+          if (decorativeElement === 'torch_lit') {
+            this.decorativeElements.set(targetCoord, 'torch_unlit');
+            this.addMessage("With a quick puff, you snuff out the torch, plunging the area into darkness.");
+            interacted = true;
+          } else if (decorativeElement === 'torch_unlit') {
+            this.decorativeElements.set(targetCoord, 'torch_lit');
+            this.addMessage("You light the torch with a spark from your flint, casting a warm glow on the damp walls.");
+            interacted = true;
+          }
+        }
+      }
+    }
+
     if (!interacted) {
       this.addMessage("There's nothing here that responds to your touch.");
     }

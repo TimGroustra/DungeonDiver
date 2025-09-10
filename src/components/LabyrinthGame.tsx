@@ -51,11 +51,11 @@ const emojiMap: { [key: string]: string } = {
   "Vial of Lumina": "🧪",
   "Blade of the Labyrinth": "🗡️",
   "Aegis of the Guardian": "🛡️",
-  "Tattered Journal": "📜", // Changed from 📖 to 📜 for a more ancient feel
+  "Tattered Journal": "📜",
   "Pulsating Crystal": "🔮",
   "Scholar's Amulet": "💎",
   "Enchanted Flask": "🍶",
-  "Living Water": "💧", // Changed from 🌊 to 💧 for consistency with puddle
+  "Living Water": "💧",
   "Whispering Well's Blessing": "✨",
   "Broken Compass": "🧭",
   "Artisan's Fine Tools": "🛠️",
@@ -64,7 +64,7 @@ const emojiMap: { [key: string]: string } = {
   "Labyrinth Key": "🔑",
   "Heart of the Labyrinth": "❤️‍🔥",
   "Ancient Mechanism": "⚙️",
-  "Whispering Well": "🕳️", // Changed from 💧 to 🕳️ for a well
+  "Whispering Well": "🕳️",
   "Hidden Spring": "🌿",
   "Ancient Repair Bench": "🔨",
   "Mysterious Box": "📦",
@@ -72,16 +72,7 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
-  // New decorative elements based on Dungeon_Tileset.png
-  "rubble": "🪨",
-  "moss": "🌿",
-  "glowing_fungi": "🍄",
-  "puddle": "💧",
-  "cracks": "〰️",
-  "bones": "🦴",
-  "crate": "📦", // Reusing box emoji for crate
-  "torch_unlit": "🕯️",
-  "torch_lit": "🔥",
+  // Decorative elements will now be rendered as SVG symbols, not emojis.
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
@@ -196,8 +187,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const getEmojiForElement = (elementName: string): string => {
-    if (elementName.includes("Blade of the Labyrinth")) return emojiMap["Blade of the Labyrinth"];
-    if (elementName.includes("Aegis of the Guardian")) return emojiMap["Aegis of the Guardian"];
+    // Only return emojis for non-decorative elements
     return emojiMap[elementName] || "❓";
   };
 
@@ -285,27 +275,64 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
           </mask>
+
+          {/* Decorative Element Symbols */}
+          <symbol id="rubble" viewBox="0 0 1 1">
+            <rect x="0.1" y="0.1" width="0.3" height="0.2" fill="#8b4513" />
+            <rect x="0.5" y="0.4" width="0.2" height="0.3" fill="#8b4513" />
+            <rect x="0.2" y="0.6" width="0.4" height="0.2" fill="#8b4513" />
+          </symbol>
+          <symbol id="moss" viewBox="0 0 1 1">
+            <path d="M0.1 0.5 Q0.3 0.2 0.5 0.3 T0.9 0.5 Q0.7 0.8 0.5 0.7 T0.1 0.5Z" fill="#6b8e23" />
+          </symbol>
+          <symbol id="glowing_fungi" viewBox="0 0 1 1">
+            <circle cx="0.5" cy="0.6" r="0.2" fill="#8b4513" /> {/* Cap */}
+            <rect x="0.45" y="0.6" width="0.1" height="0.3" fill="#8b4513" /> {/* Stem */}
+            <circle cx="0.5" cy="0.6" r="0.1" fill="#ffcc00" className="animate-pulse-slow" /> {/* Glow */}
+          </symbol>
+          <symbol id="puddle" viewBox="0 0 1 1">
+            <path d="M0.2 0.5 Q0.3 0.2 0.5 0.3 T0.8 0.5 Q0.7 0.8 0.5 0.7 T0.2 0.5Z" fill="#4682b4" />
+          </symbol>
+          <symbol id="cracks" viewBox="0 0 1 1">
+            <path d="M0.1 0.1 L0.4 0.3 L0.3 0.5 L0.6 0.7 L0.5 0.9" stroke="#6a5d6c" strokeWidth="0.05" fill="none" />
+            <path d="M0.9 0.1 L0.7 0.4 L0.8 0.6" stroke="#6a5d6c" strokeWidth="0.05" fill="none" />
+          </symbol>
+          <symbol id="bones" viewBox="0 0 1 1">
+            <circle cx="0.2" cy="0.5" r="0.1" fill="#f0f0f0" />
+            <rect x="0.2" y="0.45" width="0.6" height="0.1" fill="#f0f0f0" />
+            <circle cx="0.8" cy="0.5" r="0.1" fill="#f0f0f0" />
+          </symbol>
+          <symbol id="crate" viewBox="0 0 1 1">
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.05" />
+            <line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#5a2d0c" strokeWidth="0.05" />
+            <line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#5a2d0c" strokeWidth="0.05" />
+          </symbol>
+          <symbol id="torch_unlit" viewBox="0 0 1 1">
+            <rect x="0.45" y="0.3" width="0.1" height="0.6" fill="#8b4513" /> {/* Stick */}
+            <circle cx="0.5" cy="0.3" r="0.1" fill="#333" /> {/* Unlit top */}
+          </symbol>
+          <symbol id="torch_lit" viewBox="0 0 1 1">
+            <rect x="0.45" y="0.3" width="0.1" height="0.6" fill="#8b4513" /> {/* Stick */}
+            <path d="M0.5 0.1 L0.4 0.3 L0.5 0.2 L0.6 0.3 Z" fill="#ffa500" className="animate-pulse-fast" /> {/* Flame */}
+            <circle cx="0.5" cy="0.2" r="0.15" fill="rgba(255,165,0,0.3)" className="animate-pulse-fast" /> {/* Glow */}
+          </symbol>
+
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} /> {/* Adjusted stroke color */}
-          {/* Render decorative elements */}
+          {/* Render decorative elements using <use> tags */}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
-            const emoji = emojiMap[type] || "✨"; // Default emoji for unknown types
-            const animationClass = type === 'glowing_fungi' ? 'animate-pulse-slow' : (type === 'torch_lit' ? 'animate-pulse-fast' : ''); // Torch lit uses pulse-fast
             return (
-              <text
+              <use
                 key={`deco-${coordStr}`}
-                x={x + 0.5}
-                y={y + 0.5}
-                fontSize="0.6"
-                textAnchor="middle"
-                dominantBaseline="central"
-                className={cn("text-gray-400", animationClass)} // Keep text-gray-400 for general color, animation class will override brightness
-              >
-                {emoji}
-              </text>
+                href={`#${type}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+              />
             );
           })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {

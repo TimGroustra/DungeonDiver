@@ -563,7 +563,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   );
 
   const renderHud = () => (
-    <div className="absolute top-2 right-2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
+    <div className="absolute bottom-2 right-2 w-auto bg-stone-900/80 backdrop-blur-sm border-t-2 border-amber-700/70 rounded-t-lg p-1 px-3 shadow-2xl shadow-black/50">
       <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
         <div className="flex items-center gap-1" title="Health">
           <Heart className="text-red-500" size={10} />

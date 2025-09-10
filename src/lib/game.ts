@@ -131,7 +131,7 @@ interface Room {
 }
 
 // Updated GameResult interface to include causeOfDeath
-interface GameResult {
+export interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
@@ -161,6 +161,7 @@ export class Labyrinth {
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
+  public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
   public items: Map<string, Item>;
@@ -227,6 +228,7 @@ export class Labyrinth {
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
+    this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
     this.puzzles = new Map();
     this.items = new Map();
@@ -291,6 +293,7 @@ export class Labyrinth {
       this.floors.set(floor, floorMap);
       this.visitedCells.set(floor, new Set<string>()); // Initialize visited cells for each floor
       this.addGameElements(floor);
+      this._placeDecorativeElements(floor); // Place decorative elements after all other elements
     }
   }
 
@@ -333,7 +336,7 @@ export class Labyrinth {
     for (const room of existingRooms) {
       if (newRoom.x < room.x + room.width + buffer &&
           newRoom.x + newRoom.width > room.x - buffer &&
-          newRoom.y < room.y + room.height + buffer &&
+          newRoom.y < room.y + newRoom.height + buffer &&
           newRoom.y + newRoom.height > room.y - buffer) {
         return false; // Overlaps
       }
@@ -713,6 +716,41 @@ export class Labyrinth {
     }
   }
 
+  private _placeDecorativeElements(floor: number) {
+    const currentFloorMap = this.floors.get(floor)!;
+    const decorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks'];
+    const numDecorativeElements = 50; // Number of decorative elements per floor
+
+    for (let i = 0; i < numDecorativeElements; i++) {
+      let placed = false;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 500;
+
+      while (!placed && attempts < MAX_ATTEMPTS) {
+        const x = Math.floor(Math.random() * this.MAP_WIDTH);
+        const y = Math.floor(Math.random() * this.MAP_HEIGHT);
+        const coordStr = `${x},${y},${floor}`;
+
+        // Ensure it's an open cell and not overlapping with critical game elements
+        if (
+          currentFloorMap[y][x] !== 'wall' &&
+          !this.enemyLocations.has(coordStr) &&
+          !this.puzzleLocations.has(coordStr) &&
+          !this.itemLocations.has(coordStr) &&
+          !this.staticItemLocations.has(coordStr) &&
+          !this.trapsLocations.has(coordStr) &&
+          !this.decorativeElements.has(coordStr) && // Don't place on existing decoration
+          (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor) // Not on player start
+        ) {
+          const randomType = decorativeTypes[Math.floor(Math.random() * decorativeTypes.length)];
+          this.decorativeElements.set(coordStr, randomType);
+          placed = true;
+        }
+        attempts++;
+      }
+    }
+  }
+
   private getCoordForElement(id: string, locationMap: Map<string, string | boolean>, floor: number): Coordinate | undefined {
     for (const [coordStr, elementId] of locationMap.entries()) {
       const [x, y, f] = coordStr.split(',').map(Number);
@@ -932,6 +970,10 @@ export class Labyrinth {
 
   public getTriggeredTraps(): Set<string> {
     return this.triggeredTraps;
+  }
+
+  public getDecorativeElements(): Map<string, string> {
+    return this.decorativeElements;
   }
 
   public isGameOver(): boolean {

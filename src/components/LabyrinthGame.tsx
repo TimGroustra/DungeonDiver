@@ -72,6 +72,12 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
+  // New decorative elements
+  "rubble": "🪨",
+  "moss": "🌿",
+  "glowing_fungi": "🍄",
+  "puddle": "💧",
+  "cracks": "〰️",
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
@@ -244,6 +250,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const adventurerSprite = spriteMap[equipmentState][direction];
 
+    // Filter decorative elements to only show those within the viewport
+    const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f !== currentFloor) return false;
+      const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
+                        y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
+      return isVisible;
+    });
+
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
@@ -266,6 +281,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-gray-700" strokeWidth={0.05} />
+          {/* Render decorative elements */}
+          {visibleDecorativeElements.map(([coordStr, type]) => {
+            const [x, y] = coordStr.split(',').map(Number);
+            const emoji = emojiMap[type] || "✨"; // Default emoji for unknown types
+            const animationClass = type === 'glowing_fungi' ? 'animate-pulse-slow' : '';
+            return (
+              <text
+                key={`deco-${coordStr}`}
+                x={x + 0.5}
+                y={y + 0.5}
+                fontSize="0.6"
+                textAnchor="middle"
+                dominantBaseline="central"
+                className={cn("text-gray-400", animationClass)}
+              >
+                {emoji}
+              </text>
+            );
+          })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;

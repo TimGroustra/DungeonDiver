@@ -251,14 +251,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const adventurerSprite = spriteMap[equipmentState][direction];
 
-    // Removed visibleDecorativeElements filtering as they are no longer rendered
-    // const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
-    //   const [x, y, f] = coordStr.split(',').map(Number);
-    //   if (f !== currentFloor) return false;
-    //   const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
-    //                     y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
-    //   return isVisible;
-    // });
+    const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f !== currentFloor) return false;
+      const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
+                        y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
+      return isVisible;
+    });
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -280,16 +279,110 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
           </mask>
-          {/* Decorative Elements definitions removed */}
+          {/* Decorative Elements definitions */}
+          {/* Torch Unlit */}
+          <g id="torch_unlit">
+            <rect x="0.45" y="0.2" width="0.1" height="0.6" fill="#4a3d4c" />
+            <circle cx="0.5" cy="0.2" r="0.08" fill="#2a2d2c" />
+          </g>
+          {/* Torch Lit */}
+          <g id="torch_lit">
+            <rect x="0.45" y="0.2" width="0.1" height="0.6" fill="#4a3d4c" />
+            <circle cx="0.5" cy="0.2" r="0.12" fill="#ffcc00" className="animate-pulse-slow" />
+            <path d="M0.5 0.1 C0.55 0.05, 0.55 0.15, 0.5 0.2 C0.45 0.15, 0.45 0.05, 0.5 0.1 Z" fill="#ff9900" className="animate-pulse-slow" />
+          </g>
+          {/* Rubble */}
+          <g id="rubble-1">
+            <path d="M0.2 0.7 L0.4 0.8 L0.6 0.7 L0.5 0.5 L0.3 0.6 Z" fill="#6b6b6b" />
+            <path d="M0.7 0.3 L0.8 0.5 L0.6 0.4 L0.5 0.2 Z" fill="#6b6b6b" />
+          </g>
+          <g id="rubble-2">
+            <path d="M0.3 0.3 L0.5 0.4 L0.7 0.3 L0.6 0.1 L0.4 0.2 Z" fill="#7a7a7a" />
+            <path d="M0.1 0.6 L0.2 0.8 L0.4 0.7 L0.3 0.5 Z" fill="#7a7a7a" />
+          </g>
+          <g id="rubble-3">
+            <path d="M0.4 0.6 L0.6 0.7 L0.8 0.6 L0.7 0.4 L0.5 0.5 Z" fill="#8a8a8a" />
+            <path d="M0.2 0.2 L0.3 0.4 L0.1 0.3 Z" fill="#8a8a8a" />
+          </g>
+          {/* Moss */}
+          <g id="moss-1">
+            <path d="M0.1 0.8 C0.2 0.9, 0.3 0.9, 0.4 0.8 L0.3 0.7 C0.25 0.75, 0.15 0.75, 0.1 0.8 Z" fill="#4CAF50" />
+            <path d="M0.6 0.2 C0.7 0.3, 0.8 0.3, 0.9 0.2 L0.8 0.1 C0.75 0.15, 0.65 0.15, 0.6 0.2 Z" fill="#4CAF50" />
+          </g>
+          <g id="moss-2">
+            <path d="M0.2 0.2 C0.3 0.1, 0.4 0.1, 0.5 0.2 L0.4 0.3 C0.35 0.25, 0.25 0.25, 0.2 0.2 Z" fill="#66BB6A" />
+            <path d="M0.7 0.7 C0.8 0.6, 0.9 0.6, 0.95 0.7 L0.85 0.8 C0.8 0.75, 0.75 0.75, 0.7 0.7 Z" fill="#66BB6A" />
+          </g>
+          <g id="moss-3">
+            <path d="M0.4 0.4 C0.5 0.5, 0.6 0.5, 0.7 0.4 L0.6 0.3 C0.55 0.35, 0.45 0.35, 0.4 0.4 Z" fill="#8BC34A" />
+          </g>
+          {/* Glowing Fungi */}
+          <g id="glowing_fungi-1">
+            <circle cx="0.3" cy="0.7" r="0.1" fill="#8C9EFF" className="animate-pulse-slow" />
+            <circle cx="0.45" cy="0.6" r="0.08" fill="#8C9EFF" className="animate-pulse-slow" />
+          </g>
+          <g id="glowing_fungi-2">
+            <circle cx="0.7" cy="0.3" r="0.1" fill="#B388FF" className="animate-pulse-slow" />
+            <circle cx="0.6" cy="0.45" r="0.08" fill="#B388FF" className="animate-pulse-slow" />
+          </g>
+          <g id="glowing_fungi-3">
+            <circle cx="0.2" cy="0.2" r="0.09" fill="#FF80AB" className="animate-pulse-slow" />
+          </g>
+          {/* Puddle */}
+          <g id="puddle-1">
+            <path d="M0.2 0.7 C0.3 0.9, 0.7 0.9, 0.8 0.7 C0.7 0.5, 0.3 0.5, 0.2 0.7 Z" fill="#3F51B5" opacity="0.7" />
+          </g>
+          <g id="puddle-2">
+            <path d="M0.6 0.2 C0.7 0.4, 0.9 0.4, 0.95 0.2 C0.9 0, 0.7 0, 0.6 0.2 Z" fill="#2196F3" opacity="0.7" />
+          </g>
+          <g id="puddle-3">
+            <path d="M0.1 0.3 C0.2 0.5, 0.4 0.5, 0.5 0.3 C0.4 0.1, 0.2 0.1, 0.1 0.3 Z" fill="#03A9F4" opacity="0.7" />
+          </g>
+          {/* Cracks */}
+          <g id="cracks-1">
+            <path d="M0.1 0.1 L0.5 0.5 L0.4 0.6 L0.8 0.9" stroke="#4a3d4c" strokeWidth="0.05" />
+          </g>
+          <g id="cracks-2">
+            <path d="M0.9 0.1 L0.5 0.5 L0.6 0.4 L0.2 0.1" stroke="#4a3d4c" strokeWidth="0.05" />
+          </g>
+          <g id="cracks-3">
+            <path d="M0.3 0.8 L0.7 0.4 L0.8 0.5 L0.4 0.9" stroke="#4a3d4c" strokeWidth="0.05" />
+          </g>
+          {/* Bones */}
+          <g id="bones-1">
+            <path d="M0.2 0.7 C0.25 0.6, 0.35 0.6, 0.4 0.7 L0.35 0.8 C0.3 0.9, 0.2 0.9, 0.15 0.8 Z" fill="#F5F5DC" />
+            <circle cx="0.2" cy="0.6" r="0.05" fill="#F5F5DC" />
+          </g>
+          <g id="bones-2">
+            <path d="M0.7 0.3 C0.75 0.2, 0.85 0.2, 0.9 0.3 L0.85 0.4 C0.8 0.5, 0.7 0.5, 0.65 0.4 Z" fill="#F0F0D0" />
+            <circle cx="0.7" cy="0.2" r="0.05" fill="#F0F0D0" />
+          </g>
+          <g id="bones-3">
+            <path d="M0.4 0.4 C0.45 0.3, 0.55 0.3, 0.6 0.4 L0.55 0.5 C0.5 0.6, 0.4 0.6, 0.35 0.5 Z" fill="#E0E0C0" />
+          </g>
+          {/* Crate */}
+          <g id="crate-1">
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8B4513" stroke="#654321" strokeWidth="0.05" />
+            <line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#654321" strokeWidth="0.05" />
+            <line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#654321" strokeWidth="0.05" />
+          </g>
+          <g id="crate-2">
+            <rect x="0.15" y="0.15" width="0.7" height="0.7" fill="#A0522D" stroke="#8B4513" strokeWidth="0.05" />
+            <line x1="0.15" y1="0.5" x2="0.85" y2="0.5" stroke="#8B4513" strokeWidth="0.05" />
+          </g>
+          <g id="crate-3">
+            <rect x="0.2" y="0.2" width="0.6" height="0.6" fill="#CD853F" stroke="#A0522D" strokeWidth="0.05" />
+            <line x1="0.2" y1="0.4" x2="0.8" y2="0.4" stroke="#A0522D" strokeWidth="0.05" />
+            <line x1="0.2" y1="0.6" x2="0.8" y2="0.6" stroke="#A0522D" strokeWidth="0.05" />
+          </g>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
-          {/* Removed rendering of decorative elements */}
-          {/* {visibleDecorativeElements.map(([coordStr, type]) => {
+          {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
-          })} */}
+          })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;

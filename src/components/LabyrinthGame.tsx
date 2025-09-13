@@ -31,6 +31,24 @@ import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-s
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
+// Import NEW adventurer walking sprites
+import AdventurerNorthWalk from "@/assets/sprites/adventurer/adventurer-north-walk.svg";
+import AdventurerSouthWalk from "@/assets/sprites/adventurer/adventurer-south-walk.svg";
+import AdventurerEastWalk from "@/assets/sprites/adventurer/adventurer-east-walk.svg";
+import AdventurerWestWalk from "@/assets/sprites/adventurer/adventurer-west-walk.svg";
+import AdventurerNorthSwordWalk from "@/assets/sprites/adventurer/adventurer-north-sword-walk.svg";
+import AdventurerSouthSwordWalk from "@/assets/sprites/adventurer/adventurer-south-sword-walk.svg";
+import AdventurerEastSwordWalk from "@/assets/sprites/adventurer/adventurer-east-sword-walk.svg";
+import AdventurerWestSwordWalk from "@/assets/sprites/adventurer/adventurer-west-sword-walk.svg";
+import AdventurerNorthShieldWalk from "@/assets/sprites/adventurer/adventurer-north-shield-walk.svg";
+import AdventurerSouthShieldWalk from "@/assets/sprites/adventurer/adventurer-south-shield-walk.svg";
+import AdventurerEastShieldWalk from "@/assets/sprites/adventurer/adventurer-east-shield-walk.svg";
+import AdventurerWestShieldWalk from "@/assets/sprites/adventurer/adventurer-west-shield-walk.svg";
+import AdventurerNorthSwordShieldWalk from "@/assets/sprites/adventurer/adventurer-north-sword-shield-walk.svg";
+import AdventurerSouthSwordShieldWalk from "@/assets/sprites/adventurer/adventurer-south-sword-shield-walk.svg";
+import AdventurerEastSwordShieldWalk from "@/assets/sprites/adventurer/adventurer-east-sword-shield-walk.svg";
+import AdventurerWestSwordShieldWalk from "@/assets/sprites/adventurer/adventurer-west-sword-shield-walk.svg";
+
 // Import enemy sprites
 import GoblinSprite from "@/assets/sprites/enemies/goblin.svg";
 import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
@@ -89,8 +107,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
+  const [isWalking, setIsWalking] = useState(false); // New state for walking animation
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
+  const playerSpriteGroupRef = useRef<SVGGElement>(null); // Ref for the player's SVG group
 
   useEffect(() => {
     if (gameStarted) {
@@ -98,6 +118,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameVersion(0);
       setGameLog(["Welcome to the Labyrinth of Whispers..."]);
       setHasGameOverBeenDispatched(false);
+      setIsWalking(false); // Reset walking state
     }
   }, [gameStarted]);
 
@@ -153,7 +174,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, isWalking]); // Added isWalking to dependencies
+
+  // Effect to handle the end of the player's positional movement transition
+  useEffect(() => {
+    const playerGroup = playerSpriteGroupRef.current;
+    if (!playerGroup) return;
+
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      // Only react to transform transitions (which handle positional movement)
+      if (event.propertyName === 'transform') {
+        setIsWalking(false);
+      }
+    };
+
+    playerGroup.addEventListener('transitionend', handleTransitionEnd);
+    return () => {
+      playerGroup.removeEventListener('transitionend', handleTransitionEnd);
+    };
+  }, []); // Run once on mount to set up the listener
 
   useEffect(() => {
     if (!gameStarted || labyrinth.isGameOver()) return;
@@ -172,6 +211,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
+    if (isWalking) { // Prevent new moves if an animation is already in progress
+      return;
+    }
+    
+    setIsWalking(true); // Start walking animation
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
@@ -215,28 +259,28 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const spriteMap = {
       default: {
-        north: AdventurerNorth,
-        south: AdventurerSouth,
-        east: AdventurerEast,
-        west: AdventurerWest,
+        north: { stand: AdventurerNorth, walk: AdventurerNorthWalk },
+        south: { stand: AdventurerSouth, walk: AdventurerSouthWalk },
+        east: { stand: AdventurerEast, walk: AdventurerEastWalk },
+        west: { stand: AdventurerWest, walk: AdventurerWestWalk },
       },
       sword: {
-        north: AdventurerNorthSword,
-        south: AdventurerSouthSword,
-        east: AdventurerEastSword,
-        west: AdventurerWestSword,
+        north: { stand: AdventurerNorthSword, walk: AdventurerNorthSwordWalk },
+        south: { stand: AdventurerSouthSword, walk: AdventurerSouthSwordWalk },
+        east: { stand: AdventurerEastSword, walk: AdventurerEastSwordWalk },
+        west: { stand: AdventurerWestSword, walk: AdventurerWestSwordWalk },
       },
       shield: {
-        north: AdventurerNorthShield,
-        south: AdventurerSouthShield,
-        east: AdventurerEastShield,
-        west: AdventurerWestShield,
+        north: { stand: AdventurerNorthShield, walk: AdventurerNorthShieldWalk },
+        south: { stand: AdventurerSouthShield, walk: AdventurerSouthShieldWalk },
+        east: { stand: AdventurerEastShield, walk: AdventurerEastShieldWalk },
+        west: { stand: AdventurerWestShield, walk: AdventurerWestShieldWalk },
       },
       sword_shield: {
-        north: AdventurerNorthSwordShield,
-        south: AdventurerSouthSwordShield,
-        east: AdventurerEastSwordShield,
-        west: AdventurerWestSwordShield,
+        north: { stand: AdventurerNorthSwordShield, walk: AdventurerNorthSwordShieldWalk },
+        south: { stand: AdventurerSouthSwordShield, walk: AdventurerSouthSwordShieldWalk },
+        east: { stand: AdventurerEastSwordShield, walk: AdventurerEastSwordShieldWalk },
+        west: { stand: AdventurerWestSwordShield, walk: AdventurerWestSwordShieldWalk },
       },
     };
 
@@ -249,7 +293,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       equipmentState = 'shield';
     }
 
-    const adventurerSprite = spriteMap[equipmentState][direction];
+    const { stand: standSprite, walk: walkSprite } = spriteMap[equipmentState][direction];
 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
       const [x, y, f] = coordStr.split(',').map(Number);
@@ -344,14 +388,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
         </g>
-        <image
-          href={adventurerSprite}
-          x={playerLoc.x - 0.3}
-          y={playerLoc.y - 0.6}
-          width="1.6"
-          height="1.6"
-          className={cn(flashingEntityId === 'player' && 'is-flashing')}
-        />
+        {/* Player character rendering with SVG <g> for animation */}
+        <g
+          ref={playerSpriteGroupRef}
+          className={cn("player-sprite-group", isWalking && "is-walking")}
+          transform={`translate(${playerLoc.x - 0.3}, ${playerLoc.y - 0.6})`}
+        >
+          <g className={cn(flashingEntityId === 'player' && 'is-flashing')}>
+            <image
+              href={standSprite}
+              x="0"
+              y="0"
+              width="1.6"
+              height="1.6"
+              className="player-image-sprite-stand"
+            />
+            <image
+              href={walkSprite}
+              x="0"
+              y="0"
+              width="1.6"
+              height="1.6"
+              className="player-image-sprite-walk"
+            />
+          </g>
+        </g>
       </svg>
     );
   };

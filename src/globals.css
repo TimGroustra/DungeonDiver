@@ -136,4 +136,44 @@
   .is-flashing {
     animation: flash-effect 200ms ease-out;
   }
+
+  /* Player movement animation */
+  .player-sprite-group {
+    transition: transform 0.2s linear; /* Smooth positional movement */
+  }
+
+  /* Player walking animation using sprite swapping */
+  .player-image-sprite-stand,
+  .player-image-sprite-walk {
+    position: absolute; /* Required for layering */
+    opacity: 0;
+  }
+
+  /* Default state: not walking */
+  .player-sprite-group:not(.is-walking) .player-image-sprite-stand {
+    opacity: 1;
+  }
+  .player-sprite-group:not(.is-walking) .player-image-sprite-walk {
+    opacity: 0;
+  }
+
+  /* Walking state: animate opacity to swap sprites */
+  .player-sprite-group.is-walking .player-image-sprite-stand {
+    animation: walk-cycle-stand 0.4s steps(1, end) infinite;
+  }
+  .player-sprite-group.is-walking .player-image-sprite-walk {
+    animation: walk-cycle-walk 0.4s steps(1, end) infinite;
+  }
+
+  @keyframes walk-cycle-stand {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  @keyframes walk-cycle-walk {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
 }

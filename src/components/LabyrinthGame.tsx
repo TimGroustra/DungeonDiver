@@ -297,6 +297,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
+          {/* Trap Icon */}
+          <symbol id="trap-icon" viewBox="0 0 1 1">
+            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#8B0000" /> {/* Skull shape */}
+            <circle cx="0.4" cy="0.4" r="0.07" fill="black" /> {/* Left eye */}
+            <circle cx="0.6" cy="0.4" r="0.07" fill="black" /> {/* Right eye */}
+            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="black" /> {/* Nose */}
+          </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
@@ -337,6 +344,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
+          })}
+          {Array.from(labyrinth.visuallyRevealedTraps.entries()).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor || labyrinth.getTriggeredTraps().has(coordStr)) return null; // Don't show if already triggered
+            return <use key={`trap-${coordStr}`} href="#trap-icon" x={x} y={y} width="1" height="1" className="animate-pulse-slow opacity-70" />;
           })}
         </g>
         <image

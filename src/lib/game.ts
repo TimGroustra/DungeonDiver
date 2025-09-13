@@ -161,6 +161,7 @@ export class Labyrinth {
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
+  public visuallyRevealedTraps: Set<string>; // New: Stores "x,y,floor" strings of traps revealed by search
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
@@ -220,7 +221,7 @@ export class Labyrinth {
     this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
-    this.visitedCells = new Map();
+    this.visitedCells = new new Map();
     this.enemyLocations = new Map();
     this.puzzleLocations = new Map();
     this.itemLocations = new Map();
@@ -228,6 +229,7 @@ export class Labyrinth {
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
+    this.visuallyRevealedTraps = new Set<string>(); // Initialize new set for visually revealed traps
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
     this.puzzles = new Map();
@@ -1318,11 +1320,12 @@ export class Labyrinth {
                         foundSomethingInRadius = true;
                     }
                 }
-                // New: Reveal traps in the log
+                // New: Reveal traps in the log AND visually
                 const hasTrap = this.trapsLocations.has(coordStr);
                 const isTrapTriggered = this.triggeredTraps.has(coordStr);
                 if (hasTrap && !isTrapTriggered) {
                     this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
+                    this.visuallyRevealedTraps.add(coordStr); // Visually reveal the trap
                     foundSomethingInRadius = true;
                 }
             }

@@ -191,7 +191,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
+  const { floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();
@@ -252,6 +252,29 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
       return isVisible;
     });
+
+    const mapGrid = labyrinth.getMapGrid();
+    const backgroundWalls: React.ReactNode[] = [];
+    const foregroundWalls: React.ReactNode[] = [];
+
+    const [vx, vy, vw, vh] = viewBox.split(' ').map(Number);
+    const startX = Math.floor(vx);
+    const endX = Math.ceil(vx + vw);
+    const startY = Math.floor(vy);
+    const endY = Math.ceil(vy + vh);
+
+    for (let y = Math.max(0, startY); y < Math.min(endY, mapHeight); y++) {
+      for (let x = Math.max(0, startX); x < Math.min(endX, mapWidth); x++) {
+        if (mapGrid[y][x].isWall) {
+          const wallRect = <rect key={`wall-${x}-${y}`} x={x} y={y} width="1" height="1" className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />;
+          if (y <= playerLoc.y) {
+            backgroundWalls.push(wallRect);
+          } else {
+            foregroundWalls.push(wallRect);
+          }
+        }
+      }
+    }
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -393,7 +416,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
-          <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} /> {/* Adjusted stroke color */}
+          {backgroundWalls}
           {/* Render decorative elements using <use> tags */}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
@@ -438,6 +461,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           height="1.6"
           className={cn(flashingEntityId === 'player' && 'is-flashing')}
         />
+        <g mask="url(#fog-mask)">
+          {foregroundWalls}
+        </g>
       </svg>
     );
   };

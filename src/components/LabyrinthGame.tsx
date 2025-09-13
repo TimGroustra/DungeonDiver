@@ -252,10 +252,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const adventurerSprite = spriteMap[equipmentState][direction];
 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
-      if (typeof coordStr !== 'string') {
-        console.error("Invalid coordStr type in decorativeElements:", coordStr, typeof coordStr);
-        return false;
-      }
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f !== currentFloor) return false;
       const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
@@ -279,10 +275,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="rgba(0, 0, 0, 0.7)" />
             {Array.from(visitedCells).map(cellCoord => {
-              if (typeof cellCoord !== 'string') {
-                console.error("Invalid cellCoord type in visitedCells:", cellCoord, typeof cellCoord);
-                return null;
-              }
               const [x, y] = cellCoord.split(',').map(Number);
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
@@ -305,31 +297,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
-          {/* Trap Icon (for revealed but not triggered) - DEBUGGING: Changed to red square */}
-          <symbol id="trap-icon" viewBox="0 0 1 1">
-            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="red" />
-          </symbol>
-          {/* Triggered Trap Icon (for triggered traps) - DEBUGGING: Changed to blue square */}
-          <symbol id="trap-triggered-icon" viewBox="0 0 1 1">
-            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="blue" />
-          </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in decorativeElements:", coordStr, typeof coordStr);
-              return null;
-            }
             const [x, y] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in enemyLocations:", coordStr, typeof coordStr);
-              return null;
-            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
@@ -351,46 +327,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return null;
           })}
           {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in itemLocations:", coordStr, typeof coordStr);
-              return null;
-            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central" className="animate-pulse">{getEmojiForElement(item.name)}</text>;
           })}
           {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in staticItemLocations:", coordStr, typeof coordStr);
-              return null;
-            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
-          })}
-          {/* Render visually revealed traps (by search) */}
-          {Array.from(labyrinth.visuallyRevealedTraps.entries()).map((coordStr) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in visuallyRevealedTraps:", coordStr, typeof coordStr);
-              return null;
-            }
-            const [x, y, f] = coordStr.split(',').map(Number);
-            // Only show if on current floor AND not yet triggered
-            if (f !== currentFloor || labyrinth.getTriggeredTraps().has(coordStr)) return null;
-            return <use key={`trap-revealed-${coordStr}`} href="#trap-icon" x={x} y={y} width="1" height="1" className="animate-pulse-slow opacity-70" />;
-          })}
-          {/* Render triggered traps */}
-          {Array.from(labyrinth.getTriggeredTraps().entries()).map((coordStr) => {
-            if (typeof coordStr !== 'string') {
-              console.error("Invalid coordStr type in triggeredTraps:", coordStr, typeof coordStr);
-              return null;
-            }
-            const [x, y, f] = coordStr.split(',').map(Number);
-            // Only show if on current floor
-            if (f !== currentFloor) return null;
-            return <use key={`trap-triggered-${coordStr}`} href="#trap-triggered-icon" x={x} y={y} width="1" height="1" className="opacity-100" />;
           })}
         </g>
         <image

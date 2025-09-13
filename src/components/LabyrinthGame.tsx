@@ -252,6 +252,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const adventurerSprite = spriteMap[equipmentState][direction];
 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
+      if (typeof coordStr !== 'string') {
+        console.error("Invalid coordStr type in decorativeElements:", coordStr, typeof coordStr);
+        return false;
+      }
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f !== currentFloor) return false;
       const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
@@ -275,6 +279,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="rgba(0, 0, 0, 0.7)" />
             {Array.from(visitedCells).map(cellCoord => {
+              if (typeof cellCoord !== 'string') {
+                console.error("Invalid cellCoord type in visitedCells:", cellCoord, typeof cellCoord);
+                return null;
+              }
               const [x, y] = cellCoord.split(',').map(Number);
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
@@ -297,15 +305,39 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
+          {/* Trap Icon (for revealed but not triggered) */}
+          <symbol id="trap-icon" viewBox="0 0 1 1">
+            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#8B0000" /> {/* Skull shape */}
+            <circle cx="0.4" cy="0.4" r="0.07" fill="black" /> {/* Left eye */}
+            <circle cx="0.6" cy="0.4" r="0.07" fill="black" /> {/* Right eye */}
+            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="black" /> {/* Nose */}
+          </symbol>
+          {/* Triggered Trap Icon (for triggered traps) */}
+          <symbol id="trap-triggered-icon" viewBox="0 0 1 1">
+            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#4A0000" /> {/* Darker Skull shape */}
+            <circle cx="0.4" cy="0.4" r="0.07" fill="#111" /> {/* Darker Left eye */}
+            <circle cx="0.6" cy="0.4" r="0.07" fill="#111" /> {/* Darker Right eye */}
+            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="#111" /> {/* Darker Nose */}
+            <line x1="0.3" y1="0.7" x2="0.7" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
+            <line x1="0.7" y1="0.7" x2="0.3" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
+          </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in decorativeElements:", coordStr, typeof coordStr);
+              return null;
+            }
             const [x, y] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in enemyLocations:", coordStr, typeof coordStr);
+              return null;
+            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
@@ -327,16 +359,46 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return null;
           })}
           {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in itemLocations:", coordStr, typeof coordStr);
+              return null;
+            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central" className="animate-pulse">{getEmojiForElement(item.name)}</text>;
           })}
           {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in staticItemLocations:", coordStr, typeof coordStr);
+              return null;
+            }
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
+          })}
+          {/* Render visually revealed traps (by search) */}
+          {Array.from(labyrinth.getVisuallyRevealedTraps().entries()).map((coordStr) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in visuallyRevealedTraps:", coordStr, typeof coordStr);
+              return null;
+            }
+            const [x, y, f] = coordStr.split(',').map(Number);
+            // Only show if on current floor AND not yet triggered
+            if (f !== currentFloor || labyrinth.getTriggeredTraps().has(coordStr)) return null;
+            return <use key={`trap-revealed-${coordStr}`} href="#trap-icon" x={x} y={y} width="1" height="1" className="animate-pulse-slow opacity-70" />;
+          })}
+          {/* Render triggered traps */}
+          {Array.from(labyrinth.getTriggeredTraps().entries()).map((coordStr) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in triggeredTraps:", coordStr, typeof coordStr);
+              return null;
+            }
+            const [x, y, f] = coordStr.split(',').map(Number);
+            // Only show if on current floor
+            if (f !== currentFloor) return null;
+            return <use key={`trap-triggered-${coordStr}`} href="#trap-triggered-icon" x={x} y={y} width="1" height="1" className="opacity-100" />;
           })}
         </g>
         <image
@@ -516,16 +578,19 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </main>
 
         <aside className="w-full md:w-96 lg:w-[450px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">
-          <Tabs defaultValue="log" className="flex flex-col h-full">
-            <TabsList className="grid w-full grid-cols-3 bg-stone-950/50 rounded-b-none">
-              <TabsTrigger value="log" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><BookOpen className="w-4 h-4 mr-2"/>Chronicles</TabsTrigger>
-              <TabsTrigger value="inventory" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Backpack className="w-4 h-4 mr-2"/>Inventory</TabsTrigger>
-              <TabsTrigger value="objective" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Scroll className="w-4 h-4 mr-2"/>Objective</TabsTrigger>
-            </TabsList>
-            <TabsContent value="log" className="flex-grow relative">{renderChronicles()}</TabsContent>
-            <TabsContent value="inventory" className="flex-grow relative">{renderInventory()}</TabsContent>
-            <TabsContent value="objective" className="flex-grow relative">{renderObjective()}</TabsContent>
-          </Tabs>
+          {/* Objective Section */}
+          <div className="flex-1 border-b border-amber-800/60 overflow-y-auto">
+            {renderObjective()}
+          </div>
+          {/* Inventory Section */}
+          <div className="flex-1 overflow-y-auto">
+            {renderInventory()}
+          </div>
+          {/* Chronicles Section (moved to bottom, smaller) */}
+          <div className="h-48 border-t border-amber-800/60 bg-stone-950/50 flex-shrink-0">
+            <h3 className="text-lg font-bold text-amber-300 mb-1 text-center p-2">Chronicles</h3>
+            {renderChronicles()}
+          </div>
           <div className="p-2 border-t border-amber-800/60 bg-stone-950/50">
             <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
           </div>

@@ -161,6 +161,7 @@ export class Labyrinth {
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
+  public visuallyRevealedTraps: Set<string>; // New: Stores "x,y,floor" strings of traps revealed by search
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
@@ -228,6 +229,7 @@ export class Labyrinth {
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
+    this.visuallyRevealedTraps = new Set<string>(); // Initialize new set for visually revealed traps
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
     this.puzzles = new Map();
@@ -258,7 +260,7 @@ export class Labyrinth {
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
 
     this.initializeLabyrinth();
-    this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
+    this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers... You are on Floor ${this.currentFloor + 1}.`);
     this.addMessage(this.getCurrentFloorObjective().description);
     this.markVisited(this.playerLocation);
   }
@@ -979,6 +981,10 @@ export class Labyrinth {
     return this.triggeredTraps;
   }
 
+  public getVisuallyRevealedTraps(): Set<string> {
+    return this.visuallyRevealedTraps;
+  }
+
   public getDecorativeElements(): Map<string, string> {
     return this.decorativeElements;
   }
@@ -1318,11 +1324,12 @@ export class Labyrinth {
                         foundSomethingInRadius = true;
                     }
                 }
-                // New: Reveal traps in the log
+                // New: Reveal traps in the log AND add to visuallyRevealedTraps
                 const hasTrap = this.trapsLocations.has(coordStr);
                 const isTrapTriggered = this.triggeredTraps.has(coordStr);
                 if (hasTrap && !isTrapTriggered) {
                     this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
+                    this.visuallyRevealedTraps.add(coordStr); // Add to the set for rendering
                     foundSomethingInRadius = true;
                 }
             }
@@ -1525,8 +1532,6 @@ export class Labyrinth {
                 } else {
                     this.addMessage(`Your answer echoes, but the riddle remains unsolved. Try again.`);
                 }
-            } else {
-                this.addMessage("You decide not to attempt the riddle for now.");
             }
             interacted = true;
         }

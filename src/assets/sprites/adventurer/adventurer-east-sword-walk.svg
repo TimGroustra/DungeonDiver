@@ -1,6 +1,0 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect x="2" y="2" width="20" height="20" fill="#FFC107"/>
-<path d="M19 12L5 12M19 12L15 8M19 12L15 16" stroke="white" strokeWidth="2"/>
-<path d="M18 12L14 12M16 10L16 14" stroke="black" strokeWidth="1"/>
-<text x="12" y="17" fontSize="6" textAnchor="middle" fill="white">E-S-Walk</text>
-</svg>

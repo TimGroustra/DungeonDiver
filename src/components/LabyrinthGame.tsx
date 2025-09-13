@@ -493,7 +493,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <aside className="w-full md:w-80 lg:w-[350px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">
           {renderSidebarContent()}
           <div className="p-2 border-t border-amber-800/60 bg-stone-950/50">
-            <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
+            <p className="text-xs text-stone-500 text-center break-words">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
           </div>
         </aside>
       </div>

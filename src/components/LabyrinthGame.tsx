@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Gem and Compass icons
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 
 // Import adventurer sprites from the new assets location
@@ -343,17 +343,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     );
   };
 
-  const renderInventory = () => {
+  const renderSidebarContent = () => {
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
     const equippedAmulet = labyrinth.getEquippedAmulet();
     const equippedCompass = labyrinth.getEquippedCompass();
     const inventoryItems = labyrinth.getInventoryItems();
+    const currentObjective = labyrinth.getCurrentFloorObjective();
 
     return (
       <ScrollArea className="h-full w-full">
         <div className="p-4 text-amber-50">
-          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center">Equipped Gear</h3>
+          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Backpack className="w-5 h-5 mr-2"/>Equipped Gear</h3>
           <div className="space-y-3 mb-6">
             {equippedWeapon ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
@@ -403,9 +404,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             )}
           </div>
 
-          <Separator className="my-4 bg-amber-800/60" />
+          <Separator className="my-6 bg-amber-800/60" />
 
-          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center">Backpack</h3>
+          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Backpack className="w-5 h-5 mr-2"/>Backpack</h3>
           {inventoryItems.length === 0 ? (
             <p className="italic text-stone-400 text-center">Your backpack is empty.</p>
           ) : (
@@ -432,22 +433,19 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               })}
             </ul>
           )}
+
+          <Separator className="my-6 bg-amber-800/60" />
+
+          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Scroll className="w-5 h-5 mr-2"/>Objective: Floor {labyrinth.getCurrentFloor() + 1}</h3>
+          <div className="p-4 text-center text-amber-50 flex flex-col items-center justify-center">
+            <Goal className="w-16 h-16 text-amber-400 mb-4" />
+            <p className="text-sm text-stone-300 italic mt-2">{currentObjective.description}</p>
+            <p className={cn("text-sm font-semibold mt-4", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
+              Status: {currentObjective.isCompleted() ? "Completed" : "In Progress"}
+            </p>
+          </div>
         </div>
       </ScrollArea>
-    );
-  };
-
-  const renderObjective = () => {
-    const currentObjective = labyrinth.getCurrentFloorObjective();
-    return (
-      <div className="p-4 text-center text-amber-50 flex flex-col items-center justify-center h-full">
-        <Goal className="w-16 h-16 text-amber-400 mb-4" />
-        <h4 className="font-bold text-lg text-amber-200">Objective: Floor {labyrinth.getCurrentFloor() + 1}</h4>
-        <p className="text-sm text-stone-300 italic mt-2">{currentObjective.description}</p>
-        <p className={cn("text-sm font-semibold mt-4", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
-          Status: {currentObjective.isCompleted() ? "Completed" : "In Progress"}
-        </p>
-      </div>
     );
   };
 
@@ -500,14 +498,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </main>
 
         <aside className="w-full md:w-96 lg:w-[450px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">
-          <Tabs defaultValue="inventory" className="flex flex-col h-full">
-            <TabsList className="grid w-full grid-cols-2 bg-stone-950/50 rounded-b-none">
-              <TabsTrigger value="inventory" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Backpack className="w-4 h-4 mr-2"/>Inventory</TabsTrigger>
-              <TabsTrigger value="objective" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Scroll className="w-4 h-4 mr-2"/>Objective</TabsTrigger>
-            </TabsList>
-            <TabsContent value="inventory" className="flex-grow relative">{renderInventory()}</TabsContent>
-            <TabsContent value="objective" className="flex-grow relative">{renderObjective()}</TabsContent>
-          </Tabs>
+          {renderSidebarContent()}
           <div className="p-2 border-t border-amber-800/60 bg-stone-950/50">
             <p className="text-xs text-stone-500 text-center">Donations: <span className="font-mono text-stone-400">0x742d35Cc6634C0532925a3b844Bc454e4438f444</span></p>
           </div>

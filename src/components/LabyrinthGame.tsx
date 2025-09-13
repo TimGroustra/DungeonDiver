@@ -433,7 +433,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <image
           href={adventurerSprite}
           x={playerLoc.x - 0.3}
-          y={playerLoc.y - 0.3}
+          y={playerLoc.y - 0.6}
           width="1.6"
           height="1.6"
           className={cn(flashingEntityId === 'player' && 'is-flashing')}

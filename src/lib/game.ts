@@ -719,12 +719,7 @@ export class Labyrinth {
   private _placeDecorativeElements(floor: number) {
     const currentFloorMap = this.floors.get(floor)!;
     const lightFixtureTypes = ['torch_unlit', 'torch_lit'];
-    const floorDecorativeTypes = ['rubble', 'moss', 'glowing_fungi', 'puddle', 'cracks', 'bones', 'crate'];
-    const numDecorativeElements = 50; // Total number of decorative elements per floor
-
-    // Distribute elements: e.g., 20% torches, 80% floor decorations
-    const numTorches = Math.floor(numDecorativeElements * 0.2);
-    const numFloorDecorations = numDecorativeElements - numTorches;
+    const numTorches = 50; // Total number of torch elements per floor
 
     // Place light fixtures
     for (let i = 0; i < numTorches; i++) {
@@ -757,38 +752,6 @@ export class Labyrinth {
                     this.decorativeElements.set(coordStr, randomType);
                     placed = true;
                 }
-            }
-            attempts++;
-        }
-    }
-
-    // Place floor decorative elements
-    for (let i = 0; i < numFloorDecorations; i++) {
-        let placed = false;
-        let attempts = 0;
-        const MAX_ATTEMPTS = 500;
-
-        while (!placed && attempts < MAX_ATTEMPTS) {
-            const x = Math.floor(Math.random() * this.MAP_WIDTH);
-            const y = Math.floor(Math.random() * this.MAP_HEIGHT);
-            const coordStr = `${x},${y},${floor}`;
-
-            // Ensure it's an open cell and not overlapping with critical game elements
-            if (
-                currentFloorMap[y][x] !== 'wall' && // Must be an open cell
-                !this.enemyLocations.has(coordStr) &&
-                !this.puzzleLocations.has(coordStr) &&
-                !this.itemLocations.has(coordStr) &&
-                !this.staticItemLocations.has(coordStr) &&
-                !this.trapsLocations.has(coordStr) &&
-                !this.decorativeElements.has(coordStr) && // Don't place on existing decoration
-                (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor) // Not on player start
-            ) {
-                const randomTypeBase = floorDecorativeTypes[Math.floor(Math.random() * floorDecorativeTypes.length)];
-                const numVariations = 3; // Assuming 3 variations per type (e.g., rubble-1, rubble-2, rubble-3)
-                const randomVariation = Math.floor(Math.random() * numVariations) + 1;
-                this.decorativeElements.set(coordStr, `${randomTypeBase}-${randomVariation}`);
-                placed = true;
             }
             attempts++;
         }

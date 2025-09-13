@@ -279,6 +279,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="rgba(0, 0, 0, 0.7)" />
             {Array.from(visitedCells).map(cellCoord => {
+              if (typeof cellCoord !== 'string') {
+                console.error("Invalid cellCoord type in visitedCells:", cellCoord, typeof cellCoord);
+                return null;
+              }
               const [x, y] = cellCoord.split(',').map(Number);
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
@@ -301,28 +305,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
-          {/* Trap Icon (for revealed but not triggered) */}
+          {/* Trap Icon (for revealed but not triggered) - DEBUGGING: Changed to red square */}
           <symbol id="trap-icon" viewBox="0 0 1 1">
-            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#8B0000" /> {/* Skull shape */}
-            <circle cx="0.4" cy="0.4" r="0.07" fill="black" /> {/* Left eye */}
-            <circle cx="0.6" cy="0.4" r="0.07" fill="black" /> {/* Right eye */}
-            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="black" /> {/* Nose */}
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="red" />
           </symbol>
-          {/* Triggered Trap Icon (for triggered traps) */}
+          {/* Triggered Trap Icon (for triggered traps) - DEBUGGING: Changed to blue square */}
           <symbol id="trap-triggered-icon" viewBox="0 0 1 1">
-            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#4A0000" /> {/* Darker Skull shape */}
-            <circle cx="0.4" cy="0.4" r="0.07" fill="#111" /> {/* Darker Left eye */}
-            <circle cx="0.6" cy="0.4" r="0.07" fill="#111" /> {/* Darker Right eye */}
-            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="#111" /> {/* Darker Nose */}
-            <line x1="0.3" y1="0.7" x2="0.7" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
-            <line x1="0.7" y1="0.7" x2="0.3" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="blue" />
           </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
-            // No need for floor check here, already filtered
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in decorativeElements:", coordStr, typeof coordStr);
+              return null;
+            }
             const [x, y] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}

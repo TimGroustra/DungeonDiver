@@ -428,8 +428,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
           <h4 className="text-md font-bold text-amber-300 mb-2">Objective: Floor {labyrinth.getCurrentFloor() + 1}</h4>
           <div className="p-2 text-center text-amber-50 flex flex-col items-center justify-center">
-            <p className="text-sm text-stone-300 italic mt-1">{currentObjective.description}</p>
-            <p className={cn("text-sm font-semibold mt-2", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
+            <ul className="list-disc list-inside text-left space-y-1 text-sm text-stone-300 italic mt-1">
+              {currentObjective.description.map((step, index) => (
+                <li key={index}>{step}</li>
+              ))}
+            </ul>
+            <p className={cn("text-sm font-semibold mt-4", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
               Status: {currentObjective.isCompleted() ? "Completed" : "In Progress"}
             </p>
           </div>

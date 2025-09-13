@@ -165,7 +165,7 @@ export class Labyrinth {
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
   public items: Map<string, Item>;
-  private floorObjectives: Map<number, { description: string; isCompleted: () => boolean; }>; // New: Objectives per floor
+  private floorObjectives: Map<number, { description: string[]; isCompleted: () => boolean; }>; // New: Objectives per floor, now an array of strings
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
@@ -259,7 +259,7 @@ export class Labyrinth {
 
     this.initializeLabyrinth();
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
-    this.addMessage(this.getCurrentFloorObjective().description);
+    this.addMessage(this.getCurrentFloorObjective().description.join(' ')); // Join for initial message
     this.markVisited(this.playerLocation);
   }
 
@@ -614,7 +614,12 @@ export class Labyrinth {
       this.placeElementRandomly(ancientMechanism.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Find the 'Tattered Journal', locate a 'Pulsating Crystal', and use them to activate the 'Ancient Mechanism' to obtain the Scholar's Amulet.",
+        description: [
+          "Find the 'Tattered Journal'.",
+          "Locate a 'Pulsating Crystal'.",
+          "Use the 'Tattered Journal' and 'Pulsating Crystal' to activate the 'Ancient Mechanism'.",
+          "Obtain the Scholar's Amulet."
+        ],
         isCompleted: () => this.scholarAmuletQuestCompleted
       });
 
@@ -632,7 +637,12 @@ export class Labyrinth {
       this.placeElementRandomly(enchantedFlask.id, this.itemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Find the 'Enchanted Flask', locate the 'Hidden Spring' to fill it with 'Living Water', then use the water to quench the 'Whispering Well'.",
+        description: [
+          "Find the 'Enchanted Flask'.",
+          "Locate the 'Hidden Spring'.",
+          "Fill the 'Enchanted Flask' with 'Living Water' from the 'Hidden Spring'.",
+          "Use the 'Living Water' to quench the 'Whispering Well'."
+        ],
         isCompleted: () => this.whisperingWellQuestCompleted
       });
 
@@ -654,7 +664,12 @@ export class Labyrinth {
       this.placeElementRandomly(repairBench.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Gather the 'Broken Compass', 'Artisan's Fine Tools', and a 'Prismatic Lens', then use them at the 'Ancient Repair Bench' to fix the compass.",
+        description: [
+          "Gather the 'Broken Compass'.",
+          "Find 'Artisan's Fine Tools'.",
+          "Locate a 'Prismatic Lens'.",
+          "Use these items at the 'Ancient Repair Bench' to repair the compass."
+        ],
         isCompleted: () => this.trueCompassQuestCompleted
       });
 
@@ -688,7 +703,13 @@ export class Labyrinth {
       this.placeElementInBossPassage(mysteriousBox.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: "Find the 'Labyrinth Key', use it to open the 'Mysterious Box' to obtain the 'Heart of the Labyrinth', then defeat 'The Watcher of the Core', and finally sacrifice the Heart at the 'Ancient Altar' to destroy the Labyrinth.",
+        description: [
+          "Find the 'Labyrinth Key'.",
+          "Use the 'Labyrinth Key' to open the 'Mysterious Box'.",
+          "Obtain the 'Heart of the Labyrinth'.",
+          "Defeat 'The Watcher of the Core'.",
+          "Sacrifice the 'Heart of the Labyrinth' at the 'Ancient Altar' to destroy the Labyrinth."
+        ],
         isCompleted: () => this.bossDefeated && this.heartSacrificed
       });
     }
@@ -1028,7 +1049,7 @@ export class Labyrinth {
     return grid;
   }
 
-  public getCurrentFloorObjective(): { description: string; isCompleted: () => boolean; } {
+  public getCurrentFloorObjective(): { description: string[]; isCompleted: () => boolean; } {
     return this.floorObjectives.get(this.currentFloor)!; // Should always exist
   }
 
@@ -1040,7 +1061,7 @@ export class Labyrinth {
 
     const currentObjective = this.getCurrentFloorObjective();
     if (!currentObjective.isCompleted()) {
-      this.addMessage(`You cannot proceed to the next floor yet. Objective: ${currentObjective.description}`);
+      this.addMessage(`You cannot proceed to the next floor yet. Objective: ${currentObjective.description.join(' ')}`);
       return;
     }
 
@@ -1048,7 +1069,7 @@ export class Labyrinth {
     this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
     this.markVisited(this.playerLocation);
     this.addMessage(`You successfully descended to Floor ${this.currentFloor + 1}!`);
-    this.addMessage(this.getCurrentFloorObjective().description);
+    this.addMessage(this.getCurrentFloorObjective().description.join(' '));
   }
 
   private _tryActivateWellBlessing(playerName: string, time: number, currentCause: string): boolean {

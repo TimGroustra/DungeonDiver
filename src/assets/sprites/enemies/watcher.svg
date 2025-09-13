@@ -1,33 +1,24 @@
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-        <radialGradient id="watcherBody" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#6A0DAD"/>
-            <stop offset="100%" stop-color="#2C003E"/>
+        <radialGradient id="watcherGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" style="stop-color:#212121;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
         </radialGradient>
-        <radialGradient id="iris" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#FF8C00"/>
-            <stop offset="100%" stop-color="#FF4500"/>
-        </radialGradient>
-        <filter id="glow">
-            <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
-            <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
     </defs>
-    <g filter="url(#glow)">
-        <path d="M12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2Z" fill="url(#watcherBody)"/>
-        <path d="M12 2L10 7L12 6L14 7L12 2Z" fill="#9370DB"/>
-        <path d="M12 22L10 17L12 18L14 17L12 22Z" fill="#9370DB"/>
-        <path d="M2 12L7 10L6 12L7 14L2 12Z" fill="#9370DB"/>
-        <path d="M22 12L17 10L18 12L17 14L22 12Z" fill="#9370DB"/>
-        <path d="M5.63604 5.63604L8.46447 8.46447L7.75736 9.17157L8.46447 9.87868L5.63604 5.63604Z" fill="#9370DB"/>
-        <path d="M18.364 18.364L15.5355 15.5355L16.2426 14.8284L15.5355 14.1213L18.364 18.364Z" fill="#9370DB"/>
-        <path d="M5.63604 18.364L8.46447 15.5355L9.17157 16.2426L9.87868 15.5355L5.63604 18.364Z" fill="#9370DB"/>
-        <path d="M18.364 5.63604L15.5355 8.46447L14.8284 7.75736L14.1213 8.46447L18.364 5.63604Z" fill="#9370DB"/>
-    </g>
-    <path d="M18 12C18 15.3137 15.3137 18 12 18C8.68629 18 6 15.3137 6 12C6 8.68629 8.68629 6 12 6C15.3137 6 18 8.68629 18 12Z" fill="white"/>
-    <circle cx="12" cy="12" r="4" fill="url(#iris)"/>
-    <path d="M12 10V14" stroke="black" stroke-width="2" stroke-linecap="round"/>
+    <!-- Main Body -->
+    <path d="M4 10 C 4 4, 20 4, 20 10 C 20 18, 16 22, 12 22 C 8 22, 4 18, 4 10 Z" fill="url(#watcherGradient)"/>
+    <!-- Tentacles -->
+    <path d="M6 20 C 2 22, 2 16, 6 18" stroke="#212121" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M18 20 C 22 22, 22 16, 18 18" stroke="#212121" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <path d="M10 22 C 8 24, 12 24, 12 22" stroke="#212121" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    <!-- Main Eye -->
+    <circle cx="12" cy="12" r="4" fill="#B71C1C"/>
+    <circle cx="12" cy="12" r="2" fill="#FFEB3B"/>
+    <path d="M12 10 V 14" stroke="#000000" stroke-width="1.5"/>
+    <!-- Smaller Eyes -->
+    <circle cx="8" cy="8" r="1.5" fill="#B71C1C"><circle cx="0" cy="0" r="0.7" fill="#FFEB3B"/></circle>
+    <circle cx="16" cy="8" r="1.5" fill="#B71C1C"><circle cx="0" cy="0" r="0.7" fill="#FFEB3B"/></circle>
+    <circle cx="7" cy="15" r="1.2" fill="#B71C1C"><circle cx="0" cy="0" r="0.6" fill="#FFEB3B"/></circle>
+    <circle cx="17" cy="15" r="1.2" fill="#B71C1C"><circle cx="0" cy="0" r="0.6" fill="#FFEB3B"/></circle>
+    <circle cx="12" cy="6" r="1" fill="#B71C1C"><circle cx="0" cy="0" r="0.5" fill="#FFEB3B"/></circle>
 </svg>

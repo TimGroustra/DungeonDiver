@@ -1,17 +1,21 @@
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
-        <radialGradient id="shadowCore" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#2C003E" />
-            <stop offset="100%" stop-color="#111111" stop-opacity="0.8"/>
+        <radialGradient id="shadowGradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" style="stop-color:#4A148C;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#1A237E;stop-opacity:0.8" />
         </radialGradient>
-        <filter id="shadowGlow">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="1" />
-        </filter>
     </defs>
-    <g filter="url(#shadowGlow)">
-        <path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z" fill="url(#shadowCore)" opacity="0.7"/>
-        <path d="M12 2C10.5 5 5 6 6 12C7 18 10.5 19 12 22C13.5 19 19 18 18 12C17 6 13.5 5 12 2Z" fill="#1A001A" opacity="0.9"/>
-    </g>
-    <path d="M10 10C9.44772 10 9 10.4477 9 11C9 11.5523 9.44772 12 10 12C10.5523 12 11 11.5523 11 11C11 10.4477 10.5523 10 10 10Z" fill="#FFD700"/>
-    <path d="M14 10C13.4477 10 13 10.4477 13 11C13 11.5523 13.4477 12 14 12C14.5523 12 15 11.5523 15 11C15 10.4477 14.5523 10 14 10Z" fill="#FFD700"/>
+    <!-- Body -->
+    <path d="M12 4 C 6 4, 4 10, 6 16 C 8 22, 16 22, 18 16 C 20 10, 18 4, 12 4 Z" fill="url(#shadowGradient)"/>
+    <!-- Wisps -->
+    <path d="M6 16 C 4 18, 2 18, 3 20 C 4 22, 6 20, 6 18" fill="#4A148C" opacity="0.7"/>
+    <path d="M18 16 C 20 18, 22 18, 21 20 C 20 22, 18 20, 18 18" fill="#4A148C" opacity="0.7"/>
+    <path d="M10 21 C 10 23, 14 23, 14 21" fill="#4A148C" opacity="0.6"/>
+    <!-- Eyes -->
+    <circle cx="10" cy="12" r="1.5" fill="#F44336">
+        <animate attributeName="r" values="1.5;1.7;1.5" dur="2s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="14" cy="12" r="1.5" fill="#F44336">
+        <animate attributeName="r" values="1.5;1.7;1.5" dur="2s" repeatCount="indefinite" />
+    </circle>
 </svg>

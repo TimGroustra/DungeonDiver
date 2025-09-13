@@ -221,7 +221,7 @@ export class Labyrinth {
     this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
-    this.visitedCells = new new Map();
+    this.visitedCells = new Map(); // Corrected: Removed extra 'new'
     this.enemyLocations = new Map();
     this.puzzleLocations = new Map();
     this.itemLocations = new Map();
@@ -1232,6 +1232,9 @@ export class Labyrinth {
     let foundSomethingInRadius = false;
 
     this.addMessage("You carefully scan your surroundings...");
+
+    // Clear previously visually revealed traps to only show current search results
+    this.visuallyRevealedTraps.clear();
 
     for (let dy = -this.getSearchRadius(); dy <= this.getSearchRadius(); dy++) {
         for (let dx = -this.getSearchRadius(); dx <= this.getSearchRadius(); dx++) {

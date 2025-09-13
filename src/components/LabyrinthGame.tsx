@@ -31,6 +31,12 @@ import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-s
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
+// Import enemy sprites
+import GoblinSprite from "@/assets/sprites/enemies/goblin.svg";
+import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
+import ShadowSprite from "@/assets/sprites/enemies/shadow.svg";
+import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
+
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -43,11 +49,14 @@ interface LabyrinthGameProps {
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 
+const enemySpriteMap: { [key: string]: string } = {
+  "Grumbling Goblin": GoblinSprite,
+  "Rattling Skeleton": SkeletonSprite,
+  "Whispering Shadow": ShadowSprite,
+  "The Watcher of the Core": WatcherSprite,
+};
+
 const emojiMap: { [key: string]: string } = {
-  "Grumbling Goblin": "👹",
-  "Rattling Skeleton": "💀",
-  "Whispering Shadow": "👻",
-  "The Watcher of the Core": "👁️",
   "Vial of Lumina": "🧪",
   "Blade of the Labyrinth": "🗡️",
   "Aegis of the Guardian": "🛡️",
@@ -72,7 +81,6 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
-  // Decorative elements will now be rendered as SVG symbols, not emojis.
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
@@ -187,7 +195,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const getEmojiForElement = (elementName: string): string => {
-    // Only return emojis for non-decorative elements
     return emojiMap[elementName] || "❓";
   };
 
@@ -244,7 +251,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const adventurerSprite = spriteMap[equipmentState][direction];
 
-    // Filter decorative elements to only show those within the viewport
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f !== currentFloor) return false;
@@ -256,17 +262,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
-          {/* Floor Pattern inspired by tileset */}
           <pattern id="floor-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
-            <rect width="1" height="1" fill="#3a2d3c" /> {/* Dark purple-brown base */}
-            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" /> {/* Subtle grid lines */}
+            <rect width="1" height="1" fill="#3a2d3c" />
+            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
             <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
             <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
           </pattern>
-          {/* Wall Pattern inspired by tileset */}
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
-            <rect width="1" height="1" fill="#5a4d5c" /> {/* Slightly lighter purple-brown base */}
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" /> {/* Brick-like lines */}
+            <rect width="1" height="1" fill="#5a4d5c" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
           </pattern>
           <mask id="fog-mask">
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="black" />
@@ -275,146 +279,57 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
           </mask>
-
-          {/* Decorative Element Symbols - Multiple variations for floor elements */}
-          <symbol id="rubble-1" viewBox="0 0 1 1">
-            <rect x="0.1" y="0.1" width="0.3" height="0.2" fill="#8b4513" />
-            <rect x="0.5" y="0.4" width="0.2" height="0.3" fill="#8b4513" />
-            <rect x="0.2" y="0.6" width="0.4" height="0.2" fill="#8b4513" />
-          </symbol>
-          <symbol id="rubble-2" viewBox="0 0 1 1">
-            <rect x="0.05" y="0.5" width="0.2" height="0.15" fill="#8b4513" />
-            <rect x="0.3" y="0.2" width="0.3" height="0.25" fill="#8b4513" />
-            <rect x="0.6" y="0.6" width="0.25" height="0.2" fill="#8b4513" />
-          </symbol>
-          <symbol id="rubble-3" viewBox="0 0 1 1">
-            <rect x="0.4" y="0.1" width="0.2" height="0.3" fill="#8b4513" />
-            <rect x="0.1" y="0.7" width="0.35" height="0.2" fill="#8b4513" />
-            <rect x="0.65" y="0.3" width="0.2" height="0.25" fill="#8b4513" />
-          </symbol>
-
-          <symbol id="moss-1" viewBox="0 0 1 1">
-            <path d="M0.1 0.5 Q0.3 0.2 0.5 0.3 T0.9 0.5 Q0.7 0.8 0.5 0.7 T0.1 0.5Z" fill="#6b8e23" />
-          </symbol>
-          <symbol id="moss-2" viewBox="0 0 1 1">
-            <path d="M0.2 0.3 Q0.4 0.1 0.6 0.2 T0.8 0.4 Q0.6 0.7 0.4 0.6 T0.2 0.3Z" fill="#6b8e23" />
-            <path d="M0.3 0.7 Q0.5 0.5 0.7 0.6 T0.9 0.8 Q0.7 1.0 0.5 0.9 T0.3 0.7Z" fill="#6b8e23" />
-          </symbol>
-          <symbol id="moss-3" viewBox="0 0 1 1">
-            <circle cx="0.3" cy="0.4" r="0.15" fill="#6b8e23" />
-            <circle cx="0.7" cy="0.6" r="0.1" fill="#6b8e23" />
-            <circle cx="0.5" cy="0.8" r="0.12" fill="#6b8e23" />
-          </symbol>
-
-          <symbol id="glowing_fungi-1" viewBox="0 0 1 1">
-            <circle cx="0.5" cy="0.6" r="0.2" fill="#8b4513" /> {/* Cap */}
-            <rect x="0.45" y="0.6" width="0.1" height="0.3" fill="#8b4513" /> {/* Stem */}
-            <circle cx="0.5" cy="0.6" r="0.1" fill="#ffcc00" className="animate-pulse-slow" /> {/* Glow */}
-          </symbol>
-          <symbol id="glowing_fungi-2" viewBox="0 0 1 1">
-            <circle cx="0.3" cy="0.7" r="0.15" fill="#8b4513" />
-            <rect x="0.27" y="0.7" width="0.06" height="0.2" fill="#8b4513" />
-            <circle cx="0.3" cy="0.7" r="0.08" fill="#ffcc00" className="animate-pulse-slow" />
-            <circle cx="0.7" cy="0.5" r="0.1" fill="#8b4513" />
-            <rect x="0.68" y="0.5" width="0.04" height="0.15" fill="#8b4513" />
-            <circle cx="0.7" cy="0.5" r="0.05" fill="#ffcc00" className="animate-pulse-slow" />
-          </symbol>
-          <symbol id="glowing_fungi-3" viewBox="0 0 1 1">
-            <circle cx="0.6" cy="0.4" r="0.18" fill="#8b4513" />
-            <rect x="0.57" y="0.4" width="0.06" height="0.25" fill="#8b4513" />
-            <circle cx="0.6" cy="0.4" r="0.09" fill="#ffcc00" className="animate-pulse-slow" />
-          </symbol>
-
-          <symbol id="puddle-1" viewBox="0 0 1 1">
-            <path d="M0.2 0.5 Q0.3 0.2 0.5 0.3 T0.8 0.5 Q0.7 0.8 0.5 0.7 T0.2 0.5Z" fill="#4682b4" />
-          </symbol>
-          <symbol id="puddle-2" viewBox="0 0 1 1">
-            <ellipse cx="0.5" cy="0.5" rx="0.3" ry="0.2" fill="#4682b4" />
-          </symbol>
-          <symbol id="puddle-3" viewBox="0 0 1 1">
-            <path d="M0.1 0.3 L0.4 0.1 L0.7 0.3 L0.9 0.6 L0.6 0.9 L0.3 0.7 Z" fill="#4682b4" />
-          </symbol>
-
-          <symbol id="cracks-1" viewBox="0 0 1 1">
-            <path d="M0.1 0.1 L0.4 0.3 L0.3 0.5 L0.6 0.7 L0.5 0.9" stroke="#6a5d6c" strokeWidth="0.05" fill="none" />
-            <path d="M0.9 0.1 L0.7 0.4 L0.8 0.6" stroke="#6a5d6c" strokeWidth="0.05" fill="none" />
-          </symbol>
-          <symbol id="cracks-2" viewBox="0 0 1 1">
-            <path d="M0.2 0.8 L0.5 0.5 L0.8 0.8 M0.5 0.5 L0.5 0.2" stroke="#6a5d6c" strokeWidth="0.04" fill="none" />
-          </symbol>
-          <symbol id="cracks-3" viewBox="0 0 1 1">
-            <path d="M0.1 0.5 L0.3 0.3 L0.5 0.5 L0.7 0.3 L0.9 0.5" stroke="#6a5d6c" strokeWidth="0.03" fill="none" />
-          </symbol>
-
-          <symbol id="bones-1" viewBox="0 0 1 1">
-            <circle cx="0.2" cy="0.5" r="0.1" fill="#f0f0f0" />
-            <rect x="0.2" y="0.45" width="0.6" height="0.1" fill="#f0f0f0" />
-            <circle cx="0.8" cy="0.5" r="0.1" fill="#f0f0f0" />
-          </symbol>
-          <symbol id="bones-2" viewBox="0 0 1 1">
-            <rect x="0.1" y="0.3" width="0.2" height="0.08" fill="#f0f0f0" />
-            <rect x="0.3" y="0.4" width="0.4" height="0.08" fill="#f0f0f0" />
-            <rect x="0.6" y="0.5" width="0.2" height="0.08" fill="#f0f0f0" />
-          </symbol>
-          <symbol id="bones-3" viewBox="0 0 1 1">
-            <path d="M0.2 0.2 L0.3 0.4 L0.5 0.3 L0.7 0.5 L0.6 0.7 L0.4 0.6 L0.2 0.8 Z" fill="#f0f0f0" />
-          </symbol>
-
-          <symbol id="crate-1" viewBox="0 0 1 1">
-            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.05" />
-            <line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#5a2d0c" strokeWidth="0.05" />
-            <line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#5a2d0c" strokeWidth="0.05" />
-          </symbol>
-          <symbol id="crate-2" viewBox="0 0 1 1">
-            <rect x="0.15" y="0.15" width="0.7" height="0.7" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.04" />
-            <line x1="0.15" y1="0.4" x2="0.85" y2="0.4" stroke="#5a2d0c" strokeWidth="0.04" />
-            <line x1="0.15" y1="0.65" x2="0.85" y2="0.65" stroke="#5a2d0c" strokeWidth="0.04" />
-          </symbol>
-          <symbol id="crate-3" viewBox="0 0 1 1">
-            <rect x="0.2" y="0.2" width="0.6" height="0.6" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.03" />
-            <line x1="0.2" y1="0.5" x2="0.8" y2="0.5" stroke="#5a2d0c" strokeWidth="0.03" />
-            <line x1="0.5" y1="0.2" x2="0.5" y2="0.8" stroke="#5a2d0c" strokeWidth="0.03" />
-            <circle cx="0.5" cy="0.5" r="0.05" fill="#5a2d0c" />
-          </symbol>
-
-          {/* Torch Symbols (wall-mounted) */}
-          <symbol id="torch_unlit" viewBox="0 0 1 1">
-            <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" /> {/* Stick */}
-            <circle cx="0.5" cy="0.4" r="0.15" fill="#333" /> {/* Unlit top */}
-            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /> {/* Wall mount detail */}
-          </symbol>
-          <symbol id="torch_lit" viewBox="0 0 1 1">
-            <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" /> {/* Stick */}
-            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /> {/* Wall mount detail */}
-            <path d="M0.5 0.2 L0.4 0.4 L0.5 0.3 L0.6 0.4 Z" fill="#ffa500" className="animate-pulse-fast" /> {/* Flame */}
-            <circle cx="0.5" cy="0.3" r="0.2" fill="rgba(255,165,0,0.3)" className="animate-pulse-fast" /> {/* Glow */}
-          </symbol>
-
+          <symbol id="rubble-1" viewBox="0 0 1 1"><rect x="0.1" y="0.1" width="0.3" height="0.2" fill="#8b4513" /><rect x="0.5" y="0.4" width="0.2" height="0.3" fill="#8b4513" /><rect x="0.2" y="0.6" width="0.4" height="0.2" fill="#8b4513" /></symbol>
+          <symbol id="rubble-2" viewBox="0 0 1 1"><rect x="0.05" y="0.5" width="0.2" height="0.15" fill="#8b4513" /><rect x="0.3" y="0.2" width="0.3" height="0.25" fill="#8b4513" /><rect x="0.6" y="0.6" width="0.25" height="0.2" fill="#8b4513" /></symbol>
+          <symbol id="rubble-3" viewBox="0 0 1 1"><rect x="0.4" y="0.1" width="0.2" height="0.3" fill="#8b4513" /><rect x="0.1" y="0.7" width="0.35" height="0.2" fill="#8b4513" /><rect x="0.65" y="0.3" width="0.2" height="0.25" fill="#8b4513" /></symbol>
+          <symbol id="moss-1" viewBox="0 0 1 1"><path d="M0.1 0.5 Q0.3 0.2 0.5 0.3 T0.9 0.5 Q0.7 0.8 0.5 0.7 T0.1 0.5Z" fill="#6b8e23" /></symbol>
+          <symbol id="moss-2" viewBox="0 0 1 1"><path d="M0.2 0.3 Q0.4 0.1 0.6 0.2 T0.8 0.4 Q0.6 0.7 0.4 0.6 T0.2 0.3Z" fill="#6b8e23" /><path d="M0.3 0.7 Q0.5 0.5 0.7 0.6 T0.9 0.8 Q0.7 1.0 0.5 0.9 T0.3 0.7Z" fill="#6b8e23" /></symbol>
+          <symbol id="moss-3" viewBox="0 0 1 1"><circle cx="0.3" cy="0.4" r="0.15" fill="#6b8e23" /><circle cx="0.7" cy="0.6" r="0.1" fill="#6b8e23" /><circle cx="0.5" cy="0.8" r="0.12" fill="#6b8e23" /></symbol>
+          <symbol id="glowing_fungi-1" viewBox="0 0 1 1"><circle cx="0.5" cy="0.6" r="0.2" fill="#8b4513" /><rect x="0.45" y="0.6" width="0.1" height="0.3" fill="#8b4513" /><circle cx="0.5" cy="0.6" r="0.1" fill="#ffcc00" className="animate-pulse-slow" /></symbol>
+          <symbol id="glowing_fungi-2" viewBox="0 0 1 1"><circle cx="0.3" cy="0.7" r="0.15" fill="#8b4513" /><rect x="0.27" y="0.7" width="0.06" height="0.2" fill="#8b4513" /><circle cx="0.3" cy="0.7" r="0.08" fill="#ffcc00" className="animate-pulse-slow" /><circle cx="0.7" cy="0.5" r="0.1" fill="#8b4513" /><rect x="0.68" y="0.5" width="0.04" height="0.15" fill="#8b4513" /><circle cx="0.7" cy="0.5" r="0.05" fill="#ffcc00" className="animate-pulse-slow" /></symbol>
+          <symbol id="glowing_fungi-3" viewBox="0 0 1 1"><circle cx="0.6" cy="0.4" r="0.18" fill="#8b4513" /><rect x="0.57" y="0.4" width="0.06" height="0.25" fill="#8b4513" /><circle cx="0.6" cy="0.4" r="0.09" fill="#ffcc00" className="animate-pulse-slow" /></symbol>
+          <symbol id="puddle-1" viewBox="0 0 1 1"><path d="M0.2 0.5 Q0.3 0.2 0.5 0.3 T0.8 0.5 Q0.7 0.8 0.5 0.7 T0.2 0.5Z" fill="#4682b4" /></symbol>
+          <symbol id="puddle-2" viewBox="0 0 1 1"><ellipse cx="0.5" cy="0.5" rx="0.3" ry="0.2" fill="#4682b4" /></symbol>
+          <symbol id="puddle-3" viewBox="0 0 1 1"><path d="M0.1 0.3 L0.4 0.1 L0.7 0.3 L0.9 0.6 L0.6 0.9 L0.3 0.7 Z" fill="#4682b4" /></symbol>
+          <symbol id="cracks-1" viewBox="0 0 1 1"><path d="M0.1 0.1 L0.4 0.3 L0.3 0.5 L0.6 0.7 L0.5 0.9" stroke="#6a5d6c" strokeWidth="0.05" fill="none" /><path d="M0.9 0.1 L0.7 0.4 L0.8 0.6" stroke="#6a5d6c" strokeWidth="0.05" fill="none" /></symbol>
+          <symbol id="cracks-2" viewBox="0 0 1 1"><path d="M0.2 0.8 L0.5 0.5 L0.8 0.8 M0.5 0.5 L0.5 0.2" stroke="#6a5d6c" strokeWidth="0.04" fill="none" /></symbol>
+          <symbol id="cracks-3" viewBox="0 0 1 1"><path d="M0.1 0.5 L0.3 0.3 L0.5 0.5 L0.7 0.3 L0.9 0.5" stroke="#6a5d6c" strokeWidth="0.03" fill="none" /></symbol>
+          <symbol id="bones-1" viewBox="0 0 1 1"><circle cx="0.2" cy="0.5" r="0.1" fill="#f0f0f0" /><rect x="0.2" y="0.45" width="0.6" height="0.1" fill="#f0f0f0" /><circle cx="0.8" cy="0.5" r="0.1" fill="#f0f0f0" /></symbol>
+          <symbol id="bones-2" viewBox="0 0 1 1"><rect x="0.1" y="0.3" width="0.2" height="0.08" fill="#f0f0f0" /><rect x="0.3" y="0.4" width="0.4" height="0.08" fill="#f0f0f0" /><rect x="0.6" y="0.5" width="0.2" height="0.08" fill="#f0f0f0" /></symbol>
+          <symbol id="bones-3" viewBox="0 0 1 1"><path d="M0.2 0.2 L0.3 0.4 L0.5 0.3 L0.7 0.5 L0.6 0.7 L0.4 0.6 L0.2 0.8 Z" fill="#f0f0f0" /></symbol>
+          <symbol id="crate-1" viewBox="0 0 1 1"><rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.05" /><line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#5a2d0c" strokeWidth="0.05" /><line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#5a2d0c" strokeWidth="0.05" /></symbol>
+          <symbol id="crate-2" viewBox="0 0 1 1"><rect x="0.15" y="0.15" width="0.7" height="0.7" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.04" /><line x1="0.15" y1="0.4" x2="0.85" y2="0.4" stroke="#5a2d0c" strokeWidth="0.04" /><line x1="0.15" y1="0.65" x2="0.85" y2="0.65" stroke="#5a2d0c" strokeWidth="0.04" /></symbol>
+          <symbol id="crate-3" viewBox="0 0 1 1"><rect x="0.2" y="0.2" width="0.6" height="0.6" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.03" /><line x1="0.2" y1="0.5" x2="0.8" y2="0.5" stroke="#5a2d0c" strokeWidth="0.03" /><line x1="0.5" y1="0.2" x2="0.5" y2="0.8" stroke="#5a2d0c" strokeWidth="0.03" /><circle cx="0.5" cy="0.5" r="0.05" fill="#5a2d0c" /></symbol>
+          <symbol id="torch_unlit" viewBox="0 0 1 1"><rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" /><circle cx="0.5" cy="0.4" r="0.15" fill="#333" /><rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /></symbol>
+          <symbol id="torch_lit" viewBox="0 0 1 1"><rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" /><rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" /><path d="M0.5 0.2 L0.4 0.4 L0.5 0.3 L0.6 0.4 Z" fill="#ffa500" className="animate-pulse-fast" /><circle cx="0.5" cy="0.3" r="0.2" fill="rgba(255,165,0,0.3)" className="animate-pulse-fast" /></symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
-          <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} /> {/* Adjusted stroke color */}
-          {/* Render decorative elements using <use> tags */}
+          <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y] = coordStr.split(',').map(Number);
-            // The animation class is now part of the symbol definition for glowing_fungi and torch_lit
-            return (
-              <use
-                key={`deco-${coordStr}`}
-                href={`#${type}`}
-                x={x}
-                y={y}
-                width="1"
-                height="1"
-              />
-            );
+            return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
             if (!enemy || enemy.defeated) return null;
-            return <text key={`enemy-${enemyId}`} x={x + 0.5} y={y + 0.5} fontSize="0.8" textAnchor="middle" dominantBaseline="central" className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId === enemy.id && 'is-flashing')}>{getEmojiForElement(enemy.name)}</text>;
+            const enemySprite = enemySpriteMap[enemy.name];
+            if (enemySprite) {
+              return (
+                <image
+                  key={`enemy-${enemyId}`}
+                  href={enemySprite}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId === enemy.id && 'is-flashing')}
+                />
+              );
+            }
+            return null;
           })}
           {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
@@ -429,7 +344,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
         </g>
-        {/* Adventurer Sprite */}
         <image
           href={adventurerSprite}
           x={playerLoc.x - 0.3}
@@ -511,12 +425,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <ul className="space-y-3">
               {inventoryItems.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
-                // Check if item is in an equipped slot (weapon, shield, amulet, compass)
                 const isCurrentlyEquipped = (equippedWeapon?.id === item.id) || (equippedShield?.id === item.id) || (equippedAmulet?.id === item.id) || (equippedCompass?.id === item.id);
-
-                // Only display items in the backpack that are not currently equipped in a dedicated slot
                 if (isCurrentlyEquipped) return null;
-
                 return (
                   <li key={item.id} className="p-2 bg-black/20 rounded border border-amber-900/50 text-sm">
                     <div className="flex justify-between items-start">
@@ -588,13 +498,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     </div>
   );
 
-  if (!gameStarted) return null; // LabyrinthGame only renders if gameStarted is true
+  if (!gameStarted) return null;
 
   return (
     <div 
-      ref={gameContainerRef} // Attach the ref here
-      tabIndex={0} // Make the div focusable
-      className="flex items-center justify-center h-full p-4 focus:outline-none" // Add focus styling
+      ref={gameContainerRef}
+      tabIndex={0}
+      className="flex items-center justify-center h-full p-4 focus:outline-none"
     >
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">

@@ -89,8 +89,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
+  const [isWalking, setIsWalking] = useState(false); // New state for walking animation
   const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
+  const playerSpriteGroupRef = useRef<SVGGElement>(null); // Ref for the player's SVG group
 
   useEffect(() => {
     if (gameStarted) {
@@ -98,6 +100,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameVersion(0);
       setGameLog(["Welcome to the Labyrinth of Whispers..."]);
       setHasGameOverBeenDispatched(false);
+      setIsWalking(false); // Reset walking state
     }
   }, [gameStarted]);
 
@@ -153,7 +156,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, isWalking]); // Added isWalking to dependencies
+
+  // Effect to handle the end of the player's positional movement transition
+  useEffect(() => {
+    const playerGroup = playerSpriteGroupRef.current;
+    if (!playerGroup) return;
+
+    const handleTransitionEnd = (event: TransitionEvent) => {
+      // Only react to transform transitions (which handle positional movement)
+      if (event.propertyName === 'transform') {
+        setIsWalking(false);
+      }
+    };
+
+    playerGroup.addEventListener('transitionend', handleTransitionEnd);
+    return () => {
+      playerGroup.removeEventListener('transitionend', handleTransitionEnd);
+    };
+  }, []); // Run once on mount to set up the listener
 
   useEffect(() => {
     if (!gameStarted || labyrinth.isGameOver()) return;
@@ -172,6 +193,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
+    if (isWalking) { // Prevent new moves if an animation is already in progress
+      return;
+    }
+    
+    setIsWalking(true); // Start walking animation
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
@@ -344,14 +370,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
         </g>
-        <image
-          href={adventurerSprite}
-          x={playerLoc.x - 0.3}
-          y={playerLoc.y - 0.6}
-          width="1.6"
-          height="1.6"
-          className={cn(flashingEntityId === 'player' && 'is-flashing')}
-        />
+        {/* Player character rendering with SVG <g> for animation */}
+        <g
+          ref={playerSpriteGroupRef}
+          className={cn("player-sprite-group", isWalking && "is-walking")}
+          transform={`translate(${playerLoc.x - 0.3}, ${playerLoc.y - 0.6})`}
+        >
+          <image
+            href={adventurerSprite}
+            x="0"
+            y="0"
+            width="1.6"
+            height="1.6"
+            className={cn("player-image-sprite", flashingEntityId === 'player' && 'is-flashing')}
+          />
+        </g>
       </svg>
     );
   };

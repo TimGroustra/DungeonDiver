@@ -279,102 +279,160 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
             })}
           </mask>
-          {/* Decorative Elements definitions */}
-          {/* Torch Unlit */}
-          <g id="torch_unlit">
-            <rect x="0.45" y="0.2" width="0.1" height="0.6" fill="#4a3d4c" />
-            <circle cx="0.5" cy="0.2" r="0.08" fill="#2a2d2c" />
-          </g>
-          {/* Torch Lit */}
-          <g id="torch_lit">
-            <rect x="0.45" y="0.2" width="0.1" height="0.6" fill="#4a3d4c" />
-            <circle cx="0.5" cy="0.2" r="0.12" fill="#ffcc00" className="animate-pulse-slow" />
-            <path d="M0.5 0.1 C0.55 0.05, 0.55 0.15, 0.5 0.2 C0.45 0.15, 0.45 0.05, 0.5 0.1 Z" fill="#ff9900" className="animate-pulse-slow" />
-          </g>
-          {/* Rubble */}
-          <g id="rubble-1">
-            <path d="M0.2 0.7 L0.4 0.8 L0.6 0.7 L0.5 0.5 L0.3 0.6 Z" fill="#6b6b6b" />
-            <path d="M0.7 0.3 L0.8 0.5 L0.6 0.4 L0.5 0.2 Z" fill="#6b6b6b" />
-          </g>
-          <g id="rubble-2">
-            <path d="M0.3 0.3 L0.5 0.4 L0.7 0.3 L0.6 0.1 L0.4 0.2 Z" fill="#7a7a7a" />
-            <path d="M0.1 0.6 L0.2 0.8 L0.4 0.7 L0.3 0.5 Z" fill="#7a7a7a" />
-          </g>
-          <g id="rubble-3">
-            <path d="M0.4 0.6 L0.6 0.7 L0.8 0.6 L0.7 0.4 L0.5 0.5 Z" fill="#8a8a8a" />
-            <path d="M0.2 0.2 L0.3 0.4 L0.1 0.3 Z" fill="#8a8a8a" />
-          </g>
-          {/* Moss */}
-          <g id="moss-1">
-            <path d="M0.1 0.8 C0.2 0.9, 0.3 0.9, 0.4 0.8 L0.3 0.7 C0.25 0.75, 0.15 0.75, 0.1 0.8 Z" fill="#4CAF50" />
-            <path d="M0.6 0.2 C0.7 0.3, 0.8 0.3, 0.9 0.2 L0.8 0.1 C0.75 0.15, 0.65 0.15, 0.6 0.2 Z" fill="#4CAF50" />
-          </g>
-          <g id="moss-2">
-            <path d="M0.2 0.2 C0.3 0.1, 0.4 0.1, 0.5 0.2 L0.4 0.3 C0.35 0.25, 0.25 0.25, 0.2 0.2 Z" fill="#66BB6A" />
-            <path d="M0.7 0.7 C0.8 0.6, 0.9 0.6, 0.95 0.7 L0.85 0.8 C0.8 0.75, 0.75 0.75, 0.7 0.7 Z" fill="#66BB6A" />
-          </g>
-          <g id="moss-3">
-            <path d="M0.4 0.4 C0.5 0.5, 0.6 0.5, 0.7 0.4 L0.6 0.3 C0.55 0.35, 0.45 0.35, 0.4 0.4 Z" fill="#8BC34A" />
-          </g>
-          {/* Glowing Fungi */}
-          <g id="glowing_fungi-1">
-            <circle cx="0.3" cy="0.7" r="0.1" fill="#8C9EFF" className="animate-pulse-slow" />
-            <circle cx="0.45" cy="0.6" r="0.08" fill="#8C9EFF" className="animate-pulse-slow" />
-          </g>
-          <g id="glowing_fungi-2">
-            <circle cx="0.7" cy="0.3" r="0.1" fill="#B388FF" className="animate-pulse-slow" />
-            <circle cx="0.6" cy="0.45" r="0.08" fill="#B388FF" className="animate-pulse-slow" />
-          </g>
-          <g id="glowing_fungi-3">
-            <circle cx="0.2" cy="0.2" r="0.09" fill="#FF80AB" className="animate-pulse-slow" />
-          </g>
-          {/* Puddle */}
-          <g id="puddle-1">
-            <path d="M0.2 0.7 C0.3 0.9, 0.7 0.9, 0.8 0.7 C0.7 0.5, 0.3 0.5, 0.2 0.7 Z" fill="#3F51B5" opacity="0.7" />
-          </g>
-          <g id="puddle-2">
-            <path d="M0.6 0.2 C0.7 0.4, 0.9 0.4, 0.95 0.2 C0.9 0, 0.7 0, 0.6 0.2 Z" fill="#2196F3" opacity="0.7" />
-          </g>
-          <g id="puddle-3">
-            <path d="M0.1 0.3 C0.2 0.5, 0.4 0.5, 0.5 0.3 C0.4 0.1, 0.2 0.1, 0.1 0.3 Z" fill="#03A9F4" opacity="0.7" />
-          </g>
-          {/* Cracks */}
-          <g id="cracks-1">
-            <path d="M0.1 0.1 L0.5 0.5 L0.4 0.6 L0.8 0.9" stroke="#4a3d4c" strokeWidth="0.05" />
-          </g>
-          <g id="cracks-2">
-            <path d="M0.9 0.1 L0.5 0.5 L0.6 0.4 L0.2 0.1" stroke="#4a3d4c" strokeWidth="0.05" />
-          </g>
-          <g id="cracks-3">
-            <path d="M0.3 0.8 L0.7 0.4 L0.8 0.5 L0.4 0.9" stroke="#4a3d4c" strokeWidth="0.05" />
-          </g>
-          {/* Bones */}
-          <g id="bones-1">
-            <path d="M0.2 0.7 C0.25 0.6, 0.35 0.6, 0.4 0.7 L0.35 0.8 C0.3 0.9, 0.2 0.9, 0.15 0.8 Z" fill="#F5F5DC" />
-            <circle cx="0.2" cy="0.6" r="0.05" fill="#F5F5DC" />
-          </g>
-          <g id="bones-2">
-            <path d="M0.7 0.3 C0.75 0.2, 0.85 0.2, 0.9 0.3 L0.85 0.4 C0.8 0.5, 0.7 0.5, 0.65 0.4 Z" fill="#F0F0D0" />
-            <circle cx="0.7" cy="0.2" r="0.05" fill="#F0F0D0" />
-          </g>
-          <g id="bones-3">
-            <path d="M0.4 0.4 C0.45 0.3, 0.55 0.3, 0.6 0.4 L0.55 0.5 C0.5 0.6, 0.4 0.6, 0.35 0.5 Z" fill="#E0E0C0" />
-          </g>
-          {/* Crate */}
-          <g id="crate-1">
-            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8B4513" stroke="#654321" strokeWidth="0.05" />
-            <line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#654321" strokeWidth="0.05" />
-            <line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#654321" strokeWidth="0.05" />
-          </g>
-          <g id="crate-2">
-            <rect x="0.15" y="0.15" width="0.7" height="0.7" fill="#A0522D" stroke="#8B4513" strokeWidth="0.05" />
-            <line x1="0.15" y1="0.5" x2="0.85" y2="0.5" stroke="#8B4513" strokeWidth="0.05" />
-          </g>
-          <g id="crate-3">
-            <rect x="0.2" y="0.2" width="0.6" height="0.6" fill="#CD853F" stroke="#A0522D" strokeWidth="0.05" />
-            <line x1="0.2" y1="0.4" x2="0.8" y2="0.4" stroke="#A0522D" strokeWidth="0.05" />
-            <line x1="0.2" y1="0.6" x2="0.8" y2="0.6" stroke="#A0522D" strokeWidth="0.05" />
-          </g>
+          {/* Refactored Decorative Elements */}
+          <symbol id="rubble-1" viewBox="0 0 1 1">
+            <rect x="0.1" y="0.7" width="0.3" height="0.2" fill="#6b4a3a" />
+            <rect x="0.2" y="0.5" width="0.25" height="0.2" fill="#7c5b4b" />
+            <rect x="0.5" y="0.6" width="0.3" height="0.25" fill="#6b4a3a" />
+            <rect x="0.6" y="0.4" width="0.2" height="0.2" fill="#7c5b4b" />
+            <path d="M0.1 0.7 L0.2 0.5 L0.5 0.6 L0.6 0.4 L0.8 0.5 L0.7 0.8 L0.4 0.9 Z" fill="#5a3929" />
+          </symbol>
+          <symbol id="rubble-2" viewBox="0 0 1 1">
+            <rect x="0.05" y="0.6" width="0.2" height="0.15" fill="#6b4a3a" />
+            <rect x="0.3" y="0.4" width="0.3" height="0.25" fill="#7c5b4b" />
+            <rect x="0.6" y="0.7" width="0.25" height="0.2" fill="#6b4a3a" />
+            <path d="M0.05 0.6 L0.2 0.4 L0.5 0.5 L0.6 0.3 L0.85 0.4 L0.7 0.7 L0.3 0.8 Z" fill="#5a3929" />
+          </symbol>
+          <symbol id="rubble-3" viewBox="0 0 1 1">
+            <rect x="0.4" y="0.2" width="0.2" height="0.3" fill="#6b4a3a" />
+            <rect x="0.1" y="0.7" width="0.35" height="0.2" fill="#7c5b4b" />
+            <rect x="0.65" y="0.5" width="0.2" height="0.25" fill="#6b4a3a" />
+            <path d="M0.4 0.2 L0.5 0.1 L0.7 0.3 L0.85 0.5 L0.7 0.8 L0.3 0.9 Z" fill="#5a3929" />
+          </symbol>
+          <symbol id="moss-1" viewBox="0 0 1 1">
+            <path d="M0.1 0.5 Q0.3 0.2 0.5 0.3 T0.9 0.5 Q0.7 0.8 0.5 0.7 T0.1 0.5Z" fill="#4a6b2a" />
+            <path d="M0.15 0.55 Q0.35 0.25 0.5 0.35 T0.85 0.55 Q0.65 0.75 0.5 0.65 T0.15 0.55Z" fill="#5a7c3b" />
+          </symbol>
+          <symbol id="moss-2" viewBox="0 0 1 1">
+            <path d="M0.2 0.3 Q0.4 0.1 0.6 0.2 T0.8 0.4 Q0.6 0.7 0.4 0.6 T0.2 0.3Z" fill="#4a6b2a" />
+            <path d="M0.3 0.7 Q0.5 0.5 0.7 0.6 T0.9 0.8 Q0.7 1.0 0.5 0.9 T0.3 0.7Z" fill="#4a6b2a" />
+            <path d="M0.25 0.35 Q0.45 0.15 0.6 0.25 T0.75 0.45 Q0.55 0.65 0.35 0.55 T0.25 0.35Z" fill="#5a7c3b" />
+            <path d="M0.35 0.75 Q0.55 0.55 0.7 0.65 T0.85 0.85 Q0.65 0.95 0.5 0.85 T0.35 0.75Z" fill="#5a7c3b" />
+          </symbol>
+          <symbol id="moss-3" viewBox="0 0 1 1">
+            <circle cx="0.3" cy="0.4" r="0.15" fill="#4a6b2a" />
+            <circle cx="0.7" cy="0.6" r="0.1" fill="#4a6b2a" />
+            <circle cx="0.5" cy="0.8" r="0.12" fill="#4a6b2a" />
+            <circle cx="0.3" cy="0.4" r="0.1" fill="#5a7c3b" />
+            <circle cx="0.7" cy="0.6" r="0.07" fill="#5a7c3b" />
+            <circle cx="0.5" cy="0.8" r="0.09" fill="#5a7c3b" />
+          </symbol>
+          <symbol id="glowing_fungi-1" viewBox="0 0 1 1">
+            <rect x="0.45" y="0.6" width="0.1" height="0.3" fill="#8b4513" />
+            <circle cx="0.5" cy="0.6" r="0.2" fill="#a0522d" />
+            <circle cx="0.5" cy="0.6" r="0.15" fill="#ffcc00" className="animate-pulse-slow" />
+            <circle cx="0.5" cy="0.6" r="0.3" fill="url(#fungi-glow-gradient)" opacity="0.5" className="animate-pulse-slow" />
+            <radialGradient id="fungi-glow-gradient">
+              <stop offset="0%" stopColor="#ffcc00" stopOpacity="1" />
+              <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
+            </radialGradient>
+          </symbol>
+          <symbol id="glowing_fungi-2" viewBox="0 0 1 1">
+            <rect x="0.27" y="0.7" width="0.06" height="0.2" fill="#8b4513" />
+            <circle cx="0.3" cy="0.7" r="0.15" fill="#a0522d" />
+            <circle cx="0.3" cy="0.7" r="0.08" fill="#ffcc00" className="animate-pulse-slow" />
+            <rect x="0.68" y="0.5" width="0.04" height="0.15" fill="#8b4513" />
+            <circle cx="0.7" cy="0.5" r="0.1" fill="#a0522d" />
+            <circle cx="0.7" cy="0.5" r="0.05" fill="#ffcc00" className="animate-pulse-slow" />
+            <circle cx="0.3" cy="0.7" r="0.25" fill="url(#fungi-glow-gradient)" opacity="0.5" className="animate-pulse-slow" />
+            <circle cx="0.7" cy="0.5" r="0.2" fill="url(#fungi-glow-gradient)" opacity="0.5" className="animate-pulse-slow" />
+          </symbol>
+          <symbol id="glowing_fungi-3" viewBox="0 0 1 1">
+            <rect x="0.57" y="0.4" width="0.06" height="0.25" fill="#8b4513" />
+            <circle cx="0.6" cy="0.4" r="0.18" fill="#a0522d" />
+            <circle cx="0.6" cy="0.4" r="0.09" fill="#ffcc00" className="animate-pulse-slow" />
+            <circle cx="0.6" cy="0.4" r="0.3" fill="url(#fungi-glow-gradient)" opacity="0.5" className="animate-pulse-slow" />
+          </symbol>
+          <symbol id="puddle-1" viewBox="0 0 1 1">
+            <path d="M0.2 0.5 Q0.3 0.2 0.5 0.3 T0.8 0.5 Q0.7 0.8 0.5 0.7 T0.2 0.5Z" fill="#3a6b8c" />
+            <path d="M0.25 0.55 Q0.35 0.3 0.5 0.4 T0.75 0.55 Q0.65 0.7 0.5 0.65 T0.25 0.55Z" fill="#4682b4" />
+            <circle cx="0.6" cy="0.4" r="0.05" fill="white" opacity="0.6" />
+          </symbol>
+          <symbol id="puddle-2" viewBox="0 0 1 1">
+            <ellipse cx="0.5" cy="0.5" rx="0.3" ry="0.2" fill="#3a6b8c" />
+            <ellipse cx="0.5" cy="0.5" rx="0.25" ry="0.17" fill="#4682b4" />
+            <circle cx="0.4" cy="0.6" r="0.04" fill="white" opacity="0.6" />
+          </symbol>
+          <symbol id="puddle-3" viewBox="0 0 1 1">
+            <path d="M0.1 0.3 L0.4 0.1 L0.7 0.3 L0.9 0.6 L0.6 0.9 L0.3 0.7 Z" fill="#3a6b8c" />
+            <path d="M0.15 0.35 L0.4 0.15 L0.65 0.35 L0.85 0.6 L0.55 0.85 L0.35 0.65 Z" fill="#4682b4" />
+            <circle cx="0.7" cy="0.4" r="0.03" fill="white" opacity="0.6" />
+          </symbol>
+          <symbol id="cracks-1" viewBox="0 0 1 1">
+            <path d="M0.1 0.1 L0.4 0.3 L0.3 0.5 L0.6 0.7 L0.5 0.9" stroke="#4a3d4c" strokeWidth="0.08" fill="none" />
+            <path d="M0.12 0.12 L0.42 0.32 L0.32 0.52 L0.62 0.72 L0.52 0.92" stroke="#6a5d6c" strokeWidth="0.04" fill="none" />
+            <path d="M0.9 0.1 L0.7 0.4 L0.8 0.6" stroke="#4a3d4c" strokeWidth="0.08" fill="none" />
+            <path d="M0.92 0.12 L0.72 0.42 L0.82 0.62" stroke="#6a5d6c" strokeWidth="0.04" fill="none" />
+          </symbol>
+          <symbol id="cracks-2" viewBox="0 0 1 1">
+            <path d="M0.2 0.8 L0.5 0.5 L0.8 0.8 M0.5 0.5 L0.5 0.2" stroke="#4a3d4c" strokeWidth="0.07" fill="none" />
+            <path d="M0.22 0.82 L0.52 0.52 L0.82 0.82 M0.52 0.52 L0.52 0.22" stroke="#6a5d6c" strokeWidth="0.03" fill="none" />
+          </symbol>
+          <symbol id="cracks-3" viewBox="0 0 1 1">
+            <path d="M0.1 0.5 L0.3 0.3 L0.5 0.5 L0.7 0.3 L0.9 0.5" stroke="#4a3d4c" strokeWidth="0.06" fill="none" />
+            <path d="M0.12 0.52 L0.32 0.32 L0.52 0.52 L0.72 0.32 L0.92 0.52" stroke="#6a5d6c" strokeWidth="0.02" fill="none" />
+          </symbol>
+          <symbol id="bones-1" viewBox="0 0 1 1">
+            <rect x="0.15" y="0.45" width="0.7" height="0.1" fill="#d0d0d0" />
+            <circle cx="0.15" cy="0.5" r="0.1" fill="#d0d0d0" />
+            <circle cx="0.85" cy="0.5" r="0.1" fill="#d0d0d0" />
+            <path d="M0.4 0.3 L0.6 0.3 Q0.65 0.2 0.5 0.1 Q0.35 0.2 0.4 0.3Z" fill="#d0d0d0" /> {/* Skull fragment */}
+            <path d="M0.15 0.45 L0.15 0.55 L0.25 0.55 L0.25 0.45 Z" fill="#c0c0c0" /> {/* Shading */}
+            <path d="M0.75 0.45 L0.75 0.55 L0.85 0.55 L0.85 0.45 Z" fill="#c0c0c0" /> {/* Shading */}
+          </symbol>
+          <symbol id="bones-2" viewBox="0 0 1 1">
+            <rect x="0.1" y="0.3" width="0.2" height="0.08" fill="#d0d0d0" />
+            <rect x="0.3" y="0.4" width="0.4" height="0.08" fill="#d0d0d0" />
+            <rect x="0.6" y="0.5" width="0.2" height="0.08" fill="#d0d0d0" />
+            <path d="M0.1 0.3 L0.15 0.25 L0.3 0.3 L0.25 0.35 Z" fill="#c0c0c0" />
+            <path d="M0.3 0.4 L0.35 0.35 L0.7 0.4 L0.65 0.45 Z" fill="#c0c0c0" />
+            <path d="M0.6 0.5 L0.65 0.45 L0.8 0.5 L0.75 0.55 Z" fill="#c0c0c0" />
+          </symbol>
+          <symbol id="bones-3" viewBox="0 0 1 1">
+            <path d="M0.2 0.2 L0.3 0.4 L0.5 0.3 L0.7 0.5 L0.6 0.7 L0.4 0.6 L0.2 0.8 Z" fill="#d0d0d0" />
+            <path d="M0.25 0.25 L0.35 0.45 L0.55 0.35 L0.75 0.55 L0.65 0.75 L0.45 0.65 L0.25 0.85 Z" fill="#c0c0c0" />
+          </symbol>
+          <symbol id="crate-1" viewBox="0 0 1 1">
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.05" />
+            <line x1="0.1" y1="0.5" x2="0.9" y2="0.5" stroke="#5a2d0c" strokeWidth="0.05" />
+            <line x1="0.5" y1="0.1" x2="0.5" y2="0.9" stroke="#5a2d0c" strokeWidth="0.05" />
+            <rect x="0.1" y="0.1" width="0.8" height="0.8" fill="url(#wood-grain-gradient)" opacity="0.3" />
+            <linearGradient id="wood-grain-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#a0623d" />
+              <stop offset="50%" stopColor="#8b4513" />
+              <stop offset="100%" stopColor="#a0623d" />
+            </linearGradient>
+          </symbol>
+          <symbol id="crate-2" viewBox="0 0 1 1">
+            <rect x="0.15" y="0.15" width="0.7" height="0.7" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.04" />
+            <line x1="0.15" y1="0.4" x2="0.85" y2="0.4" stroke="#5a2d0c" strokeWidth="0.04" />
+            <line x1="0.15" y1="0.65" x2="0.85" y2="0.65" stroke="#5a2d0c" strokeWidth="0.04" />
+            <rect x="0.15" y="0.15" width="0.7" height="0.7" fill="url(#wood-grain-gradient)" opacity="0.3" />
+          </symbol>
+          <symbol id="crate-3" viewBox="0 0 1 1">
+            <rect x="0.2" y="0.2" width="0.6" height="0.6" fill="#8b4513" stroke="#5a2d0c" strokeWidth="0.03" />
+            <line x1="0.2" y1="0.5" x2="0.8" y2="0.5" stroke="#5a2d0c" strokeWidth="0.03" />
+            <line x1="0.5" y1="0.2" x2="0.5" y2="0.8" stroke="#5a2d0c" strokeWidth="0.03" />
+            <circle cx="0.5" cy="0.5" r="0.05" fill="#5a2d0c" />
+            <rect x="0.2" y="0.2" width="0.6" height="0.6" fill="url(#wood-grain-gradient)" opacity="0.3" />
+          </symbol>
+          <symbol id="torch_unlit" viewBox="0 0 1 1">
+            <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" />
+            <circle cx="0.5" cy="0.4" r="0.15" fill="#333" />
+            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" />
+            <path d="M0.4 0.4 L0.45 0.35 L0.55 0.35 L0.6 0.4 Z" fill="#222" /> {/* Top shading */}
+          </symbol>
+          <symbol id="torch_lit" viewBox="0 0 1 1">
+            <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" />
+            <rect x="0.45" y="0.6" width="0.1" height="0.05" fill="#5a2d0c" />
+            <path d="M0.5 0.2 L0.4 0.4 L0.5 0.3 L0.6 0.4 Z" fill="#ffa500" className="animate-pulse-fast" />
+            <circle cx="0.5" cy="0.3" r="0.2" fill="rgba(255,165,0,0.3)" className="animate-pulse-fast" />
+            <circle cx="0.5" cy="0.3" r="0.4" fill="url(#torch-light-gradient)" opacity="0.4" className="animate-pulse-fast" />
+            <radialGradient id="torch-light-gradient">
+              <stop offset="0%" stopColor="#ffcc00" stopOpacity="1" />
+              <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
+            </radialGradient>
+          </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />

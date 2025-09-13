@@ -136,26 +136,4 @@
   .is-flashing {
     animation: flash-effect 200ms ease-out;
   }
-
-  /* Player movement animation */
-  .player-sprite-group {
-    transition: transform 0.2s linear; /* Smooth positional movement */
-  }
-
-  /* Player walking bob animation */
-  @keyframes player-walk-bob {
-    0% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(0.1px); /* Subtle vertical bob */
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-
-  .player-sprite-group.is-walking .player-image-sprite {
-    animation: player-walk-bob 0.4s infinite alternate; /* Apply bobbing when walking */
-  }
 }

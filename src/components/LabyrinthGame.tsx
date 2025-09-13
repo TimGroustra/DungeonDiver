@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Labyrinth, LogicalRoom, Item, GameResult } from "@/lib/game"; // Import GameResult
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { Separator } => "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Gem and Compass icons
@@ -354,69 +354,59 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return (
       <ScrollArea className="h-full w-full">
         <div className="p-4 text-amber-50">
-          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Backpack className="w-5 h-5 mr-2"/>Equipped Gear</h3>
-          <div className="space-y-3 mb-6">
+          <h4 className="text-md font-bold text-amber-300 mb-2">Equipped Gear</h4>
+          <div className="space-y-2 mb-4 text-sm">
             {equippedWeapon ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
-                  <p className="text-xs text-stone-300 italic mt-1">{equippedWeapon.description}</p>
-                </div>
+              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
+                <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
               </div>
             ) : (
-              <p className="italic text-stone-400 text-center">No weapon equipped.</p>
+              <p className="italic text-stone-400">No weapon equipped.</p>
             )}
             {equippedShield ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
-                  <p className="text-xs text-stone-300 italic mt-1">{equippedShield.description}</p>
-                </div>
+              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
+                <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
               </div>
             ) : (
-              <p className="italic text-stone-400 text-center">No shield equipped.</p>
+              <p className="italic text-stone-400">No shield equipped.</p>
             )}
             {equippedAmulet ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
-                  <p className="text-xs text-stone-300 italic mt-1">{equippedAmulet.description}</p>
-                </div>
+              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
+                <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
                 <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)}>
                   Unequip
                 </Button>
               </div>
             ) : (
-              <p className="italic text-stone-400 text-center">No amulet equipped.</p>
+              <p className="italic text-stone-400">No amulet equipped.</p>
             )}
             {equippedCompass ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 text-sm flex justify-between items-center">
+              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <div>
                   <p className="font-bold text-amber-200 flex items-center"><Compass className="w-4 h-4 mr-2 text-green-400"/> {equippedCompass.name}</p>
-                  <p className="text-xs text-stone-300 italic mt-1">{equippedCompass.description}</p>
                 </div>
                 <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)}>
                   Unequip
                 </Button>
               </div>
             ) : (
-              <p className="italic text-stone-400 text-center">No compass equipped.</p>
+              <p className="italic text-stone-400">No compass equipped.</p>
             )}
           </div>
 
-          <Separator className="my-6 bg-amber-800/60" />
+          <Separator className="my-4 bg-amber-800/60" />
 
-          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Backpack className="w-5 h-5 mr-2"/>Backpack</h3>
+          <h4 className="text-md font-bold text-amber-300 mb-2">Backpack</h4>
           {inventoryItems.length === 0 ? (
             <p className="italic text-stone-400 text-center">Your backpack is empty.</p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2 text-sm">
               {inventoryItems.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
                 const isCurrentlyEquipped = (equippedWeapon?.id === item.id) || (equippedShield?.id === item.id) || (equippedAmulet?.id === item.id) || (equippedCompass?.id === item.id);
                 if (isCurrentlyEquipped) return null;
                 return (
-                  <li key={item.id} className="p-2 bg-black/20 rounded border border-amber-900/50 text-sm">
+                  <li key={item.id} className="p-2 bg-black/20 rounded border border-amber-900/50">
                     <div className="flex justify-between items-start">
                       <div>
                         <p className="font-bold text-amber-200">{item.name} {item.stackable && `(x${quantity})`}</p>
@@ -434,13 +424,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </ul>
           )}
 
-          <Separator className="my-6 bg-amber-800/60" />
+          <Separator className="my-4 bg-amber-800/60" />
 
-          <h3 className="text-lg font-bold text-amber-300 mb-3 text-center flex items-center justify-center"><Scroll className="w-5 h-5 mr-2"/>Objective: Floor {labyrinth.getCurrentFloor() + 1}</h3>
-          <div className="p-4 text-center text-amber-50 flex flex-col items-center justify-center">
-            <Goal className="w-16 h-16 text-amber-400 mb-4" />
-            <p className="text-sm text-stone-300 italic mt-2">{currentObjective.description}</p>
-            <p className={cn("text-sm font-semibold mt-4", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
+          <h4 className="text-md font-bold text-amber-300 mb-2">Objective: Floor {labyrinth.getCurrentFloor() + 1}</h4>
+          <div className="p-2 text-center text-amber-50 flex flex-col items-center justify-center">
+            <p className="text-sm text-stone-300 italic mt-1">{currentObjective.description}</p>
+            <p className={cn("text-sm font-semibold mt-2", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
               Status: {currentObjective.isCompleted() ? "Completed" : "In Progress"}
             </p>
           </div>

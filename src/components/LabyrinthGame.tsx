@@ -301,12 +301,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
-          {/* Trap Icon */}
+          {/* Trap Icon (for revealed but not triggered) */}
           <symbol id="trap-icon" viewBox="0 0 1 1">
             <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#8B0000" /> {/* Skull shape */}
             <circle cx="0.4" cy="0.4" r="0.07" fill="black" /> {/* Left eye */}
             <circle cx="0.6" cy="0.4" r="0.07" fill="black" /> {/* Right eye */}
             <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="black" /> {/* Nose */}
+          </symbol>
+          {/* Triggered Trap Icon (for triggered traps) */}
+          <symbol id="trap-triggered-icon" viewBox="0 0 1 1">
+            <path d="M0.5 0.1 C0.3 0.1, 0.2 0.3, 0.2 0.5 C0.2 0.7, 0.3 0.9, 0.5 0.9 C0.7 0.9, 0.8 0.7, 0.8 0.5 C0.8 0.3, 0.7 0.1, 0.5 0.1 Z" fill="#4A0000" /> {/* Darker Skull shape */}
+            <circle cx="0.4" cy="0.4" r="0.07" fill="#111" /> {/* Darker Left eye */}
+            <circle cx="0.6" cy="0.4" r="0.07" fill="#111" /> {/* Darker Right eye */}
+            <path d="M0.5 0.55 L0.45 0.65 L0.55 0.65 Z" fill="#111" /> {/* Darker Nose */}
+            <line x1="0.3" y1="0.7" x2="0.7" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
+            <line x1="0.7" y1="0.7" x2="0.3" y2="0.3" stroke="#8B0000" strokeWidth="0.1" /> {/* Crack effect */}
           </symbol>
         </defs>
         <g mask="url(#fog-mask)">
@@ -362,14 +371,27 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
+          {/* Render visually revealed traps (by search) */}
           {Array.from(labyrinth.visuallyRevealedTraps.entries()).map((coordStr) => {
             if (typeof coordStr !== 'string') {
               console.error("Invalid coordStr type in visuallyRevealedTraps:", coordStr, typeof coordStr);
               return null;
             }
             const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor || labyrinth.getTriggeredTraps().has(coordStr)) return null; // Don't show if already triggered
-            return <use key={`trap-${coordStr}`} href="#trap-icon" x={x} y={y} width="1" height="1" className="animate-pulse-slow opacity-70" />;
+            // Only show if on current floor AND not yet triggered
+            if (f !== currentFloor || labyrinth.getTriggeredTraps().has(coordStr)) return null;
+            return <use key={`trap-revealed-${coordStr}`} href="#trap-icon" x={x} y={y} width="1" height="1" className="animate-pulse-slow opacity-70" />;
+          })}
+          {/* Render triggered traps */}
+          {Array.from(labyrinth.getTriggeredTraps().entries()).map((coordStr) => {
+            if (typeof coordStr !== 'string') {
+              console.error("Invalid coordStr type in triggeredTraps:", coordStr, typeof coordStr);
+              return null;
+            }
+            const [x, y, f] = coordStr.split(',').map(Number);
+            // Only show if on current floor
+            if (f !== currentFloor) return null;
+            return <use key={`trap-triggered-${coordStr}`} href="#trap-triggered-icon" x={x} y={y} width="1" height="1" className="opacity-100" />;
           })}
         </g>
         <image

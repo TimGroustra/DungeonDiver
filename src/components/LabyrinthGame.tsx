@@ -273,7 +273,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
           </pattern>
           <mask id="fog-mask">
-            <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="black" />
+            <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="rgba(0, 0, 0, 0.7)" />
             {Array.from(visitedCells).map(cellCoord => {
               const [x, y] = cellCoord.split(',').map(Number);
               return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;

@@ -86,17 +86,14 @@ const emojiMap: { [key: string]: string } = {
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
-  const [gameLog, setGameLog] = useState<string[]>([]);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const logRef = useRef<HTMLDivElement>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   useEffect(() => {
     if (gameStarted) {
       setLabyrinth(new Labyrinth());
       setGameVersion(0);
-      setGameLog(["Welcome to the Labyrinth of Whispers..."]);
       setHasGameOverBeenDispatched(false);
     }
   }, [gameStarted]);
@@ -104,7 +101,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
     if (newMessages.length > 0) {
-      setGameLog((prevLog) => [...newMessages, ...prevLog]);
+      // If you want to display messages elsewhere, you'd handle them here.
+      // For now, they are just cleared.
       labyrinth.clearMessages();
     }
     if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
@@ -123,12 +121,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       labyrinth.clearLastHit();
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
-
-  useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = 0;
-    }
-  }, [gameLog]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -459,14 +451,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     );
   };
 
-  const renderChronicles = () => (
-    <div ref={logRef} className="h-full w-full p-2 bg-black/20 text-amber-50 text-sm font-mono overflow-y-auto flex flex-col-reverse">
-      <div>
-        {gameLog.map((message, index) => (<p key={index} className="mb-1 last:mb-0 animate-in fade-in duration-500">{`> ${message}`}</p>))}
-      </div>
-    </div>
-  );
-
   const renderHud = () => (
     <div className="absolute bottom-2 right-2 w-auto bg-stone-900/80 backdrop-blur-sm border-t-2 border-amber-700/70 rounded-t-lg p-1 px-3 shadow-2xl shadow-black/50">
       <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
@@ -516,13 +500,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </main>
 
         <aside className="w-full md:w-96 lg:w-[450px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">
-          <Tabs defaultValue="log" className="flex flex-col h-full">
-            <TabsList className="grid w-full grid-cols-3 bg-stone-950/50 rounded-b-none">
-              <TabsTrigger value="log" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><BookOpen className="w-4 h-4 mr-2"/>Chronicles</TabsTrigger>
+          <Tabs defaultValue="inventory" className="flex flex-col h-full">
+            <TabsList className="grid w-full grid-cols-2 bg-stone-950/50 rounded-b-none">
               <TabsTrigger value="inventory" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Backpack className="w-4 h-4 mr-2"/>Inventory</TabsTrigger>
               <TabsTrigger value="objective" className="text-stone-400 data-[state=active]:bg-amber-900/50 data-[state=active]:text-amber-200"><Scroll className="w-4 h-4 mr-2"/>Objective</TabsTrigger>
             </TabsList>
-            <TabsContent value="log" className="flex-grow relative">{renderChronicles()}</TabsContent>
             <TabsContent value="inventory" className="flex-grow relative">{renderInventory()}</TabsContent>
             <TabsContent value="objective" className="flex-grow relative">{renderObjective()}</TabsContent>
           </Tabs>

@@ -327,6 +327,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
 
     const adventurerSprite = spriteMap[equipmentState][direction];
+    const yOffset = direction === 'south' ? -0.55 : -0.6;
 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
       const [x, y, f] = coordStr.split(',').map(Number);
@@ -419,7 +420,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <image
           href={adventurerSprite}
           x={animatedPlayerPosition.x - 0.3}
-          y={animatedPlayerPosition.y - 0.6 + verticalJumpOffset}
+          y={animatedPlayerPosition.y + yOffset + verticalJumpOffset}
           width="1.6"
           height="1.6"
           className={cn(

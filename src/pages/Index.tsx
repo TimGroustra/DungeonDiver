@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Labyrinth, GameResult } from "@/lib/game"; // Import GameResult
 import LabyrinthGame from "@/components/LabyrinthGame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,15 +10,15 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Skull } from "lucide-react"; // Added Skull icon
+import { Loader2 } from "lucide-react";
+import { GameResult } from "@/lib/game";
 import GameOverScreen from "@/components/GameOverScreen";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
 
 interface LeaderboardEntry {
   id: number;
   player_name: string;
   score_time: number;
-  deaths: number; // Added deaths property
   created_at: string;
 }
 
@@ -31,24 +30,14 @@ const formatTime = (seconds: number) => {
 
 const Index: React.FC = () => {
   const [playerName, setPlayerName] = useState<string>("");
-  const [labyrinth, setLabyrinth] = useState<Labyrinth | null>(null); // Manage Labyrinth instance here
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(); // Use the hook
 
-  // Initialize Labyrinth when game starts or on initial load
-  useEffect(() => {
-    if (gameStarted && !labyrinth) {
-      setLabyrinth(new Labyrinth(0)); // Start with 0 deaths for a new game
-      setStartTime(Date.now());
-    }
-  }, [gameStarted, labyrinth]);
-
-  // Timer for elapsed time
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (gameStarted && startTime !== null) {
@@ -67,8 +56,7 @@ const Index: React.FC = () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*")
-        .order("deaths", { ascending: true }) // Order by deaths first
-        .order("score_time", { ascending: true }) // Then by time
+        .order("score_time", { ascending: true })
         .limit(10);
       if (error) throw error;
       return data;
@@ -77,7 +65,7 @@ const Index: React.FC = () => {
   });
 
   const addLeaderboardEntryMutation = useMutation({
-    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number }) => {
+    mutationFn: async (entry: { player_name: string; score_time: number }) => {
       const { data, error } = await supabase
         .from("leaderboard")
         .insert([entry]);
@@ -96,7 +84,6 @@ const Index: React.FC = () => {
   const handleStartGame = () => {
     if (playerName.trim()) {
       setGameStarted(true);
-      setLabyrinth(new Labyrinth(0)); // New game, 0 deaths
       setStartTime(Date.now());
       setShowLeaderboard(false);
       setGameResult(null);
@@ -110,8 +97,8 @@ const Index: React.FC = () => {
     setStartTime(null);
     setGameResult(result);
     if (result.type === 'victory') {
-      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)} with ${result.deaths} deaths!`);
-      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time, deaths: result.deaths });
+      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
+      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
@@ -119,24 +106,12 @@ const Index: React.FC = () => {
   }, [addLeaderboardEntryMutation]);
 
   const handleGameRestart = () => {
-    setGameStarted(false); // Go back to main menu
-    setLabyrinth(null); // Clear labyrinth instance
-    setStartTime(null);
+    setGameStarted(true);
+    setStartTime(Date.now());
     setElapsedTime(0);
     setShowLeaderboard(false);
     setGameResult(null);
   };
-
-  const handleRevive = useCallback((revivePlayerName: string) => {
-    if (labyrinth) {
-      labyrinth.revivePlayer(); // Increment deaths, restore health, clear game over
-      setGameStarted(true); // Continue game
-      setGameResult(null); // Clear game result
-      // Removed: setLabyrinth(prevLabyrinth => prevLabyrinth ? { ...prevLabyrinth } : null); // This line caused the error
-      // The LabyrinthGame component will re-render due to its internal gameVersion state updates.
-      toast.info(`You have been revived, ${revivePlayerName}!`);
-    }
-  }, [labyrinth]);
 
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
@@ -191,10 +166,7 @@ const Index: React.FC = () => {
                 {leaderboard?.map((entry, index) => (
                   <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
                     <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
-                    <div className="flex items-center gap-2 text-stone-300">
-                      <span className="flex items-center"><Skull className="w-3 h-3 mr-1 text-gray-400" />{entry.deaths}</span>
-                      <span>{formatTime(entry.score_time)}</span>
-                    </div>
+                    <span className="text-stone-300">{formatTime(entry.score_time)}</span>
                   </li>
                 ))}
                 {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet. Be the first!</p>}
@@ -208,21 +180,20 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {gameStarted && labyrinth && (
+      {gameStarted && (
         <LabyrinthGame
           playerName={playerName}
-          labyrinth={labyrinth}
-          setLabyrinth={setLabyrinth}
+          gameStarted={gameStarted}
           startTime={startTime}
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
-          onRevive={handleRevive}
+          gameResult={gameResult}
         />
       )}
 
       {gameResult && !gameStarted && (
-        <GameOverScreen result={gameResult} onRestart={handleGameRestart} onRevive={handleRevive} />
+        <GameOverScreen result={gameResult} onRestart={handleGameRestart} />
       )}
     </div>
   );

@@ -35,6 +35,8 @@ const Index: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [gameInstanceKey, setGameInstanceKey] = useState<number>(0); // New state for full game restarts
+  const [reviveTrigger, setReviveTrigger] = useState<number>(0); // New state for revives
   const queryClient = useQueryClient();
   const isMobile = useIsMobile(); // Use the hook
 
@@ -85,8 +87,11 @@ const Index: React.FC = () => {
     if (playerName.trim()) {
       setGameStarted(true);
       setStartTime(Date.now());
+      setElapsedTime(0);
       setShowLeaderboard(false);
       setGameResult(null);
+      setGameInstanceKey(prev => prev + 1); // Trigger a full new game
+      setReviveTrigger(0); // Reset revive trigger
     } else {
       toast.error("Please enter your player name.");
     }
@@ -111,6 +116,16 @@ const Index: React.FC = () => {
     setElapsedTime(0);
     setShowLeaderboard(false);
     setGameResult(null);
+    setGameInstanceKey(prev => prev + 1); // Trigger a full new game
+    setReviveTrigger(0); // Reset revive trigger
+  };
+
+  const handleGameRevive = () => {
+    setGameStarted(true);
+    setStartTime(Date.now()); // Restart timer from now
+    setElapsedTime(0); // Reset elapsed time for the new segment
+    setGameResult(null); // Clear game over screen
+    setReviveTrigger(prev => prev + 1); // Trigger revive in LabyrinthGame
   };
 
   return (
@@ -188,12 +203,15 @@ const Index: React.FC = () => {
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
+          onGameRevive={handleGameRevive} // Pass the new revive handler
           gameResult={gameResult}
+          gameInstanceKey={gameInstanceKey} // Pass the new key
+          reviveTrigger={reviveTrigger} // Pass the new trigger
         />
       )}
 
       {gameResult && !gameStarted && (
-        <GameOverScreen result={gameResult} onRestart={handleGameRestart} />
+        <GameOverScreen result={gameResult} onRestart={handleGameRestart} onRevive={handleGameRevive} />
       )}
     </div>
   );

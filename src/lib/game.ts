@@ -1017,6 +1017,14 @@ export class Labyrinth {
     this.gameResult = { type, name: playerName, time, causeOfDeath };
   }
 
+  public revivePlayer() {
+    this.gameOver = false;
+    this.gameResult = null;
+    this.playerHealth = this.playerMaxHealth;
+    this.playerStunnedTurns = 0;
+    this.addMessage("You feel a surge of life! The Labyrinth's grasp loosens, and you continue your journey.");
+  }
+
   private markVisited(coord: Coordinate) {
     let floorVisited = this.visitedCells.get(this.currentFloor);
     if (!floorVisited) {

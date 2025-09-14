@@ -93,7 +93,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const animationDuration = 600; // ms
+  const animationDuration = 1000; // ms
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -128,21 +128,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
 
-      const easeOutBack = (x: number): number => {
-        const c1 = 1.5;
-        const c3 = c1 + 1;
-        return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
-      };
-
       const animate = () => {
         const now = Date.now();
         const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / animationDuration);
 
-        let easedProgress = progress; // Linear for normal move
-        if (isJump) {
-          easedProgress = easeOutBack(progress);
-        }
+        const easedProgress = progress; // Linear progress for all movement
 
         const currentX = startX + (endX - startX) * easedProgress;
         const currentY = startY + (endY - startY) * easedProgress;

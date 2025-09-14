@@ -132,7 +132,8 @@ const Index: React.FC = () => {
       labyrinth.revivePlayer(); // Increment deaths, restore health, clear game over
       setGameStarted(true); // Continue game
       setGameResult(null); // Clear game result
-      setLabyrinth(prevLabyrinth => prevLabyrinth ? { ...prevLabyrinth } : null); // Force re-render of LabyrinthGame
+      // Removed: setLabyrinth(prevLabyrinth => prevLabyrinth ? { ...prevLabyrinth } : null); // This line caused the error
+      // The LabyrinthGame component will re-render due to its internal gameVersion state updates.
       toast.info(`You have been revived, ${revivePlayerName}!`);
     }
   }, [labyrinth]);

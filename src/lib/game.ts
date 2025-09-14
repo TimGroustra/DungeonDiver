@@ -1024,8 +1024,8 @@ export class Labyrinth {
     if (type === 'defeat') {
       this.playerDeaths++;
       this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths };
-    } else {
-      this.gameResult = { type, name: playerName, time, causeOfDeath };
+    } else { // victory
+      this.gameResult = { type, name: playerName, time, deaths: this.playerDeaths };
     }
   }
 

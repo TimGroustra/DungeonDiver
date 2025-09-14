@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Skull } from "lucide-react";
 import { GameResult } from "@/lib/game";
 import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
 
@@ -18,6 +18,7 @@ interface LeaderboardEntry {
   id: number;
   player_name: string;
   score_time: number;
+  deaths: number;
   created_at: string;
 }
 
@@ -55,7 +56,8 @@ const Index: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("*")
+        .select("id, player_name, score_time, deaths")
+        .order("deaths", { ascending: true })
         .order("score_time", { ascending: true })
         .limit(10);
       if (error) throw error;
@@ -65,7 +67,7 @@ const Index: React.FC = () => {
   });
 
   const addLeaderboardEntryMutation = useMutation({
-    mutationFn: async (entry: { player_name: string; score_time: number }) => {
+    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number }) => {
       const { data, error } = await supabase
         .from("leaderboard")
         .insert([entry]);
@@ -99,7 +101,7 @@ const Index: React.FC = () => {
     setGameResult(result); // Set game result to display overlay
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
-      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
+      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time, deaths: result.deaths || 0 });
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
@@ -176,7 +178,13 @@ const Index: React.FC = () => {
                 {leaderboard?.map((entry, index) => (
                   <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
                     <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
-                    <span className="text-stone-300">{formatTime(entry.score_time)}</span>
+                    <div className="flex items-center space-x-2 text-stone-300">
+                      <div className="flex items-center" title="Deaths">
+                        <Skull className="h-4 w-4 mr-1 text-gray-400" />
+                        <span>{entry.deaths}</span>
+                      </div>
+                      <span>{formatTime(entry.score_time)}</span>
+                    </div>
                   </li>
                 ))}
                 {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet. Be the first!</p>}

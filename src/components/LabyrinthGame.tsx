@@ -89,10 +89,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const [isJumping, setIsJumping] = useState(false); // State for vertical hop animation
+  const [isJumping, setIsJumping] = useState(false);
+  const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const animationDuration = 600; // ms, matches CSS jump-animation duration
+  const animationDuration = 600; // ms
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -128,7 +129,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
 
       const easeOutBack = (x: number): number => {
-        // c1 = 1.5 gives about 1/12 overshoot (0.25 tiles on a 3 tile jump)
         const c1 = 1.5;
         const c3 = c1 + 1;
         return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
@@ -149,6 +149,20 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
         setAnimatedPlayerPosition({ x: currentX, y: currentY });
 
+        if (isJump) {
+          const distProgress = Math.max(0, Math.min(1, easedProgress));
+          const peakHeight = -0.8;
+          let verticalOffset = 0;
+          if (distProgress <= 0.7) {
+            const p_up = distProgress / 0.7;
+            verticalOffset = peakHeight * (1 - Math.pow(1 - p_up, 2));
+          } else {
+            const p_down = (distProgress - 0.7) / 0.3;
+            verticalOffset = peakHeight * Math.pow(1 - p_down, 2);
+          }
+          setVerticalJumpOffset(verticalOffset);
+        }
+
         if (progress < 1) {
           requestAnimationFrame(animate);
         } else {
@@ -156,7 +170,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           setIsAnimatingMovement(false);
           setAnimatedPlayerPosition(newLogicalPos); // Ensure it snaps to final logical position
           lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
-          setIsJumping(false); // Ensure vertical hop stops exactly when horizontal movement stops
+          setIsJumping(false);
+          setVerticalJumpOffset(0);
         }
       };
       requestAnimationFrame(animate);
@@ -168,8 +183,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const newMessages = labyrinth.getMessages();
     if (newMessages.length > 0) {
-      // If you want to display messages elsewhere, you'd handle them here.
-      // For now, they are just cleared.
       labyrinth.clearMessages();
     }
     if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
@@ -233,17 +246,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
-    setGameVersion(prev => prev + 1); // This will trigger the useEffect above for animation
+    setGameVersion(prev => prev + 1);
   };
 
   const handleJump = () => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1); // This will trigger the useEffect above for animation
+    setGameVersion(prev => prev + 1);
     
-    setIsJumping(true); // Start the vertical hop
-    // setIsJumping(false) will be handled by the useEffect's animation completion
+    setIsJumping(true);
   };
 
   const handleSearch = () => {
@@ -265,10 +277,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleReviveClick = () => {
-    labyrinth.revivePlayer(); // Restore health and clear internal game over state
-    onRevive(); // Call parent's onRevive to clear the gameResult state and hide overlay
-    setHasGameOverBeenDispatched(false); // Reset this flag to allow future game over dispatches
-    setGameVersion(prev => prev + 1); // Trigger re-render to update UI
+    labyrinth.revivePlayer();
+    onRevive();
+    setHasGameOverBeenDispatched(false);
+    setGameVersion(prev => prev + 1);
     toast.success("You have been revived! Continue your adventure!");
   };
 
@@ -279,7 +291,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
-    const playerLoc = labyrinth.getPlayerLocation(); // This is the actual game state position
+    const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
     const viewportSize = 15;
     const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
@@ -420,12 +432,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <image
           href={adventurerSprite}
           x={animatedPlayerPosition.x - 0.3}
-          y={animatedPlayerPosition.y - 0.6}
+          y={animatedPlayerPosition.y - 0.6 + verticalJumpOffset}
           width="1.6"
           height="1.6"
           className={cn(
-            flashingEntityId === 'player' && 'is-flashing',
-            isJumping && 'is-jumping'
+            flashingEntityId === 'player' && 'is-flashing'
           )}
         />
       </svg>

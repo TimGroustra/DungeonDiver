@@ -136,20 +136,4 @@
   .is-flashing {
     animation: flash-effect 200ms ease-out;
   }
-
-  @keyframes jump-animation {
-    0% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-0.04em); /* Doubled jump height */
-    }
-    100% {
-      transform: translateY(0);
-    }
-  }
-
-  .is-jumping {
-    animation: jump-animation 0.6s ease-out; /* 0.6s duration for the jump */
-  }
 }

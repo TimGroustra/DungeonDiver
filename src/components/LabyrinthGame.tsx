@@ -337,6 +337,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       return isVisible;
     });
 
+    const revealedTraps = labyrinth.getRevealedTraps();
+    const allVisibleTraps = new Set([...revealedTraps]);
+
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
@@ -416,30 +419,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
-          {/* NEW CODE FOR TRAP GLOW */}
-          {Array.from(labyrinth.trapsLocations.keys()).map((coordStr) => {
+          {Array.from(allVisibleTraps).map((coordStr) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
 
-            // Check if player is standing on this trap
             const playerOnTrap = playerLoc.x === x && playerLoc.y === y;
 
-            if (playerOnTrap) {
-              return (
-                <rect
-                  key={`trap-glow-${coordStr}`}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill="rgba(255, 0, 0, 0.5)"
-                  stroke="rgba(255, 0, 0, 0.8)"
-                  strokeWidth={0.05}
-                  className="animate-pulse-fast"
-                />
-              );
-            }
-            return null;
+            return (
+              <rect
+                key={`trap-glow-${coordStr}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                fill="rgba(255, 0, 0, 0.5)"
+                stroke="rgba(255, 0, 0, 0.8)"
+                strokeWidth={0.05}
+                className={playerOnTrap ? "animate-pulse-fast" : ""}
+              />
+            );
           })}
         </g>
         <image

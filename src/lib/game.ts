@@ -162,6 +162,7 @@ export class Labyrinth {
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
+  public revealedTraps: Set<string>; // Stores "x,y,floor" strings of revealed (but not triggered) traps
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
@@ -230,6 +231,7 @@ export class Labyrinth {
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
+    this.revealedTraps = new Set<string>(); // Initialize new set for revealed traps
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
     this.puzzles = new Map();
@@ -1007,6 +1009,10 @@ export class Labyrinth {
     return this.triggeredTraps;
   }
 
+  public getRevealedTraps(): Set<string> {
+    return this.revealedTraps;
+  }
+
   public getDecorativeElements(): Map<string, string> {
     return this.decorativeElements;
   }
@@ -1195,10 +1201,11 @@ export class Labyrinth {
     const currentRoom = this.getCurrentLogicalRoom();
     this.addMessage(currentRoom ? `You cautiously step ${direction} into the echoing darkness. ${currentRoom.description}` : `You cautiously step ${direction} into the echoing darkness.`);
 
-    if (this.trapsLocations.has(targetCoordStr)) {
+    if (this.trapsLocations.has(targetCoordStr) && !this.triggeredTraps.has(targetCoordStr)) {
         this.playerHealth -= 10;
         this.lastHitEntityId = 'player';
         this.triggeredTraps.add(targetCoordStr);
+        this.revealedTraps.add(targetCoordStr); // Also mark as revealed
         this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
         if (this.playerHealth <= 0) {
             if (!this._tryActivateWellBlessing(playerName, time, "Hidden Trap")) {
@@ -1293,10 +1300,11 @@ export class Labyrinth {
     this.addMessage(currentRoom ? `You leap forward three spaces! ${currentRoom.description}` : `You leap forward three spaces!`);
 
     // Check for traps at destination
-    if (this.trapsLocations.has(targetCoordStr)) {
+    if (this.trapsLocations.has(targetCoordStr) && !this.triggeredTraps.has(targetCoordStr)) {
       this.playerHealth -= 10;
       this.lastHitEntityId = 'player';
       this.triggeredTraps.add(targetCoordStr);
+      this.revealedTraps.add(targetCoordStr); // Also mark as revealed
       this.addMessage("SNAP! You landed on a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
       if (this.playerHealth <= 0) {
         if (!this._tryActivateWellBlessing(playerName, time, "Hidden Trap")) {
@@ -1378,101 +1386,72 @@ export class Labyrinth {
     this.addMessage("You carefully scan your surroundings...");
 
     for (let dy = -this.getSearchRadius(); dy <= this.getSearchRadius(); dy++) {
-        for (let dx = -this.getSearchRadius(); dx <= this.getSearchRadius(); dx++) {
-            const targetX = playerX + dx;
-            const targetY = playerY + dy;
-            const coordStr = `${targetX},${targetY},${this.currentFloor}`; // Include floor
+      for (let dx = -this.getSearchRadius(); dx <= this.getSearchRadius(); dx++) {
+        const targetX = playerX + dx;
+        const targetY = playerY + dy;
+        const coordStr = `${targetX},${targetY},${this.currentFloor}`;
 
-            // Check bounds
-            if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT) {
-                continue;
+        if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT) continue;
+        
+        const currentMap = this.floors.get(this.currentFloor)!;
+        if (currentMap[targetY][targetX] === 'wall') continue;
+
+        this.markVisited({ x: targetX, y: targetY });
+
+        // Items
+        const itemId = this.itemLocations.get(coordStr);
+        if (itemId) {
+            const item = this.items.get(itemId);
+            if (item && !item.isStatic) {
+                this.addMessage(dx === 0 && dy === 0 ? `You see a ${item.name} lying on the ground here.` : `You spot a ${item.name} at (${targetX},${targetY}).`);
+                foundSomethingInRadius = true;
             }
+        }
 
-            const currentMap = this.floors.get(this.currentFloor)!;
-            // Check if it's a wall
-            if (currentMap[targetY][targetX] === 'wall') {
-                continue;
+        // Static Items
+        const staticItemId = this.staticItemLocations.get(coordStr);
+        if (staticItemId) {
+            const staticItem = this.items.get(staticItemId);
+            if (staticItem && !this.revealedStaticItems.has(coordStr)) {
+                this.addMessage(dx === 0 && dy === 0 ? `You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}` : `You discern a hidden ${staticItem.name} at (${targetX},${targetY}).`);
+                this.revealedStaticItems.add(coordStr);
+                foundSomethingInRadius = true;
             }
+        }
 
-            // Mark the cell as visited if it's an open room within the radius
-            this.markVisited({ x: targetX, y: targetY });
+        // Puzzles
+        const puzzleId = this.puzzleLocations.get(coordStr);
+        if (puzzleId) {
+            const puzzle = this.puzzles.get(puzzleId);
+            if (puzzle && !puzzle.solved) {
+                this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}).`);
+                foundSomethingInRadius = true;
+            }
+        }
 
-            // If it's the player's current location, perform full interaction
-            if (dx === 0 && dy === 0) {
-                const itemId = this.itemLocations.get(coordStr);
-                if (itemId) {
-                    const item = this.items.get(itemId);
-                    if (item && !item.isStatic) {
-                        this.addMessage(`You see a ${item.name} lying on the ground here.`);
-                        foundSomethingInRadius = true;
-                    }
-                }
-
-                const staticItemId = this.staticItemLocations.get(coordStr);
-                if (staticItemId) {
-                    const staticItem = this.items.get(staticItemId);
-                    if (staticItem && !this.revealedStaticItems.has(coordStr)) {
-                        this.addMessage(`You notice a ${staticItem.name} embedded in the wall: ${staticItem.description}`);
-                        this.revealedStaticItems.add(coordStr);
-                        foundSomethingInRadius = true;
-                    }
-                }
-
-                const puzzleId = this.puzzleLocations.get(coordStr);
-                if (puzzleId) {
-                    const puzzle = this.puzzles.get(puzzleId);
-                    if (puzzle && !puzzle.solved) {
-                        this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}). It seems to be the ${puzzle.name}.`);
-                        foundSomethingInRadius = true;
-                    }
-                }
-            } else {
-                // Logic for cells within radius but not current location (only reveal)
-                const itemId = this.itemLocations.get(coordStr);
-                if (itemId) {
-                    const item = this.items.get(itemId);
-                    if (item && !item.isStatic) {
-                        this.addMessage(`You spot a ${item.name} at (${targetX},${targetY}).`);
-                        foundSomethingInRadius = true;
-                    }
-                }
-
-                const staticItemId = this.staticItemLocations.get(coordStr);
-                if (staticItemId) {
-                    const staticItem = this.items.get(staticItemId);
-                    if (staticItem && !this.revealedStaticItems.has(coordStr)) {
-                        this.addMessage(`You discern a hidden ${staticItem.name} at (${targetX},${targetY}).`);
-                        this.revealedStaticItems.add(coordStr);
-                        foundSomethingInRadius = true;
-                    }
-                }
-
-                const puzzleId = this.puzzleLocations.get(coordStr);
-                if (puzzleId) {
-                    const puzzle = this.puzzles.get(puzzleId);
-                    if (puzzle && !puzzle.solved) {
-                        this.addMessage(`You sense an unsolved puzzle at (${targetX},${targetY}).`);
-                        foundSomethingInRadius = true;
-                    }
-                }
-
-                const enemyId = this.enemyLocations.get(coordStr);
-                if (enemyId) {
-                    const enemy = this.enemies.get(enemyId);
-                    if (enemy && !enemy.defeated) {
-                        this.addMessage(`You hear a faint growl from a ${enemy.name} at (${targetX},${targetY}).`);
-                        foundSomethingInRadius = true;
-                    }
-                }
-                // New: Reveal traps in the log
-                const hasTrap = this.trapsLocations.has(coordStr);
-                const isTrapTriggered = this.triggeredTraps.has(coordStr);
-                if (hasTrap && !isTrapTriggered) {
-                    this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
+        // Enemies (only if not at player location)
+        if (dx !== 0 || dy !== 0) {
+            const enemyId = this.enemyLocations.get(coordStr);
+            if (enemyId) {
+                const enemy = this.enemies.get(enemyId);
+                if (enemy && !enemy.defeated) {
+                    this.addMessage(`You hear a faint growl from a ${enemy.name} at (${targetX},${targetY}).`);
                     foundSomethingInRadius = true;
                 }
             }
         }
+
+        // Traps
+        const hasTrap = this.trapsLocations.has(coordStr);
+        if (hasTrap) {
+            const isAlreadyRevealed = this.revealedTraps.has(coordStr);
+            this.revealedTraps.add(coordStr); // Reveal it permanently
+            if (!isAlreadyRevealed) {
+                this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
+                foundSomethingInRadius = true;
+            }
+        }
+      }
     }
 
     if (!foundSomethingInRadius) {

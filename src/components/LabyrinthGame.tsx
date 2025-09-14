@@ -82,7 +82,6 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
-  "Pit Trap": "⚫", // Added emoji for Pit Trap
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
@@ -97,13 +96,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef(labyrinth.getPlayerLocation());
-  // Ref to hold the latest labyrinth instance for stable intervals
-  const labyrinthRef = useRef(labyrinth);
-
-  // Update labyrinthRef whenever the labyrinth state changes
-  useEffect(() => {
-    labyrinthRef.current = labyrinth;
-  }, [labyrinth]);
 
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
@@ -119,12 +111,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
-    // Ensure labyrinth is available before proceeding
-    if (!labyrinth) return;
-
     const newLogicalPos = labyrinth.getPlayerLocation();
-    // Removed 'const currentFloor = labyrinth.getCurrentFloor();' as it was only used in dependencies
-    // and is implicitly handled by depending on 'labyrinth' and its derived properties.
+    const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
 
     // Only animate if the logical position has actually changed from the last settled position
     if (newLogicalPos.x !== lastSettledLogicalPositionRef.current.x || newLogicalPos.y !== lastSettledLogicalPositionRef.current.y) {
@@ -177,13 +165,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       };
       requestAnimationFrame(animate);
     }
-  }, [
-    labyrinth, // Depend on the labyrinth object itself
-    labyrinth.getPlayerLocation().x,
-    labyrinth.getPlayerLocation().y,
-    // The currentFloor is implicitly handled by 'labyrinth' changing.
-    // No need for a separate 'currentFloor' variable in dependencies.
-  ]);
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -237,19 +219,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
-    
-    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[labyrinthRef.current.getCurrentFloor()] || 2000;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const intervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-      // Use the ref to access the latest labyrinth instance inside the interval
-      labyrinthRef.current.processEnemyMovement(playerName, currentElapsedTime);
-      if (labyrinthRef.current.getCurrentFloor() === labyrinthRef.current["NUM_FLOORS"] - 1 && !labyrinthRef.current.isBossDefeated()) {
-        labyrinthRef.current.processBossLogic();
+      labyrinth.processEnemyMovement(playerName, currentElapsedTime);
+      if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
+        labyrinth.processBossLogic();
       }
       setGameVersion(prev => prev + 1);
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, playerName, startTime, gameResult]); // Removed labyrinth from dependencies, using labyrinthRef instead
+  }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
@@ -294,10 +275,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  // Optimize map generation to only re-run when labyrinth instance or current floor changes
-  const { wallPath, floorPath } = useMemo(() => {
-    return generateSvgPaths(labyrinth.getMapGrid());
-  }, [labyrinth, labyrinth.getCurrentFloor()]); // Depend on labyrinth instance and current floor
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();
@@ -361,7 +339,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const revealedTraps = labyrinth.getRevealedTraps();
     const allVisibleTraps = new Set([...revealedTraps]);
-    const pitLocations = labyrinth.getPitLocations(); // Get pit locations
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -405,23 +382,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
-          {/* Render Pit Traps - always visible */}
-          {Array.from(pitLocations.keys()).map((coordStr) => {
-            const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
-            return (
-              <rect
-                key={`pit-${coordStr}`}
-                x={x}
-                y={y}
-                width="1"
-                height="1"
-                fill="black"
-                stroke="darkgray"
-                strokeWidth={0.05}
-              />
-            );
-          })}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;

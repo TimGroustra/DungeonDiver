@@ -97,6 +97,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef(labyrinth.getPlayerLocation());
+  // Ref to hold the latest labyrinth instance for stable intervals
+  const labyrinthRef = useRef(labyrinth);
+
+  // Update labyrinthRef whenever the labyrinth state changes
+  useEffect(() => {
+    labyrinthRef.current = labyrinth;
+  }, [labyrinth]);
 
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
@@ -166,7 +173,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       };
       requestAnimationFrame(animate);
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, currentFloor]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -216,22 +223,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement]); // Add gameResult and isAnimatingMovement to dependencies
+  }, [gameStarted, playerName, elapsedTime, gameResult, isAnimatingMovement, labyrinth]); // Added labyrinth to ensure latest methods are captured
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
-    const currentFloor = labyrinth.getCurrentFloor();
-    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
+    
+    const moveSpeed = ENEMY_MOVE_SPEEDS_MS[labyrinthRef.current.getCurrentFloor()] || 2000;
     const intervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-      labyrinth.processEnemyMovement(playerName, currentElapsedTime);
-      if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
-        labyrinth.processBossLogic();
+      // Use the ref to access the latest labyrinth instance inside the interval
+      labyrinthRef.current.processEnemyMovement(playerName, currentElapsedTime);
+      if (labyrinthRef.current.getCurrentFloor() === labyrinthRef.current["NUM_FLOORS"] - 1 && !labyrinthRef.current.isBossDefeated()) {
+        labyrinthRef.current.processBossLogic();
       }
       setGameVersion(prev => prev + 1);
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
+  }, [gameStarted, playerName, startTime, gameResult]); // Removed labyrinth from dependencies, using labyrinthRef instead
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
@@ -276,7 +284,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
+  // Optimize map generation to only re-run when labyrinth instance or current floor changes
+  const { wallPath, floorPath } = useMemo(() => {
+    return generateSvgPaths(labyrinth.getMapGrid());
+  }, [labyrinth, labyrinth.getCurrentFloor()]); // Depend on labyrinth instance and current floor
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();

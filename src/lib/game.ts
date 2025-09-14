@@ -142,6 +142,7 @@ export interface GameResult {
 export class Labyrinth {
   private floors: Map<number, (LogicalRoom | 'wall')[][]>; // Map of floor number to its grid
   private playerLocation: Coordinate;
+  private lastSafeLocation: Coordinate; // New: For reviving from falls
   private currentFloor: number; // New: Current floor the player is on
   private playerHealth: number;
   private playerMaxHealth: number;
@@ -161,6 +162,7 @@ export class Labyrinth {
   public staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
+  public pitLocations: Map<string, boolean>; // New: "x,y,floor" -> true for pit locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
@@ -210,6 +212,7 @@ export class Labyrinth {
   constructor() {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
+    this.lastSafeLocation = { x: 0, y: 0 }; // Initialize last safe location
     this.currentFloor = 0; // Start on floor 0
     this.playerHealth = 100;
     this.playerMaxHealth = 100;
@@ -229,6 +232,7 @@ export class Labyrinth {
     this.staticItemLocations = new Map();
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
+    this.pitLocations = new Map(); // Initialize new map for pits
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
@@ -261,6 +265,7 @@ export class Labyrinth {
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
 
     this.initializeLabyrinth();
+    this.lastSafeLocation = this.playerLocation; // Set initial safe location
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
     this.addMessage(this.getCurrentFloorObjective().description.join(' ')); // Join for initial message
     this.markVisited(this.playerLocation);
@@ -738,6 +743,12 @@ export class Labyrinth {
     for (let i = 0; i < numTraps; i++) {
       this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor, true);
     }
+
+    // Add pits
+    const numPits = 15;
+    for (let i = 0; i < numPits; i++) {
+      this.placeElementRandomly(`pit-${floor}-${i}`, this.pitLocations, floor, true);
+    }
   }
 
   private _placeDecorativeElements(floor: number) {
@@ -769,6 +780,7 @@ export class Labyrinth {
                     !this.itemLocations.has(coordStr) &&
                     !this.staticItemLocations.has(coordStr) &&
                     !this.trapsLocations.has(coordStr) &&
+                    !this.pitLocations.has(coordStr) &&
                     !this.decorativeElements.has(coordStr) &&
                     (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor)
                 ) {
@@ -827,6 +839,7 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
+        !this.pitLocations.has(coordStr) &&
         !this.isTooClose(x, y, floor) && // Still respect minimum distance
         this.floors.get(floor)![y][x] !== 'wall' // Must be an open room
       ) {
@@ -847,7 +860,8 @@ export class Labyrinth {
       this.puzzleLocations,
       this.itemLocations,
       this.staticItemLocations,
-      this.trapsLocations
+      this.trapsLocations,
+      this.pitLocations
     ];
 
     for (const map of checkMaps) {
@@ -890,6 +904,7 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
+        !this.pitLocations.has(coordStr) &&
         !this.isTooClose(x, y, floor) // Check for minimum distance to other elements
       ) {
         locationMap.set(coordStr, id);
@@ -1033,8 +1048,9 @@ export class Labyrinth {
     this.playerHealth = this.playerMaxHealth;
     this.gameOver = false;
     this.gameResult = null;
+    this.playerLocation = this.lastSafeLocation; // Respawn at the last safe location
     this.playerStunnedTurns = 0; // Clear any stun effects
-    this.addMessage("You feel a surge of life as you are revived! Your wounds mend, and you stand ready to face the Labyrinth once more.");
+    this.addMessage("You feel a surge of life as you are revived! Your wounds mend, and you find yourself back on solid ground, ready to face the Labyrinth once more.");
   }
 
   private markVisited(coord: Coordinate) {
@@ -1087,6 +1103,7 @@ export class Labyrinth {
 
     this.currentFloor++;
     this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
+    this.lastSafeLocation = this.playerLocation; // Update safe location for new floor
     this.markVisited(this.playerLocation);
     this.addMessage(`You successfully descended to Floor ${this.currentFloor + 1}!`);
     this.addMessage(this.getCurrentFloorObjective().description.join(' '));
@@ -1114,6 +1131,8 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+
+    this.lastSafeLocation = this.playerLocation; // Set safe location before moving
 
     if (this.playerStunnedTurns > 0) {
         this.playerStunnedTurns--;
@@ -1147,6 +1166,14 @@ export class Labyrinth {
     }
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
+
+    if (this.pitLocations.has(targetCoordStr)) {
+      this.playerLocation = { x: newX, y: newY }; // Move player onto pit for visual effect
+      this.addMessage("You step into the void... and fall endlessly into the darkness below.");
+      this.setGameOver('defeat', playerName, time, "Fell into a chasm");
+      return;
+    }
+
     const enemyId = this.enemyLocations.get(targetCoordStr);
     if (enemyId) {
         const enemy = this.enemies.get(enemyId);
@@ -1215,6 +1242,8 @@ export class Labyrinth {
       return;
     }
 
+    this.lastSafeLocation = this.playerLocation; // Set safe location before jumping
+
     if (this.playerStunnedTurns > 0) {
       this.addMessage("You are too disoriented to make a coordinated leap!");
       return;
@@ -1253,6 +1282,14 @@ export class Labyrinth {
 
     const destination = pathCoordinates[2];
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
+
+    // Check for pits at destination
+    if (this.pitLocations.has(targetCoordStr)) {
+      this.playerLocation = destination; // Move player onto pit for visual effect
+      this.addMessage("You leap heroically... directly into a bottomless pit.");
+      this.setGameOver('defeat', playerName, time, "Fell into a chasm");
+      return;
+    }
 
     // Check for enemies at destination. If there is an enemy, the jump fails.
     const enemyId = this.enemyLocations.get(targetCoordStr);

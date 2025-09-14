@@ -374,9 +374,20 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
+          <symbol id="pit" viewBox="0 0 1 1">
+            <rect width="1" height="1" fill="#000" />
+            <path d="M 0.1 0.1 L 0.9 0.9 M 0.9 0.1 L 0.1 0.9" stroke="#111" strokeWidth="0.05" />
+            <circle cx="0.5" cy="0.5" r="0.3" fill="#050505" />
+          </symbol>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
+          {Array.from(labyrinth.pitLocations.keys()).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+            if (!visitedCells.has(`${x},${y}`)) return null;
+            return <use key={`pit-${coordStr}`} href="#pit" x={x} y={y} width="1" height="1" />;
+          })}
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);

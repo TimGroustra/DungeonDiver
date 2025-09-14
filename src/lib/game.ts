@@ -552,66 +552,79 @@ export class Labyrinth {
   }
 
   private _placeChasmRows(floor: number) {
-    const numChasms = 4; // Attempt to place 4 chasm rows per floor
-    const chasmLength = 3; // Must be jumpable
+    const numChasms = 4;
+    const chasmLength = 3;
     const currentFloorMap = this.floors.get(floor)!;
 
     for (let i = 0; i < numChasms; i++) {
       let placed = false;
       let attempts = 0;
-      const MAX_ATTEMPTS = 200;
+      const MAX_ATTEMPTS = 500;
 
       while (!placed && attempts < MAX_ATTEMPTS) {
         attempts++;
 
         const isHorizontal = Math.random() > 0.5;
-        const startX = Math.floor(Math.random() * (this.MAP_WIDTH - (isHorizontal ? chasmLength : 0)));
-        const startY = Math.floor(Math.random() * (this.MAP_HEIGHT - (isHorizontal ? 0 : chasmLength)));
-
-        if (currentFloorMap[startY][startX] === 'wall') continue;
+        // Ensure we don't start too close to the edge
+        const startX = Math.floor(Math.random() * (this.MAP_WIDTH - (isHorizontal ? chasmLength + 2 : 2))) + 1;
+        const startY = Math.floor(Math.random() * (this.MAP_HEIGHT - (isHorizontal ? 2 : chasmLength + 2))) + 1;
 
         const chasmCoords: Coordinate[] = [];
+        const blockingCoords: Coordinate[] = [];
+        let beforeCoord: Coordinate;
+        let afterCoord: Coordinate;
+
+        if (isHorizontal) {
+          beforeCoord = { x: startX - 1, y: startY };
+          afterCoord = { x: startX + chasmLength, y: startY };
+          for (let j = 0; j < chasmLength; j++) {
+            const x = startX + j;
+            chasmCoords.push({ x, y: startY });
+            blockingCoords.push({ x, y: startY - 1 });
+            blockingCoords.push({ x, y: startY + 1 });
+          }
+        } else { // isVertical
+          beforeCoord = { x: startX, y: startY - 1 };
+          afterCoord = { x: startX, y: startY + chasmLength };
+          for (let j = 0; j < chasmLength; j++) {
+            const y = startY + j;
+            chasmCoords.push({ x: startX, y });
+            blockingCoords.push({ x: startX - 1, y });
+            blockingCoords.push({ x: startX + 1, y });
+          }
+        }
+
+        const allCoords = [...chasmCoords, ...blockingCoords, beforeCoord, afterCoord];
+        
+        // Validation
         let canPlace = true;
-        for (let j = 0; j < chasmLength; j++) {
-          const x = isHorizontal ? startX + j : startX;
-          const y = isHorizontal ? startY : startY + j;
-          if (x >= this.MAP_WIDTH || y >= this.MAP_HEIGHT || currentFloorMap[y][x] === 'wall' || this.pitLocations.has(`${x},${y},${floor}`)) {
+        for (const coord of allCoords) {
+          // Check bounds (already handled by startX/Y generation but good practice)
+          if (coord.x < 0 || coord.x >= this.MAP_WIDTH || coord.y < 0 || coord.y >= this.MAP_HEIGHT) {
             canPlace = false;
             break;
           }
-          chasmCoords.push({ x, y });
-        }
-
-        if (!canPlace) continue;
-
-        // Check for landing spots before and after the chasm
-        const beforeCoord = isHorizontal ? { x: startX - 1, y: startY } : { x: startX, y: startY - 1 };
-        const afterCoord = isHorizontal ? { x: startX + chasmLength, y: startY } : { x: startX, y: startY + chasmLength };
-
-        const isBeforeValid = beforeCoord.x >= 0 && beforeCoord.y >= 0 && beforeCoord.x < this.MAP_WIDTH && beforeCoord.y < this.MAP_HEIGHT && currentFloorMap[beforeCoord.y][beforeCoord.x] !== 'wall';
-        const isAfterValid = afterCoord.x >= 0 && afterCoord.y >= 0 && afterCoord.x < this.MAP_WIDTH && afterCoord.y < this.MAP_HEIGHT && currentFloorMap[afterCoord.y][afterCoord.x] !== 'wall';
-
-        if (!isBeforeValid || !isAfterValid) continue;
-
-        // Check if the chasm is next to a wall to make it a forced jump
-        let pathIsBlocked = false;
-        if (isHorizontal) {
-          const aboveIsWall = chasmCoords.every(c => c.y - 1 < 0 || currentFloorMap[c.y - 1][c.x] === 'wall');
-          const belowIsWall = chasmCoords.every(c => c.y + 1 >= this.MAP_HEIGHT || currentFloorMap[c.y + 1][c.x] === 'wall');
-          if (aboveIsWall || belowIsWall) {
-            pathIsBlocked = true;
+          // Check if it's an open floor tile
+          if (currentFloorMap[coord.y][coord.x] === 'wall') {
+            canPlace = false;
+            break;
           }
-        } else { // isVertical
-          const leftIsWall = chasmCoords.every(c => c.x - 1 < 0 || currentFloorMap[c.y][c.x - 1] === 'wall');
-          const rightIsWall = chasmCoords.every(c => c.x + 1 >= this.MAP_WIDTH || currentFloorMap[c.y][c.x + 1] === 'wall');
-          if (leftIsWall || rightIsWall) {
-            pathIsBlocked = true;
+          // Check for existing elements
+          const coordStr = `${coord.x},${coord.y},${floor}`;
+          if (this.pitLocations.has(coordStr) || this.enemyLocations.has(coordStr) || this.itemLocations.has(coordStr) || this.staticItemLocations.has(coordStr)) {
+            canPlace = false;
+            break;
           }
         }
 
-        if (pathIsBlocked) {
+        if (canPlace) {
+          // Place the chasm
           for (const coord of chasmCoords) {
             this.pitLocations.set(`${coord.x},${coord.y},${floor}`, true);
+          }
+          // Place the blocking walls
+          for (const coord of blockingCoords) {
+            currentFloorMap[coord.y][coord.x] = 'wall';
           }
           placed = true;
         }

@@ -278,10 +278,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
-    const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
     const viewportSize = 15;
-    const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
+    const viewBox = `${animatedPlayerPosition.x - viewportSize / 2 + 0.5} ${animatedPlayerPosition.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
     const currentFloor = labyrinth.getCurrentFloor();
     const mapWidth = labyrinth["MAP_WIDTH"];
     const mapHeight = labyrinth["MAP_HEIGHT"];
@@ -332,8 +331,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f !== currentFloor) return false;
-      const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
-                        y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
+      const isVisible = x >= animatedPlayerPosition.x - viewportSize / 2 && x < animatedPlayerPosition.x + viewportSize / 2 &&
+                        y >= animatedPlayerPosition.y - viewportSize / 2 && y < animatedPlayerPosition.y + viewportSize / 2;
       return isVisible;
     });
 

@@ -476,6 +476,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <Target className="text-purple-400" size={10} />
           <span className="font-bold">{labyrinth.getSearchRadius()}</span>
         </div>
+        <Separator orientation="vertical" className="h-3 bg-amber-800" />
+        <div className="flex items-center gap-1" title="Deaths">
+          <Skull className="text-gray-400" size={10} />
+          <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+        </div>
       </div>
     </div>
   );

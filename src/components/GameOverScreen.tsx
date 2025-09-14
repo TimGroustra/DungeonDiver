@@ -10,6 +10,7 @@ interface GameResult {
   name: string;
   time: number;
   causeOfDeath?: string;
+  deaths?: number; // Added deaths property
 }
 
 interface GameOverScreenProps {
@@ -59,6 +60,11 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart, onRe
           {!isVictory && result.causeOfDeath && (
             <p className="text-xl mt-2">
               Cause: <span className="font-bold">{result.causeOfDeath}</span>
+            </p>
+          )}
+          {!isVictory && typeof result.deaths === 'number' && (
+            <p className="text-xl mt-2">
+              Deaths: <span className="font-bold">{result.deaths}</span>
             </p>
           )}
         </div>

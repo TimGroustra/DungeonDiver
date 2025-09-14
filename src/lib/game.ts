@@ -130,12 +130,13 @@ interface Room {
   center: Coordinate;
 }
 
-// Updated GameResult interface to include causeOfDeath
+// Updated GameResult interface to include causeOfDeath and deaths
 export interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
   causeOfDeath?: string; // Optional cause of death for defeat
+  deaths?: number; // New: Number of deaths for defeat
 }
 
 export class Labyrinth {
@@ -169,6 +170,7 @@ export class Labyrinth {
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
+  private playerDeaths: number; // New: Track player deaths
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -234,6 +236,7 @@ export class Labyrinth {
     this.items = new Map();
     this.floorObjectives = new Map();
     this.floorExitStaircases = new Map();
+    this.playerDeaths = 0; // Initialize player deaths
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -336,7 +339,7 @@ export class Labyrinth {
     for (const room of existingRooms) {
       if (newRoom.x < room.x + room.width + buffer &&
           newRoom.x + newRoom.width > room.x - buffer &&
-          newRoom.y < room.y + newRoom.height + buffer &&
+          newRoom.y < room.y + room.height + buffer &&
           newRoom.y + newRoom.height > room.y - buffer) {
         return false; // Overlaps
       }
@@ -475,7 +478,7 @@ export class Labyrinth {
       if (exitRoom) {
         const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
         this.items.set(staircase.id, staircase);
-        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
+        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.c_y };
         this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
         this.floorExitStaircases.set(floor, staircaseCoord);
       } else {
@@ -932,6 +935,10 @@ export class Labyrinth {
     return this.playerMaxHealth;
   }
 
+  public getPlayerDeaths(): number {
+    return this.playerDeaths;
+  }
+
   public getCurrentAttackDamage(): number {
     return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
   }
@@ -1014,7 +1021,12 @@ export class Labyrinth {
 
   private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, causeOfDeath?: string) {
     this.gameOver = true;
-    this.gameResult = { type, name: playerName, time, causeOfDeath };
+    if (type === 'defeat') {
+      this.playerDeaths++;
+      this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths };
+    } else {
+      this.gameResult = { type, name: playerName, time, causeOfDeath };
+    }
   }
 
   public revivePlayer() {

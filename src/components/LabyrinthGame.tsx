@@ -91,14 +91,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   useEffect(() => {
-    if (gameStarted) {
+    if (gameStarted && gameResult === null) { // Only reset if game is started and not over
       setLabyrinth(new Labyrinth());
       setGameVersion(0);
       setHasGameOverBeenDispatched(false);
     }
-  }, [gameStarted]);
+  }, [gameStarted, gameResult]); // Depend on gameResult to reset when a new game starts after game over
 
   useEffect(() => {
+    if (gameResult !== null) return; // Do not process game logic if game is over
+
     const newMessages = labyrinth.getMessages();
     if (newMessages.length > 0) {
       // If you want to display messages elsewhere, you'd handle them here.
@@ -120,11 +122,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       }, 200);
       labyrinth.clearLastHit();
     }
-  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
+  }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, gameResult]); // Add gameResult to dependencies
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || labyrinth.isGameOver()) return;
+      if (!gameStarted || gameResult !== null) return; // Do not allow input if game is over
       switch (event.key) {
         case "ArrowUp": event.preventDefault(); handleMove("north"); break;
         case "ArrowDown": event.preventDefault(); handleMove("south"); break;
@@ -145,10 +147,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult]); // Add gameResult to dependencies
 
   useEffect(() => {
-    if (!gameStarted || labyrinth.isGameOver()) return;
+    if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const intervalId = setInterval(() => {
@@ -160,28 +162,28 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setGameVersion(prev => prev + 1);
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime]);
+  }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleSearch = () => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot search right now."); return; }
+    if (gameResult !== null) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
     setGameVersion(prev => prev + 1);
   };
 
   const handleInteract = () => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleUseItem = (itemId: string) => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
@@ -488,6 +490,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
           {renderHud()}
+
+          {gameResult && (
+            <GameOverScreen result={gameResult} onRestart={onGameRestart} />
+          )}
         </main>
 
         <aside className="w-full md:w-80 lg:w-[350px] flex-shrink-0 bg-stone-900/70 border border-amber-800/60 rounded-lg flex flex-col overflow-hidden">

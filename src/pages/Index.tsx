@@ -12,7 +12,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { GameResult } from "@/lib/game";
-import GameOverScreen from "@/components/GameOverScreen";
 import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
 
 interface LeaderboardEntry {
@@ -40,7 +39,7 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (gameStarted && startTime !== null) {
+    if (gameStarted && startTime !== null && gameResult === null) { // Only update time if game is active and not over
       interval = setInterval(() => {
         setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
@@ -48,7 +47,7 @@ const Index: React.FC = () => {
       setElapsedTime(0);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, startTime]);
+  }, [gameStarted, startTime, gameResult]); // Add gameResult to dependencies
 
   const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
     queryKey: ["leaderboard"],
@@ -86,16 +85,16 @@ const Index: React.FC = () => {
       setGameStarted(true);
       setStartTime(Date.now());
       setShowLeaderboard(false);
-      setGameResult(null);
+      setGameResult(null); // Clear any previous game result
     } else {
       toast.error("Please enter your player name.");
     }
   };
 
   const handleGameOver = useCallback((result: GameResult) => {
-    setGameStarted(false);
-    setStartTime(null);
-    setGameResult(result);
+    // Keep gameStarted true so LabyrinthGame remains mounted for overlay
+    setStartTime(null); // Stop timer
+    setGameResult(result); // Set game result to display overlay
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
       addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time });
@@ -106,16 +105,16 @@ const Index: React.FC = () => {
   }, [addLeaderboardEntryMutation]);
 
   const handleGameRestart = () => {
-    setGameStarted(true);
+    setGameStarted(true); // Restart game
     setStartTime(Date.now());
     setElapsedTime(0);
     setShowLeaderboard(false);
-    setGameResult(null);
+    setGameResult(null); // Clear game result to hide overlay
   };
 
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      {!gameStarted && !showLeaderboard && !gameResult && (
+      {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if game not started, no leaderboard, and no game result
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
@@ -148,7 +147,7 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {showLeaderboard && !gameStarted && !gameResult && (
+      {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if game not started, no game result
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
@@ -180,7 +179,7 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {gameStarted && (
+      {gameStarted && ( // LabyrinthGame is always mounted if gameStarted is true
         <LabyrinthGame
           playerName={playerName}
           gameStarted={gameStarted}
@@ -188,12 +187,8 @@ const Index: React.FC = () => {
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
-          gameResult={gameResult}
+          gameResult={gameResult} // Pass gameResult to LabyrinthGame
         />
-      )}
-
-      {gameResult && !gameStarted && (
-        <GameOverScreen result={gameResult} onRestart={handleGameRestart} />
       )}
     </div>
   );

@@ -22,7 +22,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
 
   return (
     <div
-      className="flex flex-col items-center justify-center p-4"
+      className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/70 z-50" // Added overlay styling
     >
       <div className={cn(
         "w-full max-w-md text-center border-4 rounded-lg p-6 space-y-4",

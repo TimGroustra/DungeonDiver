@@ -41,15 +41,13 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (gameStarted && startTime !== null && gameResult === null) { // Only update time if game is active and not over
+    if (gameStarted && startTime !== null && gameResult === null) {
       interval = setInterval(() => {
         setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
-    } else {
-      setElapsedTime(0);
     }
     return () => clearInterval(interval);
-  }, [gameStarted, startTime, gameResult]); // Add gameResult to dependencies
+  }, [gameStarted, startTime, gameResult]);
 
   const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
     queryKey: ["leaderboard"],
@@ -89,6 +87,7 @@ const Index: React.FC = () => {
       setStartTime(Date.now());
       setShowLeaderboard(false);
       setGameResult(null); // Clear any previous game result
+      setElapsedTime(0); // Reset timer for new game
       setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
     } else {
       toast.error("Please enter your player name.");

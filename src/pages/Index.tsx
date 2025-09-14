@@ -188,6 +188,7 @@ const Index: React.FC = () => {
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
           gameResult={gameResult} // Pass gameResult to LabyrinthGame
+          setGameResult={setGameResult} // Pass setGameResult to LabyrinthGame
         />
       )}
     </div>

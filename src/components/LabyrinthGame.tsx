@@ -45,6 +45,7 @@ interface LabyrinthGameProps {
   onGameOver: (result: GameResult) => void; // Use GameResult interface
   onGameRestart: () => void;
   gameResult: GameResult | null; // New prop for game result
+  setGameResult: React.Dispatch<React.SetStateAction<GameResult | null>>; // Added setGameResult
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -83,7 +84,7 @@ const emojiMap: { [key: string]: string } = {
   "Triggered Trap": "☠️",
 };
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, setGameResult }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);

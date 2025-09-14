@@ -1123,6 +1123,13 @@ export class Labyrinth {
         direction = randomDirection;
     }
 
+    // New logic: If direction is different from lastMoveDirection, just change facing
+    if (direction !== this.lastMoveDirection) {
+      this.lastMoveDirection = direction;
+      this.addMessage(`You turn to face ${direction}.`);
+      return;
+    }
+
     const currentMap = this.floors.get(this.currentFloor)!;
     let newX = this.playerLocation.x;
     let newY = this.playerLocation.y;
@@ -1182,7 +1189,7 @@ export class Labyrinth {
     }
 
     this.playerLocation = { x: newX, y: newY };
-    this.lastMoveDirection = direction; // Update last move direction
+    this.lastMoveDirection = direction; // Update last move direction (already same, but good for consistency)
     this.markVisited(this.playerLocation);
 
     const currentRoom = this.getCurrentLogicalRoom();

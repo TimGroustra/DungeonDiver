@@ -142,7 +142,7 @@
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-0.5em); /* Adjust height of jump */
+      transform: translateY(-0.4em); /* Adjusted height of jump to be half the character's height */
     }
     100% {
       transform: translateY(0);

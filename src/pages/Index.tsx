@@ -116,8 +116,10 @@ const Index: React.FC = () => {
   };
 
   const handleRevive = () => {
-    // Only clear the game result, LabyrinthGame will handle the actual revive logic
+    // Clear the game result to hide the overlay
     setGameResult(null); 
+    // Resume the timer from the elapsed time at the point of defeat
+    setStartTime(Date.now() - (elapsedTime * 1000));
     // Do NOT change gameStarted or gameKey here, as we are continuing the current session
   };
 

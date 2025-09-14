@@ -89,6 +89,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
+  const [isJumping, setIsJumping] = useState(false); // New state for jump animation
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
@@ -175,6 +176,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const handleJump = () => {
     if (gameResult !== null) { toast.info("Cannot jump right now."); return; }
+    setIsJumping(true); // Start jump animation
+    setTimeout(() => setIsJumping(false), 300); // End jump animation after 300ms
     labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
@@ -356,7 +359,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           y={playerLoc.y - 0.6}
           width="1.6"
           height="1.6"
-          className={cn(flashingEntityId === 'player' && 'is-flashing')}
+          className={cn(flashingEntityId === 'player' && 'is-flashing', isJumping && 'is-jumping')}
         />
       </svg>
     );

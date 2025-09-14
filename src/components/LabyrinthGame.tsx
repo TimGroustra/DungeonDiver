@@ -278,6 +278,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
+    const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
     const viewportSize = 15;
     const viewBox = `${animatedPlayerPosition.x - viewportSize / 2 + 0.5} ${animatedPlayerPosition.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
@@ -414,6 +415,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
+          })}
+          {/* NEW CODE FOR TRAP GLOW */}
+          {Array.from(labyrinth.trapsLocations.keys()).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+
+            // Check if player is standing on this trap
+            const playerOnTrap = playerLoc.x === x && playerLoc.y === y;
+
+            if (playerOnTrap) {
+              return (
+                <rect
+                  key={`trap-glow-${coordStr}`}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  fill="rgba(255, 0, 0, 0.5)"
+                  stroke="rgba(255, 0, 0, 0.8)"
+                  strokeWidth={0.05}
+                  className="animate-pulse-fast"
+                />
+              );
+            }
+            return null;
           })}
         </g>
         <image

@@ -150,6 +150,6 @@
   }
 
   .is-jumping {
-    animation: jump-animation 0.3s ease-out; /* 0.3s duration for the jump */
+    animation: jump-animation 0.6s ease-out; /* 0.6s duration for the jump */
   }
 }

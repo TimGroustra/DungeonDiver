@@ -93,7 +93,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, labyrinth, se
   // Effect to handle game messages and game over state
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
-    newMessages.forEach(msg => toast.info(msg)); // Display messages as toasts
+    // Removed: newMessages.forEach(msg => toast.info(msg)); // Display messages as toasts
     labyrinth.clearMessages(); // Clear messages after displaying
 
     if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {

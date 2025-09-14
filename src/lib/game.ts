@@ -565,6 +565,7 @@ export class Labyrinth {
         attempts++;
 
         const isHorizontal = Math.random() > 0.5;
+        // Ensure we don't start too close to the edge
         const startX = Math.floor(Math.random() * (this.MAP_WIDTH - (isHorizontal ? chasmLength + 2 : 2))) + 1;
         const startY = Math.floor(Math.random() * (this.MAP_HEIGHT - (isHorizontal ? 2 : chasmLength + 2))) + 1;
 
@@ -593,42 +594,40 @@ export class Labyrinth {
           }
         }
 
-        // --- Start Validation ---
-        let canPlace = true;
+        const allCoords = [...chasmCoords, ...blockingCoords, beforeCoord, afterCoord];
         
-        // 1. Check that landing spots and chasm path are open floor
-        const pathAndLandingCoords = [...chasmCoords, beforeCoord, afterCoord];
-        for (const coord of pathAndLandingCoords) {
-            if (coord.x < 0 || coord.x >= this.MAP_WIDTH || coord.y < 0 || coord.y >= this.MAP_HEIGHT || currentFloorMap[coord.y][coord.x] === 'wall') {
-                canPlace = false;
-                break;
-            }
-        }
-        if (!canPlace) continue;
-
-        // 2. Check that the entire footprint is clear of existing game elements
-        const allFootprintCoords = [...pathAndLandingCoords, ...blockingCoords];
-        for (const coord of allFootprintCoords) {
-            const coordStr = `${coord.x},${coord.y},${floor}`;
-            if (this.pitLocations.has(coordStr) || this.enemyLocations.has(coordStr) || this.itemLocations.has(coordStr) || this.staticItemLocations.has(coordStr)) {
-                canPlace = false;
-                break;
-            }
-        }
-        if (!canPlace) continue;
-        // --- End Validation ---
-
-        // If all checks pass, place the chasm and its walls
-        for (const coord of chasmCoords) {
-          this.pitLocations.set(`${coord.x},${coord.y},${floor}`, true);
-        }
-        for (const coord of blockingCoords) {
-          // This can overwrite existing floor tiles, which is intended
-          if (coord.x >= 0 && coord.x < this.MAP_WIDTH && coord.y >= 0 && coord.y < this.MAP_HEIGHT) {
-            currentFloorMap[coord.y][coord.x] = 'wall';
+        // Validation
+        let canPlace = true;
+        for (const coord of allCoords) {
+          // Check bounds (already handled by startX/Y generation but good practice)
+          if (coord.x < 0 || coord.x >= this.MAP_WIDTH || coord.y < 0 || coord.y >= this.MAP_HEIGHT) {
+            canPlace = false;
+            break;
+          }
+          // Check if it's an open floor tile
+          if (currentFloorMap[coord.y][coord.x] === 'wall') {
+            canPlace = false;
+            break;
+          }
+          // Check for existing elements
+          const coordStr = `${coord.x},${coord.y},${floor}`;
+          if (this.pitLocations.has(coordStr) || this.enemyLocations.has(coordStr) || this.itemLocations.has(coordStr) || this.staticItemLocations.has(coordStr)) {
+            canPlace = false;
+            break;
           }
         }
-        placed = true;
+
+        if (canPlace) {
+          // Place the chasm
+          for (const coord of chasmCoords) {
+            this.pitLocations.set(`${coord.x},${coord.y},${floor}`, true);
+          }
+          // Place the blocking walls
+          for (const coord of blockingCoords) {
+            currentFloorMap[coord.y][coord.x] = 'wall';
+          }
+          placed = true;
+        }
       }
     }
   }

@@ -163,6 +163,7 @@ export class Labyrinth {
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
   public revealedTraps: Set<string>; // Stores "x,y,floor" strings of revealed (but not triggered) traps
+  public pitLocations: Map<string, boolean>; // New: "x,y,floor" -> true for pit locations
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
@@ -232,6 +233,7 @@ export class Labyrinth {
     this.trapsLocations = new Map();
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
     this.revealedTraps = new Set<string>(); // Initialize new set for revealed traps
+    this.pitLocations = new Map(); // Initialize new map for pit locations
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
     this.enemies = new Map();
     this.puzzles = new Map();
@@ -298,6 +300,7 @@ export class Labyrinth {
       this.floors.set(floor, floorMap);
       this.visitedCells.set(floor, new Set<string>()); // Initialize visited cells for each floor
       this.addGameElements(floor);
+      this._placePitTraps(floor); // Place pit traps after other elements
       this._placeDecorativeElements(floor); // Place decorative elements after all other elements
     }
   }
@@ -480,7 +483,7 @@ export class Labyrinth {
       if (exitRoom) {
         const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
         this.items.set(staircase.id, staircase);
-        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.c_y };
+        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
         this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
         this.floorExitStaircases.set(floor, staircaseCoord);
       } else {
@@ -742,6 +745,108 @@ export class Labyrinth {
     }
   }
 
+  private _placePitTraps(floor: number) {
+    const currentFloorMap = this.floors.get(floor)!;
+    const numPits = 5; // Number of pit traps per floor
+
+    for (let i = 0; i < numPits; i++) {
+      let placed = false;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 500;
+
+      while (!placed && attempts < MAX_ATTEMPTS) {
+        const isHorizontal = Math.random() > 0.5;
+        const width = Math.floor(Math.random() * 2) + 1; // 1 or 2 blocks wide
+
+        let startX, startY, endX, endY;
+
+        if (isHorizontal) {
+          startY = Math.floor(Math.random() * (this.MAP_HEIGHT - width));
+          endY = startY + width - 1;
+          startX = 1; // Start from the second column to ensure a wall on the left
+          endX = this.MAP_WIDTH - 2; // End before the last column to ensure a wall on the right
+        } else { // Vertical
+          startX = Math.floor(Math.random() * (this.MAP_WIDTH - width));
+          endX = startX + width - 1;
+          startY = 1; // Start from the second row
+          endY = this.MAP_HEIGHT - 2; // End before the last row
+        }
+
+        // Check if the proposed pit path is valid and bordered by walls
+        let isValidPath = true;
+        const pitCells: Coordinate[] = [];
+
+        if (isHorizontal) {
+          for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+              const coordStr = `${x},${y},${floor}`;
+              if (
+                currentFloorMap[y][x] === 'wall' || // Must be open space
+                this.isTooClose(x, y, floor) || // Not too close to other elements
+                this.pitLocations.has(coordStr) || // Not overlapping with existing pits
+                (x === this.playerLocation.x && y === this.playerLocation.y && floor === this.currentFloor) || // Not at player start
+                (floor === this.NUM_FLOORS - 1 && this.bossPassageCoords.has(coordStr)) // Not in boss passage
+              ) {
+                isValidPath = false;
+                break;
+              }
+              pitCells.push({ x, y });
+            }
+            if (!isValidPath) break;
+          }
+          // Check for walls on top and bottom
+          if (isValidPath) {
+            for (let x = startX; x <= endX; x++) {
+              if (currentFloorMap[startY - 1][x] !== 'wall' || currentFloorMap[endY + 1][x] !== 'wall') {
+                isValidPath = false;
+                break;
+              }
+            }
+          }
+        } else { // Vertical
+          for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+              const coordStr = `${x},${y},${floor}`;
+              if (
+                currentFloorMap[y][x] === 'wall' || // Must be open space
+                this.isTooClose(x, y, floor) || // Not too close to other elements
+                this.pitLocations.has(coordStr) || // Not overlapping with existing pits
+                (x === this.playerLocation.x && y === this.playerLocation.y && floor === this.currentFloor) || // Not at player start
+                (floor === this.NUM_FLOORS - 1 && this.bossPassageCoords.has(coordStr)) // Not in boss passage
+              ) {
+                isValidPath = false;
+                break;
+              }
+              pitCells.push({ x, y });
+            }
+            if (!isValidPath) break;
+          }
+          // Check for walls on left and right
+          if (isValidPath) {
+            for (let y = startY; y <= endY; y++) {
+              if (currentFloorMap[y][startX - 1] !== 'wall' || currentFloorMap[y][endX + 1] !== 'wall') {
+                isValidPath = false;
+                break;
+              }
+            }
+          }
+        }
+
+        if (isValidPath && pitCells.length > 0) {
+          pitCells.forEach(cell => {
+            this.pitLocations.set(`${cell.x},${cell.y},${floor}`, true);
+          });
+          placed = true;
+        }
+        attempts++;
+      }
+
+      if (!placed) {
+        console.warn(`Could not place pit trap on floor ${floor} after ${MAX_ATTEMPTS} attempts.`);
+      }
+    }
+  }
+
   private _placeDecorativeElements(floor: number) {
     const currentFloorMap = this.floors.get(floor)!;
     const lightFixtureTypes = ['torch_unlit', 'torch_lit'];
@@ -771,6 +876,7 @@ export class Labyrinth {
                     !this.itemLocations.has(coordStr) &&
                     !this.staticItemLocations.has(coordStr) &&
                     !this.trapsLocations.has(coordStr) &&
+                    !this.pitLocations.has(coordStr) && // Exclude pit locations
                     !this.decorativeElements.has(coordStr) &&
                     (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor)
                 ) {
@@ -829,6 +935,7 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
+        !this.pitLocations.has(coordStr) && // Exclude pit locations
         !this.isTooClose(x, y, floor) && // Still respect minimum distance
         this.floors.get(floor)![y][x] !== 'wall' // Must be an open room
       ) {
@@ -849,7 +956,8 @@ export class Labyrinth {
       this.puzzleLocations,
       this.itemLocations,
       this.staticItemLocations,
-      this.trapsLocations
+      this.trapsLocations,
+      this.pitLocations // Include pit locations in proximity check
     ];
 
     for (const map of checkMaps) {
@@ -892,6 +1000,7 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
+        !this.pitLocations.has(coordStr) && // Exclude pit locations
         !this.isTooClose(x, y, floor) // Check for minimum distance to other elements
       ) {
         locationMap.set(coordStr, id);
@@ -1011,6 +1120,10 @@ export class Labyrinth {
 
   public getRevealedTraps(): Set<string> {
     return this.revealedTraps;
+  }
+
+  public getPitLocations(): Map<string, boolean> {
+    return this.pitLocations;
   }
 
   public getDecorativeElements(): Map<string, string> {
@@ -1153,6 +1266,14 @@ export class Labyrinth {
     }
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
+
+    // Check for Pit Trap - instant defeat
+    if (this.pitLocations.has(targetCoordStr)) {
+      this.addMessage("You step into a bottomless pit! There's no escape... Game Over.");
+      this.setGameOver('defeat', playerName, time, "Fell into a Pit Trap");
+      return;
+    }
+
     const enemyId = this.enemyLocations.get(targetCoordStr);
     if (enemyId) {
         const enemy = this.enemies.get(enemyId);
@@ -1260,6 +1381,13 @@ export class Labyrinth {
 
     const destination = pathCoordinates[2];
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
+
+    // Check for Pit Trap at destination - instant defeat
+    if (this.pitLocations.has(targetCoordStr)) {
+      this.addMessage("You jump directly into a bottomless pit! There's no escape... Game Over.");
+      this.setGameOver('defeat', playerName, time, "Jumped into a Pit Trap");
+      return;
+    }
 
     // Check for enemies at destination. If there is an enemy, the jump fails.
     const enemyId = this.enemyLocations.get(targetCoordStr);
@@ -1450,6 +1578,12 @@ export class Labyrinth {
                 this.addMessage(`You detect a hidden trap at (${targetX},${targetY}).`);
                 foundSomethingInRadius = true;
             }
+        }
+        
+        // Pit Traps (always visible, but search can confirm presence)
+        if (this.pitLocations.has(coordStr)) {
+            this.addMessage(`You see a gaping pit at (${targetX},${targetY}).`);
+            foundSomethingInRadius = true;
         }
       }
     }
@@ -1826,7 +1960,7 @@ export class Labyrinth {
   }
 
   private _isValidEnemyMove(x: number, y: number, currentFloorMap: (LogicalRoom | 'wall')[][]): boolean {
-    return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
+    return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall' && !this.pitLocations.has(`${x},${y},${this.currentFloor}`);
   }
 
   public processEnemyMovement(playerName: string, time: number) {

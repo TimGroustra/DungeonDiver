@@ -82,6 +82,7 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
+  "Pit Trap": "⚫", // Added emoji for Pit Trap
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
@@ -339,6 +340,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
     const revealedTraps = labyrinth.getRevealedTraps();
     const allVisibleTraps = new Set([...revealedTraps]);
+    const pitLocations = labyrinth.getPitLocations(); // Get pit locations
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -382,6 +384,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
+          {/* Render Pit Traps - always visible */}
+          {Array.from(pitLocations.keys()).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+            return (
+              <rect
+                key={`pit-${coordStr}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                fill="black"
+                stroke="darkgray"
+                strokeWidth={0.05}
+              />
+            );
+          })}
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;

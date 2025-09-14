@@ -275,23 +275,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion, labyrinth]);
-
-  const floorPath = useMemo(() => {
-    const grid = labyrinth.getMapGrid();
-    const pitLocations = labyrinth.pitLocations;
-    const currentFloor = labyrinth.getCurrentFloor();
-    const gridWithPitsAsWalls = grid.map(row => [...row]);
-    for (const coordStr of pitLocations.keys()) {
-      const [x, y, f] = coordStr.split(',').map(Number);
-      if (f === currentFloor) {
-        if (gridWithPitsAsWalls[y] && gridWithPitsAsWalls[y][x] !== undefined) {
-          gridWithPitsAsWalls[y][x] = 'wall';
-        }
-      }
-    }
-    return generateSvgPaths(gridWithPitsAsWalls).floorPath;
-  }, [gameVersion, labyrinth]);
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
     const visitedCells = labyrinth.getVisitedCells();
@@ -390,14 +374,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
-          <symbol id="pit" viewBox="0 0 1 1"><rect width="1" height="1" fill="#000" /></symbol>
         </defs>
-        {/* Render pits outside the mask to ensure they are always visible */}
-        {Array.from(labyrinth.pitLocations.keys()).map((coordStr) => {
-          const [x, y, f] = coordStr.split(',').map(Number);
-          if (f !== currentFloor) return null;
-          return <use key={`pit-${coordStr}`} href="#pit" x={x} y={y} width="1" height="1" />;
-        })}
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />

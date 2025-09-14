@@ -44,10 +44,7 @@ interface LabyrinthGameProps {
   elapsedTime: number;
   onGameOver: (result: GameResult) => void; // Use GameResult interface
   onGameRestart: () => void;
-  onGameRevive: () => void; // New prop to signal revive
   gameResult: GameResult | null; // New prop for game result
-  gameInstanceKey: number; // New prop for full restarts
-  reviveTrigger: number; // New prop for revives
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -86,28 +83,20 @@ const emojiMap: { [key: string]: string } = {
   "Triggered Trap": "☠️",
 };
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, onGameRevive, gameResult, gameInstanceKey, reviveTrigger }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
-  // Effect for full game restarts (when gameInstanceKey changes)
   useEffect(() => {
-    setLabyrinth(new Labyrinth()); // Create a brand new labyrinth
-    setGameVersion(0);
-    setHasGameOverBeenDispatched(false);
-  }, [gameInstanceKey]); // Only re-initialize on gameInstanceKey change
-
-  // Effect for revives (when reviveTrigger changes)
-  useEffect(() => {
-    if (reviveTrigger > 0) { // Only trigger if it's not the initial 0
-      labyrinth.revivePlayer(); // Call revive on the *current* labyrinth instance
-      setGameVersion(prev => prev + 1); // Force re-render
-      setHasGameOverBeenDispatched(false); // Reset for next game over
+    if (gameStarted) {
+      setLabyrinth(new Labyrinth());
+      setGameVersion(0);
+      setHasGameOverBeenDispatched(false);
     }
-  }, [reviveTrigger, labyrinth]); // Depend on reviveTrigger and labyrinth instance
+  }, [gameStarted]);
 
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
@@ -153,7 +142,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
     return () => {
       if (gameElement) {
-        gameElement.removeEventListener("change", handleKeyDown); // Changed from 'change' to 'keydown'
+        gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
   }, [gameStarted, labyrinth, playerName, elapsedTime]);

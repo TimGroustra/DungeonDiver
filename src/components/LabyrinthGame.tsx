@@ -89,17 +89,58 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const [isJumping, setIsJumping] = useState(false); // New state for jump animation
+  const [isJumping, setIsJumping] = useState(false); // State for vertical hop animation
+  const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // New state for smooth visual movement
+  const [isAnimatingJump, setIsAnimatingJump] = useState(false); // New state to prevent actions during jump animation
+  const animationDuration = 300; // ms, matches CSS jump-animation duration
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
     if (gameStarted) { // Only create a new Labyrinth if game is started
-      setLabyrinth(new Labyrinth());
+      const newLabyrinth = new Labyrinth();
+      setLabyrinth(newLabyrinth);
+      setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
       setGameVersion(0);
       setHasGameOverBeenDispatched(false);
     }
   }, [gameStarted]); // Depend only on gameStarted for initial setup
+
+  // Effect to smoothly animate player's visual position when game state position changes
+  useEffect(() => {
+    const playerLoc = labyrinth.getPlayerLocation();
+    const currentFloor = labyrinth.getCurrentFloor();
+
+    // Only animate if the game state position has actually changed
+    if (playerLoc.x !== animatedPlayerPosition.x || playerLoc.y !== animatedPlayerPosition.y) {
+        setIsAnimatingJump(true); // Indicate that an animation is in progress
+
+        const startX = animatedPlayerPosition.x;
+        const startY = animatedPlayerPosition.y;
+        const endX = playerLoc.x;
+        const endY = playerLoc.y;
+        const startTime = Date.now();
+
+        const animate = () => {
+            const now = Date.now();
+            const elapsed = now - startTime;
+            const progress = Math.min(1, elapsed / animationDuration);
+
+            const currentX = startX + (endX - startX) * progress;
+            const currentY = startY + (endY - startY) * progress;
+
+            setAnimatedPlayerPosition({ x: currentX, y: currentY });
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                setIsAnimatingJump(false);
+                setAnimatedPlayerPosition(playerLoc); // Ensure it snaps to final game state position
+            }
+        };
+        requestAnimationFrame(animate);
+    }
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -129,7 +170,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null) return; // Do not allow input if game is over
+      if (!gameStarted || gameResult !== null || isAnimatingJump) return; // Do not allow input if game is over or animating
       switch (event.key) {
         case "ArrowUp": event.preventDefault(); handleMove("north"); break;
         case "ArrowDown": event.preventDefault(); handleMove("south"); break;
@@ -151,7 +192,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult]); // Add gameResult to dependencies
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingJump]); // Add gameResult and isAnimatingJump to dependencies
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
@@ -169,33 +210,37 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null || isAnimatingJump) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleJump = () => {
-    if (gameResult !== null) { toast.info("Cannot jump right now."); return; }
-    setIsJumping(true); // Start jump animation
-    setTimeout(() => setIsJumping(false), 300); // End jump animation after 300ms
+    if (gameResult !== null || isAnimatingJump) { toast.info("Cannot jump right now."); return; }
+    
+    // The labyrinth.jump call will update the internal playerLocation
     labyrinth.jump(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setGameVersion(prev => prev + 1); // Trigger re-render and useEffect for position animation
+    
+    // Trigger the vertical hop animation (isJumping state)
+    setIsJumping(true);
+    setTimeout(() => setIsJumping(false), animationDuration); // End vertical hop after animation duration
   };
 
   const handleSearch = () => {
-    if (gameResult !== null) { toast.info("Cannot search right now."); return; }
+    if (gameResult !== null || isAnimatingJump) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
     setGameVersion(prev => prev + 1);
   };
 
   const handleInteract = () => {
-    if (gameResult !== null) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null || isAnimatingJump) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null || isAnimatingJump) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
@@ -215,7 +260,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
 
   const renderMap = () => {
-    const playerLoc = labyrinth.getPlayerLocation();
+    const playerLoc = labyrinth.getPlayerLocation(); // This is the actual game state position
     const visitedCells = labyrinth.getVisitedCells();
     const viewportSize = 15;
     const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
@@ -355,11 +400,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         </g>
         <image
           href={adventurerSprite}
-          x={playerLoc.x - 0.3}
-          y={playerLoc.y - 0.6}
+          x={animatedPlayerPosition.x - 0.3}
+          y={animatedPlayerPosition.y - 0.6}
           width="1.6"
           height="1.6"
-          className={cn(flashingEntityId === 'player' && 'is-flashing', isJumping && 'is-jumping')}
+          className={cn(
+            flashingEntityId === 'player' && 'is-flashing',
+            isJumping && 'is-jumping' // Keep the vertical hop animation
+          )}
         />
       </svg>
     );

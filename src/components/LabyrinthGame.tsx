@@ -275,23 +275,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const gridForRendering = useMemo(() => {
+  const { wallPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion, labyrinth]);
+
+  const floorPath = useMemo(() => {
     const grid = labyrinth.getMapGrid();
     const pitLocations = labyrinth.pitLocations;
     const currentFloor = labyrinth.getCurrentFloor();
-    const newGrid = grid.map(row => [...row]);
+    const gridWithPitsAsWalls = grid.map(row => [...row]);
     for (const coordStr of pitLocations.keys()) {
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f === currentFloor) {
-        if (newGrid[y] && newGrid[y][x] !== undefined) {
-          newGrid[y][x] = 'wall';
+        if (gridWithPitsAsWalls[y] && gridWithPitsAsWalls[y][x] !== undefined) {
+          gridWithPitsAsWalls[y][x] = 'wall';
         }
       }
     }
-    return newGrid;
+    return generateSvgPaths(gridWithPitsAsWalls).floorPath;
   }, [gameVersion, labyrinth]);
-
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(gridForRendering), [gridForRendering]);
 
   const renderMap = () => {
     const visitedCells = labyrinth.getVisitedCells();

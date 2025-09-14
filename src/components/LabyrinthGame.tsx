@@ -89,11 +89,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
-  const [isJumping, setIsJumping] = useState(false);
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const animationDuration = 1000; // ms
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -127,6 +125,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const startTime = Date.now();
 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
+      const animationDuration = isJump ? 1000 : 200; // Jumps are slow, moves are fast
 
       const animate = () => {
         const now = Date.now();
@@ -161,7 +160,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           setIsAnimatingMovement(false);
           setAnimatedPlayerPosition(newLogicalPos); // Ensure it snaps to final logical position
           lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
-          setIsJumping(false);
           setVerticalJumpOffset(0);
         }
       };
@@ -245,8 +243,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     
     labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
-    
-    setIsJumping(true);
   };
 
   const handleSearch = () => {

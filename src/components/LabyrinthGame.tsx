@@ -119,8 +119,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
+    // Ensure labyrinth is available before proceeding
+    if (!labyrinth) return;
+
     const newLogicalPos = labyrinth.getPlayerLocation();
-    const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
+    // Removed 'const currentFloor = labyrinth.getCurrentFloor();' as it was only used in dependencies
+    // and is implicitly handled by depending on 'labyrinth' and its derived properties.
 
     // Only animate if the logical position has actually changed from the last settled position
     if (newLogicalPos.x !== lastSettledLogicalPositionRef.current.x || newLogicalPos.y !== lastSettledLogicalPositionRef.current.y) {
@@ -173,7 +177,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       };
       requestAnimationFrame(animate);
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, currentFloor]); // Depend on actual game state player location and floor
+  }, [
+    labyrinth, // Depend on the labyrinth object itself
+    labyrinth.getPlayerLocation().x,
+    labyrinth.getPlayerLocation().y,
+    // The currentFloor is implicitly handled by 'labyrinth' changing.
+    // No need for a separate 'currentFloor' variable in dependencies.
+  ]);
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -223,7 +233,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, playerName, elapsedTime, gameResult, isAnimatingMovement, labyrinth]); // Added labyrinth to ensure latest methods are captured
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement]); // Add gameResult and isAnimatingMovement to dependencies
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over

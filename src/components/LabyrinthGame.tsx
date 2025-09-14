@@ -275,7 +275,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
+  const gridForRendering = useMemo(() => {
+    const grid = labyrinth.getMapGrid();
+    const pitLocations = labyrinth.pitLocations;
+    const currentFloor = labyrinth.getCurrentFloor();
+    const newGrid = grid.map(row => [...row]);
+    for (const coordStr of pitLocations.keys()) {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f === currentFloor) {
+        if (newGrid[y] && newGrid[y][x] !== undefined) {
+          newGrid[y][x] = 'wall';
+        }
+      }
+    }
+    return newGrid;
+  }, [gameVersion, labyrinth]);
+
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(gridForRendering), [gridForRendering]);
 
   const renderMap = () => {
     const visitedCells = labyrinth.getVisitedCells();
@@ -380,14 +396,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <circle cx="0.5" cy="0.5" r="0.3" fill="#050505" />
           </symbol>
         </defs>
+        {/* Render pits outside the mask to ensure they are always visible */}
+        {Array.from(labyrinth.pitLocations.keys()).map((coordStr) => {
+          const [x, y, f] = coordStr.split(',').map(Number);
+          if (f !== currentFloor) return null;
+          return <use key={`pit-${coordStr}`} href="#pit" x={x} y={y} width="1" height="1" />;
+        })}
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
-          {Array.from(labyrinth.pitLocations.keys()).map((coordStr) => {
-            const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
-            if (!visitedCells.has(`${x},${y}`)) return null;
-            return <use key={`pit-${coordStr}`} href="#pit" x={x} y={y} width="1" height="1" />;
-          })}
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);

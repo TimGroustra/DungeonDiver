@@ -73,6 +73,7 @@ export class Enemy {
   name: string;
   description: string;
   health: number;
+  initialHealth: number; // Store initial health for revive
   defeated: boolean;
   isAggro: boolean;
   attackDamage: number;
@@ -82,6 +83,7 @@ export class Enemy {
     this.name = name;
     this.description = description;
     this.health = health;
+    this.initialHealth = health; // Initialize initial health
     this.defeated = false;
     this.isAggro = false;
     this.attackDamage = attackDamage;
@@ -92,6 +94,12 @@ export class Enemy {
     if (this.health <= 0) {
       this.defeated = true;
     }
+  }
+
+  resetHealth() {
+    this.health = this.initialHealth;
+    this.defeated = false;
+    this.isAggro = false;
   }
 }
 
@@ -135,6 +143,7 @@ export interface GameResult {
   type: 'victory' | 'defeat';
   name: string;
   time: number;
+  deaths: number; // Added deaths property
   causeOfDeath?: string; // Optional cause of death for defeat
 }
 
@@ -169,6 +178,7 @@ export class Labyrinth {
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
+  private playerDeaths: number; // New: Track player deaths
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -205,7 +215,7 @@ export class Labyrinth {
 
   private gameResult: GameResult | null = null; // New: Stores game result
 
-  constructor() {
+  constructor(initialDeaths: number = 0) { // Accept initialDeaths
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
     this.currentFloor = 0; // Start on floor 0
@@ -234,6 +244,7 @@ export class Labyrinth {
     this.items = new Map();
     this.floorObjectives = new Map();
     this.floorExitStaircases = new Map();
+    this.playerDeaths = initialDeaths; // Initialize player deaths
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -932,6 +943,10 @@ export class Labyrinth {
     return this.playerMaxHealth;
   }
 
+  public getPlayerDeaths(): number {
+    return this.playerDeaths;
+  }
+
   public getCurrentAttackDamage(): number {
     return this.baseAttackDamage + (this.equippedWeapon?.effectValue || 0) + (this.equippedAmulet?.effectValue || 0);
   }
@@ -978,7 +993,7 @@ export class Labyrinth {
       return typeof cell !== 'string' ? cell : undefined;
     }
     return undefined;
-  }
+    }
 
   public getEnemy(id: string): Enemy | undefined {
     return this.enemies.get(id);
@@ -1012,9 +1027,18 @@ export class Labyrinth {
     return this.gameResult;
   }
 
-  private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, causeOfDeath?: string) {
+  private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, deaths: number, causeOfDeath?: string) {
     this.gameOver = true;
-    this.gameResult = { type, name: playerName, time, causeOfDeath };
+    this.gameResult = { type, name: playerName, time, deaths, causeOfDeath };
+  }
+
+  public revivePlayer() {
+    this.playerDeaths++;
+    this.playerHealth = this.playerMaxHealth;
+    this.gameOver = false;
+    this.gameResult = null;
+    this.clearMessages();
+    this.addMessage(`You are revived! You feel a surge of energy, but the Labyrinth remembers your death. Deaths: ${this.playerDeaths}`);
   }
 
   private markVisited(coord: Coordinate) {
@@ -1154,7 +1178,7 @@ export class Labyrinth {
             if (this.playerHealth <= 0) {
                 if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Moved during Red Light)")) {
                     this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time, "Temporal Distortion (Moved during Red Light)");
+                    this.setGameOver('defeat', playerName, time, this.playerDeaths, "Temporal Distortion (Moved during Red Light)");
                     return;
                 }
             }
@@ -1176,7 +1200,7 @@ export class Labyrinth {
         if (this.playerHealth <= 0) {
             if (!this._tryActivateWellBlessing(playerName, time, "Hidden Trap")) {
                 this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
-                this.setGameOver('defeat', playerName, time, "Hidden Trap");
+                this.setGameOver('defeat', playerName, time, this.playerDeaths, "Hidden Trap");
             }
         }
     }
@@ -1487,7 +1511,7 @@ export class Labyrinth {
             if (heartEntry) {
                 this.inventory.delete("heart-of-labyrinth-f3");
                 this.heartSacrificed = true;
-                this.setGameOver('victory', playerName, time); // Game over condition
+                this.setGameOver('victory', playerName, time, this.playerDeaths); // Game over condition
                 this.addMessage("You place the Heart of the Labyrinth upon the Ancient Altar. A blinding flash of light erupts, followed by a deafening roar as the Labyrinth crumbles around you! You have destroyed it and escaped!");
                 interacted = true;
             } else {
@@ -1794,7 +1818,7 @@ export class Labyrinth {
                 if (this.playerHealth <= 0) {
                     if (!this._tryActivateWellBlessing(playerName, time, `${enemy.name}'s Attack`)) {
                         this.addMessage("You have been slain... Game Over.");
-                        this.setGameOver('defeat', playerName, time, `${enemy.name}'s Attack`);
+                        this.setGameOver('defeat', playerName, time, this.playerDeaths, `${enemy.name}'s Attack`);
                     }
                 }
                 moved = true;

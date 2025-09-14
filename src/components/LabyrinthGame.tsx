@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass } from "lucide-react"; // Added Gem and Compass icons
+import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull } from "lucide-react"; // Added Skull icon
 import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
@@ -39,12 +39,13 @@ import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
 
 interface LabyrinthGameProps {
   playerName: string;
-  gameStarted: boolean;
+  labyrinth: Labyrinth; // Labyrinth instance is now passed as a prop
+  setLabyrinth: React.Dispatch<React.SetStateAction<Labyrinth | null>>; // Setter for Labyrinth instance
   startTime: number | null;
   elapsedTime: number;
   onGameOver: (result: GameResult) => void; // Use GameResult interface
-  onGameRestart: () => void;
-  gameResult: GameResult | null; // New prop for game result
+  onGameRestart: () => void; // For a full new game
+  onRevive: (playerName: string) => void; // New prop for reviving
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -83,28 +84,18 @@ const emojiMap: { [key: string]: string } = {
   "Triggered Trap": "☠️",
 };
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult }) => {
-  const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
-  const [gameVersion, setGameVersion] = useState(0);
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, labyrinth, setLabyrinth, startTime, elapsedTime, onGameOver, onGameRestart, onRevive }) => {
+  const [gameVersion, setGameVersion] = useState(0); // Used to force re-render of the map/UI
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
-  useEffect(() => {
-    if (gameStarted) {
-      setLabyrinth(new Labyrinth());
-      setGameVersion(0);
-      setHasGameOverBeenDispatched(false);
-    }
-  }, [gameStarted]);
-
+  // Effect to handle game messages and game over state
   useEffect(() => {
     const newMessages = labyrinth.getMessages();
-    if (newMessages.length > 0) {
-      // If you want to display messages elsewhere, you'd handle them here.
-      // For now, they are just cleared.
-      labyrinth.clearMessages();
-    }
+    newMessages.forEach(msg => toast.info(msg)); // Display messages as toasts
+    labyrinth.clearMessages(); // Clear messages after displaying
+
     if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
       const result = labyrinth.getGameResult();
       if (result) {
@@ -117,14 +108,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       setFlashingEntityId(hitId);
       setTimeout(() => {
         setFlashingEntityId(null);
+        labyrinth.clearLastHit(); // Clear last hit after flash
       }, 200);
-      labyrinth.clearLastHit();
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
 
+  // Effect for keyboard input
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || labyrinth.isGameOver()) return;
+      if (labyrinth.isGameOver()) return; // Prevent input if game is over
       switch (event.key) {
         case "ArrowUp": event.preventDefault(); handleMove("north"); break;
         case "ArrowDown": event.preventDefault(); handleMove("south"); break;
@@ -145,10 +137,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime]);
+  }, [labyrinth, playerName, elapsedTime, handleMove, handleSearch, handleInteract]);
 
+  // Effect for enemy movement and boss logic
   useEffect(() => {
-    if (!gameStarted || labyrinth.isGameOver()) return;
+    if (labyrinth.isGameOver()) return;
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const intervalId = setInterval(() => {
@@ -157,10 +150,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
         labyrinth.processBossLogic();
       }
-      setGameVersion(prev => prev + 1);
+      setGameVersion(prev => prev + 1); // Force re-render
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime]);
+  }, [labyrinth, playerName, startTime]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
@@ -190,11 +183,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
+  // Memoize map rendering to prevent unnecessary re-renders
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion, labyrinth]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();
     const visitedCells = labyrinth.getVisitedCells();
+    const searchRadius = labyrinth.getSearchRadius();
     const viewportSize = 15;
     const viewBox = `${playerLoc.x - viewportSize / 2 + 0.5} ${playerLoc.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
     const currentFloor = labyrinth.getCurrentFloor();
@@ -246,9 +241,33 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
       const [x, y, f] = coordStr.split(',').map(Number);
       if (f !== currentFloor) return false;
-      const isVisible = x >= playerLoc.x - viewportSize / 2 && x < playerLoc.x + viewportSize / 2 &&
-                        y >= playerLoc.y - viewportSize / 2 && y < playerLoc.y + viewportSize / 2;
+      const isVisible = Math.abs(x - playerLoc.x) <= searchRadius && Math.abs(y - playerLoc.y) <= searchRadius;
       return isVisible;
+    });
+
+    const visibleEnemies = Array.from(labyrinth.enemyLocations.entries()).filter(([coordStr, enemyId]) => {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f !== currentFloor) return false;
+      const enemy = labyrinth.getEnemy(enemyId);
+      if (!enemy || enemy.defeated) return false;
+      const isVisible = Math.abs(x - playerLoc.x) <= searchRadius && Math.abs(y - playerLoc.y) <= searchRadius;
+      return isVisible;
+    });
+
+    const visibleItems = Array.from(labyrinth.itemLocations.entries()).filter(([coordStr, itemId]) => {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f !== currentFloor) return false;
+      const item = labyrinth.getItem(itemId);
+      if (!item || item.isStatic) return false;
+      const isVisible = Math.abs(x - playerLoc.x) <= searchRadius && Math.abs(y - playerLoc.y) <= searchRadius;
+      return isVisible;
+    });
+
+    const visibleStaticItems = Array.from(labyrinth.staticItemLocations.entries()).filter(([coordStr, itemId]) => {
+      const [x, y, f] = coordStr.split(',').map(Number);
+      if (f !== currentFloor) return false;
+      const isVisible = Math.abs(x - playerLoc.x) <= searchRadius && Math.abs(y - playerLoc.y) <= searchRadius;
+      return isVisible && labyrinth.getRevealedStaticItems().has(coordStr);
     });
 
     return (
@@ -268,7 +287,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="black" />
             {Array.from(visitedCells).map(cellCoord => {
               const [x, y] = cellCoord.split(',').map(Number);
-              return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
+              return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={searchRadius + 0.5} fill="white" />;
             })}
           </mask>
           {/* Decorative Elements - Only Torches */}
@@ -297,9 +316,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
-          {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
+          {visibleEnemies.map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
             if (!enemy || enemy.defeated) return null;
             const enemySprite = enemySpriteMap[enemy.name];
@@ -318,15 +336,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             }
             return null;
           })}
-          {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
+          {visibleItems.map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central" className="animate-pulse">{getEmojiForElement(item.name)}</text>;
           })}
-          {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
+          {visibleStaticItems.map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
@@ -464,11 +480,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <Target className="text-purple-400" size={10} />
           <span className="font-bold">{labyrinth.getSearchRadius()}</span>
         </div>
+        <Separator orientation="vertical" className="h-3 bg-amber-800" />
+        <div className="flex items-center gap-1" title="Deaths">
+          <Skull className="text-gray-400" size={10} />
+          <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+        </div>
       </div>
     </div>
   );
 
-  if (!gameStarted) return null;
+  if (labyrinth.isGameOver()) {
+    const result = labyrinth.getGameResult();
+    if (result) {
+      return <GameOverScreen result={result} onRestart={onGameRestart} onRevive={onRevive} />;
+    }
+    return null; // Should not happen if game is over and result is null
+  }
 
   return (
     <div 

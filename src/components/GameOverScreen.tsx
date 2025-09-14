@@ -4,20 +4,15 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Crown, Skull } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface GameResult {
-  type: 'victory' | 'defeat';
-  name: string;
-  time: number;
-  causeOfDeath?: string;
-}
+import { GameResult } from "@/lib/game"; // Import GameResult
 
 interface GameOverScreenProps {
   result: GameResult;
-  onRestart: () => void;
+  onRestart: () => void; // For starting a completely new game
+  onRevive: (playerName: string) => void; // New prop for reviving
 }
 
-const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) => {
+const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart, onRevive }) => {
   const isVictory = result.type === 'victory';
 
   return (
@@ -55,13 +50,24 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
           <p className="text-2xl">
             Time: <span className="font-bold">{result.time.toFixed(2)}s</span>
           </p>
+          <p className="text-2xl">
+            Deaths: <span className="font-bold">{result.deaths}</span>
+          </p>
           {!isVictory && result.causeOfDeath && (
             <p className="text-xl mt-2">
               Cause: <span className="font-bold">{result.causeOfDeath}</span>
             </p>
           )}
         </div>
-        <div className="flex justify-center pt-4">
+        <div className="flex flex-col space-y-3 pt-4">
+          {!isVictory && (
+            <Button
+              onClick={() => onRevive(result.name)}
+              className="text-lg px-8 py-4 text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Revive (Cost: 1 Death)
+            </Button>
+          )}
           <Button
             onClick={onRestart}
             className={cn(
@@ -69,7 +75,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
               isVictory ? "bg-yellow-600 hover:bg-yellow-700" : "bg-gray-600 hover:bg-gray-700"
             )}
           >
-            Play Again
+            Start New Game
           </Button>
         </div>
       </div>

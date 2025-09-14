@@ -34,6 +34,7 @@ const Index: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
+  const [gameKey, setGameKey] = useState<number>(0); // New state for forcing LabyrinthGame re-initialization
   const queryClient = useQueryClient();
   const isMobile = useIsMobile(); // Use the hook
 
@@ -86,6 +87,7 @@ const Index: React.FC = () => {
       setStartTime(Date.now());
       setShowLeaderboard(false);
       setGameResult(null); // Clear any previous game result
+      setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
     } else {
       toast.error("Please enter your player name.");
     }
@@ -110,6 +112,13 @@ const Index: React.FC = () => {
     setElapsedTime(0);
     setShowLeaderboard(false);
     setGameResult(null); // Clear game result to hide overlay
+    setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
+  };
+
+  const handleRevive = () => {
+    // Only clear the game result, LabyrinthGame will handle the actual revive logic
+    setGameResult(null); 
+    // Do NOT change gameStarted or gameKey here, as we are continuing the current session
   };
 
   return (
@@ -181,6 +190,7 @@ const Index: React.FC = () => {
 
       {gameStarted && ( // LabyrinthGame is always mounted if gameStarted is true
         <LabyrinthGame
+          key={gameKey} // Use key to force re-initialization only when starting a new game
           playerName={playerName}
           gameStarted={gameStarted}
           startTime={startTime}
@@ -188,7 +198,7 @@ const Index: React.FC = () => {
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
           gameResult={gameResult} // Pass gameResult to LabyrinthGame
-          setGameResult={setGameResult} // Pass setGameResult to LabyrinthGame
+          onRevive={handleRevive} // Pass handleRevive to LabyrinthGame
         />
       )}
     </div>

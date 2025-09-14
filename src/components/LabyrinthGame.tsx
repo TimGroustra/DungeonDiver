@@ -45,7 +45,7 @@ interface LabyrinthGameProps {
   onGameOver: (result: GameResult) => void; // Use GameResult interface
   onGameRestart: () => void;
   gameResult: GameResult | null; // New prop for game result
-  setGameResult: React.Dispatch<React.SetStateAction<GameResult | null>>; // Added setGameResult
+  onRevive: () => void; // New prop for revive action from Index
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
@@ -84,20 +84,21 @@ const emojiMap: { [key: string]: string } = {
   "Triggered Trap": "☠️",
 };
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, setGameResult }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
+  // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
-    if (gameStarted && gameResult === null) { // Only reset if game is started and not over
+    if (gameStarted) { // Only create a new Labyrinth if game is started
       setLabyrinth(new Labyrinth());
       setGameVersion(0);
       setHasGameOverBeenDispatched(false);
     }
-  }, [gameStarted, gameResult]); // Depend on gameResult to reset when a new game starts after game over
+  }, [gameStarted]); // Depend only on gameStarted for initial setup
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -189,13 +190,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     setGameVersion(prev => prev + 1);
   };
 
-  const handleRevive = () => {
-    labyrinth.revivePlayer();
-    setGameResult(null); // Clear game result to hide overlay
-    setHasGameOverBeenDispatched(false); // Allow new game over to be dispatched
-    setGameVersion(prev => prev + 1); // Trigger re-render
-    // Optionally restart timer if desired, but current implementation keeps elapsed time
-    // setStartTime(Date.now() - (elapsedTime * 1000)); // Resume timer from current elapsed time
+  const handleReviveClick = () => {
+    labyrinth.revivePlayer(); // Restore health and clear internal game over state
+    onRevive(); // Call parent's onRevive to clear the gameResult state and hide overlay
+    setGameVersion(prev => prev + 1); // Trigger re-render to update UI
     toast.success("You have been revived! Continue your adventure!");
   };
 
@@ -503,7 +501,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {renderHud()}
 
           {gameResult && (
-            <GameOverScreen result={gameResult} onRestart={onGameRestart} onRevive={handleRevive} />
+            <GameOverScreen result={gameResult} onRestart={onGameRestart} onRevive={handleReviveClick} />
           )}
         </main>
 

@@ -551,87 +551,6 @@ export class Labyrinth {
     }
   }
 
-  private _placeChasmRows(floor: number) {
-    const numChasms = 4;
-    const chasmLength = 3;
-    const currentFloorMap = this.floors.get(floor)!;
-
-    for (let i = 0; i < numChasms; i++) {
-      let placed = false;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 500;
-
-      while (!placed && attempts < MAX_ATTEMPTS) {
-        attempts++;
-
-        const isHorizontal = Math.random() > 0.5;
-        // Ensure we don't start too close to the edge
-        const startX = Math.floor(Math.random() * (this.MAP_WIDTH - (isHorizontal ? chasmLength + 2 : 2))) + 1;
-        const startY = Math.floor(Math.random() * (this.MAP_HEIGHT - (isHorizontal ? 2 : chasmLength + 2))) + 1;
-
-        const chasmCoords: Coordinate[] = [];
-        const blockingCoords: Coordinate[] = [];
-        let beforeCoord: Coordinate;
-        let afterCoord: Coordinate;
-
-        if (isHorizontal) {
-          beforeCoord = { x: startX - 1, y: startY };
-          afterCoord = { x: startX + chasmLength, y: startY };
-          for (let j = 0; j < chasmLength; j++) {
-            const x = startX + j;
-            chasmCoords.push({ x, y: startY });
-            blockingCoords.push({ x, y: startY - 1 });
-            blockingCoords.push({ x, y: startY + 1 });
-          }
-        } else { // isVertical
-          beforeCoord = { x: startX, y: startY - 1 };
-          afterCoord = { x: startX, y: startY + chasmLength };
-          for (let j = 0; j < chasmLength; j++) {
-            const y = startY + j;
-            chasmCoords.push({ x: startX, y });
-            blockingCoords.push({ x: startX - 1, y });
-            blockingCoords.push({ x: startX + 1, y });
-          }
-        }
-
-        const allCoords = [...chasmCoords, ...blockingCoords, beforeCoord, afterCoord];
-        
-        // Validation
-        let canPlace = true;
-        for (const coord of allCoords) {
-          // Check bounds (already handled by startX/Y generation but good practice)
-          if (coord.x < 0 || coord.x >= this.MAP_WIDTH || coord.y < 0 || coord.y >= this.MAP_HEIGHT) {
-            canPlace = false;
-            break;
-          }
-          // Check if it's an open floor tile
-          if (currentFloorMap[coord.y][coord.x] === 'wall') {
-            canPlace = false;
-            break;
-          }
-          // Check for existing elements
-          const coordStr = `${coord.x},${coord.y},${floor}`;
-          if (this.pitLocations.has(coordStr) || this.enemyLocations.has(coordStr) || this.itemLocations.has(coordStr) || this.staticItemLocations.has(coordStr)) {
-            canPlace = false;
-            break;
-          }
-        }
-
-        if (canPlace) {
-          // Place the chasm
-          for (const coord of chasmCoords) {
-            this.pitLocations.set(`${coord.x},${coord.y},${floor}`, true);
-          }
-          // Place the blocking walls
-          for (const coord of blockingCoords) {
-            currentFloorMap[coord.y][coord.x] = 'wall';
-          }
-          placed = true;
-        }
-      }
-    }
-  }
-
   private getValidNeighbors(x: number, y: number): Coordinate[] {
     const neighbors: Coordinate[] = [];
     const directions = [{ dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 }];
@@ -825,11 +744,8 @@ export class Labyrinth {
       this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor, true);
     }
 
-    // Add chasms to force jumps
-    this._placeChasmRows(floor);
-
-    // Add some random individual pits for flavor
-    const numPits = 5;
+    // Add pits
+    const numPits = 15;
     for (let i = 0; i < numPits; i++) {
       this.placeElementRandomly(`pit-${floor}-${i}`, this.pitLocations, floor, true);
     }

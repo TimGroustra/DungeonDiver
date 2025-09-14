@@ -188,6 +188,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     setGameVersion(prev => prev + 1);
   };
 
+  const handleRevive = () => {
+    labyrinth.revivePlayer();
+    setGameResult(null); // Clear game result to hide overlay
+    setHasGameOverBeenDispatched(false); // Allow new game over to be dispatched
+    setGameVersion(prev => prev + 1); // Trigger re-render
+    // Optionally restart timer if desired, but current implementation keeps elapsed time
+    // setStartTime(Date.now() - (elapsedTime * 1000)); // Resume timer from current elapsed time
+    toast.success("You have been revived! Continue your adventure!");
+  };
+
   const getEmojiForElement = (elementName: string): string => {
     return emojiMap[elementName] || "❓";
   };
@@ -492,7 +502,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {renderHud()}
 
           {gameResult && (
-            <GameOverScreen result={gameResult} onRestart={onGameRestart} />
+            <GameOverScreen result={gameResult} onRestart={onGameRestart} onRevive={handleRevive} />
           )}
         </main>
 

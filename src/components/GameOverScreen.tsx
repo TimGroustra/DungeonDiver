@@ -15,9 +15,10 @@ interface GameResult {
 interface GameOverScreenProps {
   result: GameResult;
   onRestart: () => void;
+  onRevive: () => void; // New prop for revive action
 }
 
-const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) => {
+const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart, onRevive }) => {
   const isVictory = result.type === 'victory';
 
   return (
@@ -61,7 +62,15 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ result, onRestart }) =>
             </p>
           )}
         </div>
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center pt-4 space-x-4">
+          {!isVictory && (
+            <Button
+              onClick={onRevive}
+              className="text-lg px-8 py-4 text-white bg-green-600 hover:bg-green-700"
+            >
+              Revive
+            </Button>
+          )}
           <Button
             onClick={onRestart}
             className={cn(

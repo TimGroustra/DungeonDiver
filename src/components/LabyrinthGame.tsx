@@ -193,6 +193,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleReviveClick = () => {
     labyrinth.revivePlayer(); // Restore health and clear internal game over state
     onRevive(); // Call parent's onRevive to clear the gameResult state and hide overlay
+    setHasGameOverBeenDispatched(false); // Reset this flag to allow future game over dispatches
     setGameVersion(prev => prev + 1); // Trigger re-render to update UI
     toast.success("You have been revived! Continue your adventure!");
   };

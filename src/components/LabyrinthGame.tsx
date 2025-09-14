@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"; // Added useCallback
 import { Labyrinth, LogicalRoom, Item, GameResult } from "@/lib/game"; // Import GameResult
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -113,6 +113,24 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, labyrinth, se
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched]);
 
+  const handleMove = useCallback((direction: "north" | "south" | "east" | "west") => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
+    labyrinth.move(direction, playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  }, [labyrinth, playerName, elapsedTime]);
+
+  const handleSearch = useCallback(() => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot search right now."); return; }
+    labyrinth.search();
+    setGameVersion(prev => prev + 1);
+  }, [labyrinth]);
+
+  const handleInteract = useCallback(() => {
+    if (labyrinth.isGameOver()) { toast.info("Cannot interact right now."); return; }
+    labyrinth.interact(playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  }, [labyrinth, playerName, elapsedTime]);
+
   // Effect for keyboard input
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -137,7 +155,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, labyrinth, se
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [labyrinth, playerName, elapsedTime, handleMove, handleSearch, handleInteract]);
+  }, [labyrinth, handleMove, handleSearch, handleInteract]); // Dependencies for useCallback functions
 
   // Effect for enemy movement and boss logic
   useEffect(() => {
@@ -154,24 +172,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, labyrinth, se
     }, moveSpeed);
     return () => clearInterval(intervalId);
   }, [labyrinth, playerName, startTime]);
-
-  const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot move right now."); return; }
-    labyrinth.move(direction, playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
-  };
-
-  const handleSearch = () => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot search right now."); return; }
-    labyrinth.search();
-    setGameVersion(prev => prev + 1);
-  };
-
-  const handleInteract = () => {
-    if (labyrinth.isGameOver()) { toast.info("Cannot interact right now."); return; }
-    labyrinth.interact(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
-  };
 
   const handleUseItem = (itemId: string) => {
     if (labyrinth.isGameOver()) { toast.info("Cannot use items right now."); return; }

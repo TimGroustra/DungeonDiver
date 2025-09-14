@@ -1202,6 +1202,104 @@ export class Labyrinth {
     }
   }
 
+  public jump(playerName: string, time: number) {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
+
+    if (this.playerStunnedTurns > 0) {
+      this.addMessage("You are too disoriented to make a coordinated leap!");
+      return;
+    }
+
+    const currentMap = this.floors.get(this.currentFloor)!;
+    let dx = 0;
+    let dy = 0;
+
+    switch (this.lastMoveDirection) {
+      case "north": dy = -1; break;
+      case "south": dy = 1; break;
+      case "east": dx = 1; break;
+      case "west": dx = -1; break;
+    }
+
+    const pathCoordinates: Coordinate[] = [];
+    for (let i = 1; i <= 3; i++) {
+      pathCoordinates.push({
+        x: this.playerLocation.x + dx * i,
+        y: this.playerLocation.y + dy * i,
+      });
+    }
+
+    // Check if path is valid (no walls)
+    for (const coord of pathCoordinates) {
+      if (
+        coord.x < 0 || coord.x >= this.MAP_WIDTH ||
+        coord.y < 0 || coord.y >= this.MAP_HEIGHT ||
+        currentMap[coord.y][coord.x] === 'wall'
+      ) {
+        this.addMessage("You can't jump through a wall!");
+        return;
+      }
+    }
+
+    const destination = pathCoordinates[2];
+    const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
+
+    // Check for enemies at destination. If there is an enemy, the jump fails.
+    const enemyId = this.enemyLocations.get(targetCoordStr);
+    if (enemyId) {
+      const enemy = this.enemies.get(enemyId);
+      if (enemy && !enemy.defeated) {
+        this.addMessage(`You can't jump onto an enemy! The ${enemy.name} blocks your landing.`);
+        return;
+      }
+    }
+
+    // Boss logic for jumping
+    if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
+      const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
+      const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
+      const isInPassage = this.bossPassageCoords.has(targetCoordStr);
+      if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
+        const damageTaken = 25;
+        this.playerHealth -= damageTaken;
+        this.lastHitEntityId = 'player';
+        this.playerStunnedTurns = 1;
+        this.addMessage(`The Labyrinth's Gaze pulses brightly! You jumped and were caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
+        if (this.playerHealth <= 0) {
+          if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Jumped during Red Light)")) {
+            this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
+            this.setGameOver('defeat', playerName, time, "Temporal Distortion (Jumped during Red Light)");
+            return;
+          }
+        }
+      }
+    }
+
+    // If path is clear, move the player
+    this.playerLocation = destination;
+    this.markVisited(this.playerLocation);
+
+    const currentRoom = this.getCurrentLogicalRoom();
+    this.addMessage(currentRoom ? `You leap forward three spaces! ${currentRoom.description}` : `You leap forward three spaces!`);
+
+    // Check for traps at destination
+    if (this.trapsLocations.has(targetCoordStr)) {
+      this.playerHealth -= 10;
+      this.lastHitEntityId = 'player';
+      this.triggeredTraps.add(targetCoordStr);
+      this.addMessage("SNAP! You landed on a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
+      if (this.playerHealth <= 0) {
+        if (!this._tryActivateWellBlessing(playerName, time, "Hidden Trap")) {
+          this.addMessage("The trap's venom courses through your veins. Darkness consumes you... Game Over.");
+          this.setGameOver('defeat', playerName, time, "Hidden Trap");
+        }
+      }
+    }
+  }
+
   private _handleFoundItem(foundItem: Item, coordStr: string) {
     if (foundItem.type === 'consumable' && foundItem.stackable) {
       const existing = this.inventory.get(foundItem.id);

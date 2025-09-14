@@ -134,6 +134,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "ArrowDown": event.preventDefault(); handleMove("south"); break;
         case "ArrowLeft": event.preventDefault(); handleMove("west"); break;
         case "ArrowRight": event.preventDefault(); handleMove("east"); break;
+        case " ": event.preventDefault(); handleJump(); break; // Space bar for jump
         case "Shift": event.preventDefault(); handleSearch(); break;
         case "Control": event.preventDefault(); handleInteract(); break;
       }
@@ -169,6 +170,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  };
+
+  const handleJump = () => {
+    if (gameResult !== null) { toast.info("Cannot jump right now."); return; }
+    labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
@@ -502,7 +509,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
           {renderMap()}
           <div className="absolute bottom-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
           {renderHud()}
 

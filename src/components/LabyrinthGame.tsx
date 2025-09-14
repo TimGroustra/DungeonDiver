@@ -92,7 +92,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isJumping, setIsJumping] = useState(false); // State for vertical hop animation
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const animationDuration = 600; // ms, matches CSS jump-animation duration
+  const animationDuration = 300; // ms, matches CSS jump-animation duration
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -564,7 +564,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             </h3>
           </div>
           {renderMap()}
-          <div className="absolute bottom-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
+          <div className="absolute bottom-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/ ৫০ p-1 px-2 rounded">
             <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
           {renderHud()}

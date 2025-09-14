@@ -128,8 +128,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
 
       const easeOutBack = (x: number): number => {
-        // c1 = 2.14 gives about 1/6 overshoot (0.5 tiles on a 3 tile jump)
-        const c1 = 2.14;
+        // c1 = 1.5 gives about 1/12 overshoot (0.25 tiles on a 3 tile jump)
+        const c1 = 1.5;
         const c3 = c1 + 1;
         return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
       };

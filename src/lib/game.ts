@@ -199,6 +199,7 @@ export class Labyrinth {
   private bossDefeated: boolean;
   public bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
   public bossSafeTiles: Set<string>; // NEW: Coordinates of tiles safe from Watcher's Gaze
+  private lastGazeDamageTimestamp: number; // NEW: Timestamp for last gaze damage
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
@@ -270,6 +271,7 @@ export class Labyrinth {
     this.bossDefeated = false;
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
     this.bossSafeTiles = new Set<string>(); // NEW: Initialize bossSafeTiles
+    this.lastGazeDamageTimestamp = 0; // NEW: Initialize last gaze damage timestamp
 
     this.initializeLabyrinth();
 
@@ -1196,6 +1198,7 @@ export class Labyrinth {
     this.gameOver = false;
     this.gameResult = null;
     this.playerStunnedTurns = 0; // Clear any stun effects
+    this.lastGazeDamageTimestamp = 0; // Reset gaze damage timer
 
     if (this.lastSafePlayerLocation) { // NEW: Move player to last safe location
       this.playerLocation = { ...this.lastSafePlayerLocation };
@@ -1345,27 +1348,8 @@ export class Labyrinth {
       return;
     }
 
-    if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
-        const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-        const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
-        const isInPassage = this.bossPassageCoords.has(targetCoordStr);
-        // Apply damage/stun only if in boss passage AND NOT on a safe tile
-        if (this.bossState === 'red_light' && (wasInPassage || isInPassage) && !this.bossSafeTiles.has(targetCoordStr)) {
-            const damageTaken = 25;
-            this.playerHealth -= damageTaken;
-            this.lastHitEntityId = 'player';
-            this.playerStunnedTurns = 1;
-            this.addMessage(`The Labyrinth's Gaze pulses brightly! You moved and are caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
-            if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Moved during Red Light)")) {
-                    this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time, "Temporal Distortion (Moved during Red Light)");
-                    return;
-                }
-            }
-        }
-    }
-
+    // Removed boss gaze damage from here, now handled by processBossLogic
+    
     this.playerLocation = { x: newX, y: newY };
     this.lastMoveDirection = direction; // Update last move direction (already same, but good for consistency)
     this.markVisited(this.playerLocation);
@@ -1525,27 +1509,7 @@ export class Labyrinth {
       return;
     }
 
-    // Boss logic for jumping
-    if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
-      const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-      const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
-      const isInPassage = this.bossPassageCoords.has(targetCoordStr);
-      // Apply damage/stun only if in boss passage AND NOT on a safe tile
-      if (this.bossState === 'red_light' && (wasInPassage || isInPassage) && !this.bossSafeTiles.has(targetCoordStr)) {
-        const damageTaken = 25;
-        this.playerHealth -= damageTaken;
-        this.lastHitEntityId = 'player';
-        this.playerStunnedTurns = 1;
-        this.addMessage(`The Labyrinth's Gaze pulses brightly! You jumped and were caught in the temporal distortion! You take ${damageTaken} damage and feel disoriented!`);
-        if (this.playerHealth <= 0) {
-          if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Jumped during Red Light)")) {
-            this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-            this.setGameOver('defeat', playerName, time, "Temporal Distortion (Jumped during Red Light)");
-            return;
-          }
-        }
-      }
-    }
+    // Removed boss logic for jumping, now handled by processBossLogic
 
     // If path is clear, move the player
     this.playerLocation = destination;
@@ -2331,37 +2295,61 @@ export class Labyrinth {
 
     const now = Date.now();
     const stateChangeInterval = 4000; // 4 seconds for state change
+    const gazeDamageInterval = 1000; // 1 second for gaze damage
 
     const playerCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
     const isInBossPassage = this.bossPassageCoords.has(playerCoordStr);
 
+    // Handle boss state changes (red light / not watching)
     if (now - this.lastBossStateChange > stateChangeInterval) {
         this.lastBossStateChange = now;
         
-        if (this.bossState === 'not_watching') { // Changed from 'green_light'
+        if (this.bossState === 'not_watching') {
             this.bossState = 'red_light';
-            this.isRedLightPulseActive = true; // Set pulse active
-            if (isInBossPassage) { // Only show message if player is in the passage
+            this.isRedLightPulseActive = true;
+            this.lastGazeDamageTimestamp = now; // Reset damage timer when red light starts
+            if (isInBossPassage) {
                 this.addMessage("The Labyrinth's Gaze turns towards you! The passage pulses with a blinding light! DO NOT MOVE!");
             }
         } else { // If bossState is 'red_light'
-            this.bossState = 'not_watching'; // Changed to 'not_watching'
-            this.isRedLightPulseActive = false; // Reset pulse
-            if (isInBossPassage) { // Only show message if player is in the passage
+            this.bossState = 'not_watching';
+            this.isRedLightPulseActive = false;
+            this.lastGazeDamageTimestamp = 0; // Reset damage timer when red light ends
+            if (isInBossPassage) {
                 this.addMessage("The Labyrinth's Gaze shifts away. The passage dims. You may move.");
             }
 
-            // If player was in the passage and didn't move during Red Light, boss takes stress damage
-            // The playerStunnedTurns check implicitly handles safe tiles, as moving onto one prevents stun.
+            // If player was in the passage and didn't take damage/stun during Red Light, boss takes stress damage
+            // This means player successfully evaded by staying on safe tiles or outside the passage.
             if (isInBossPassage && this.playerStunnedTurns === 0) { 
                 if (this.watcherOfTheCore) {
-                    const stressDamage = 10; // Damage to boss for successful evasion
+                    const stressDamage = 10;
                     this.watcherOfTheCore.takeDamage(stressDamage);
                     this.addMessage(`You successfully evaded The Watcher's gaze! It shudders, taking ${stressDamage} stress damage. Its remaining will: ${this.watcherOfTheCore.health}`);
                     if (this.watcherOfTheCore.defeated) {
                         this.addMessage("The Watcher of the Core's will is broken! It stands defeated, its gaze no longer a threat. You can now interact with it to clear the path.");
-                        this.bossDefeated = true; // Mark as defeated for objective
+                        this.bossDefeated = true;
                     }
+                }
+            }
+        }
+    }
+
+    // Apply continuous gaze damage if in red light and not on a safe tile
+    if (this.bossState === 'red_light' && isInBossPassage && !this.bossSafeTiles.has(playerCoordStr)) {
+        if (now - this.lastGazeDamageTimestamp > gazeDamageInterval) {
+            const damageTaken = 25;
+            this.playerHealth -= damageTaken;
+            this.lastHitEntityId = 'player';
+            this.playerStunnedTurns = 1; // Stun for 1 turn per second in gaze
+            this.addMessage(`The Labyrinth's Gaze burns into your mind! You take ${damageTaken} damage and feel disoriented!`);
+            this.lastGazeDamageTimestamp = now; // Update timestamp for next damage tick
+
+            if (this.playerHealth <= 0) {
+                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Caught in Red Light)")) {
+                    this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
+                    this.setGameOver('defeat', playerName, time, "Temporal Distortion (Caught in Red Light)");
+                    return;
                 }
             }
         }

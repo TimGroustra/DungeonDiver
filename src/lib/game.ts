@@ -2346,9 +2346,9 @@ export class Labyrinth {
             this.lastGazeDamageTimestamp = now; // Update timestamp for next damage tick
 
             if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time, "Temporal Distortion (Caught in Red Light)")) {
+                if (!this._tryActivateWellBlessing(playerName, time, "The Watcher's Gaze")) {
                     this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time, "Temporal Distortion (Caught in Red Light)");
+                    this.setGameOver('defeat', playerName, time, "The Watcher's Gaze");
                     return;
                 }
             }

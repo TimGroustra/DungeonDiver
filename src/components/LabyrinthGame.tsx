@@ -388,6 +388,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const revealedTraps = labyrinth.getRevealedTraps();
     const allVisibleTraps = new Set([...revealedTraps]);
 
+    // Get boss state and passage coordinates
+    const bossState = labyrinth.getBossState();
+    const bossPassageCoords = labyrinth.bossPassageCoords;
+    const isBossDefeated = labyrinth.isBossDefeated();
+
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
@@ -468,6 +473,27 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
+          })}
+          {/* Render Boss Passage Overlay */}
+          {currentFloor === labyrinth["NUM_FLOORS"] - 1 && !isBossDefeated && Array.from(bossPassageCoords).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+
+            const isRedLight = bossState === 'red_light';
+            const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.1)'; // Red for red_light, green for green_light
+            const className = isRedLight ? 'animate-pulse-fast' : ''; // Apply pulse animation for red light
+
+            return (
+              <rect
+                key={`boss-passage-${coordStr}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                fill={fill}
+                className={className}
+              />
+            );
           })}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);

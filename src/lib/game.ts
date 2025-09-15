@@ -1423,7 +1423,6 @@ export class Labyrinth {
       const enemy = this.enemies.get(enemyId);
       if (enemy && !enemy.defeated) {
         enemy.health = 0; // Instant death
-        enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
         this.bloodPools.set(targetCoordStr, time + 180); // Add blood pool for 3 minutes
@@ -1484,6 +1483,10 @@ export class Labyrinth {
 
   public clearJumpDefeatedEnemy() {
     if (this.lastJumpDefeatedEnemyId) {
+      const enemy = this.enemies.get(this.lastJumpDefeatedEnemyId);
+      if (enemy) {
+        enemy.defeated = true;
+      }
       // Find the coordinate of the defeated enemy
       let enemyCoordStr: string | undefined;
       for (const [coordStr, enemyId] of this.enemyLocations.entries()) {

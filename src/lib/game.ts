@@ -168,7 +168,11 @@ export class Labyrinth {
   public enemies: Map<string, Enemy>;
   public puzzles: Map<string, Puzzle>;
   public items: Map<string, Item>;
-  private floorObjectives: Map<number, { description: string[]; isCompleted: () => boolean; }>; // New: Objectives per floor, now an array of strings
+  private floorObjectives: Map<number, {
+    title: string;
+    steps: { description: string; isCompleted: () => boolean; }[];
+    isCompleted: () => boolean;
+  }>; // New: Objectives per floor, now an array of strings
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
@@ -281,7 +285,7 @@ export class Labyrinth {
     }
 
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
-    this.addMessage(this.getCurrentFloorObjective().description.join(' ')); // Join for initial message
+    this.addMessage(this.getCurrentFloorObjective().steps.map(step => step.description).join(' ')); // Join for initial message
     this.markVisited(this.playerLocation);
   }
 
@@ -685,13 +689,14 @@ export class Labyrinth {
       this.placeElementRandomly(ancientMechanism.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: [
-          "Find the 'Tattered Journal'.",
-          "Locate a 'Pulsating Crystal'.",
-          "Use the 'Tattered Journal' and 'Pulsating Crystal' to activate the 'Ancient Mechanism'.",
-          "Obtain the Scholar's Amulet."
+        title: "The Echoes of the Lost Scholar",
+        steps: [
+          { description: "Find the 'Tattered Journal'.", isCompleted: () => this.inventory.has("journal-f0") },
+          { description: "Locate a 'Pulsating Crystal'.", isCompleted: () => this.inventory.has("charged-crystal-f0") },
+          { description: "Use the 'Tattered Journal' and 'Pulsating Crystal' to activate the 'Ancient Mechanism'.", isCompleted: () => this.scholarAmuletQuestCompleted },
+          { description: "Obtain the Scholar's Amulet.", isCompleted: () => this.inventory.has("scholar-amulet-f0") || this.equippedAmulet?.id === "scholar-amulet-f0" },
         ],
-        isCompleted: () => this.scholarAmuletQuestCompleted
+        isCompleted: () => this.scholarAmuletQuestCompleted && (this.inventory.has("scholar-amulet-f0") || this.equippedAmulet?.id === "scholar-amulet-f0")
       });
 
     } else if (floor === 1) { // Floor 2: The Whispering Well's Thirst
@@ -708,11 +713,12 @@ export class Labyrinth {
       this.placeElementRandomly(enchantedFlask.id, this.itemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: [
-          "Find the 'Enchanted Flask'.",
-          "Locate the 'Hidden Spring'.",
-          "Fill the 'Enchanted Flask' with 'Living Water' from the 'Hidden Spring'.",
-          "Use the 'Living Water' to quench the 'Whispering Well'."
+        title: "The Whispering Well's Thirst",
+        steps: [
+          { description: "Find the 'Enchanted Flask'.", isCompleted: () => this.inventory.has("enchanted-flask-f1") || this.inventory.has("living-water-f1") },
+          { description: "Locate the 'Hidden Spring'.", isCompleted: () => this.inventory.has("living-water-f1") },
+          { description: "Fill the 'Enchanted Flask' with 'Living Water' from the 'Hidden Spring'.", isCompleted: () => this.inventory.has("living-water-f1") },
+          { description: "Use the 'Living Water' to quench the 'Whispering Well'.", isCompleted: () => this.whisperingWellQuestCompleted },
         ],
         isCompleted: () => this.whisperingWellQuestCompleted
       });
@@ -735,11 +741,12 @@ export class Labyrinth {
       this.placeElementRandomly(repairBench.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: [
-          "Gather the 'Broken Compass'.",
-          "Find 'Artisan's Fine Tools'.",
-          "Locate a 'Prismatic Lens'.",
-          "Use these items at the 'Ancient Repair Bench' to repair the compass."
+        title: "The Broken Compass's Secret",
+        steps: [
+          { description: "Gather the 'Broken Compass'.", isCompleted: () => this.inventory.has("broken-compass-f2") || this.trueCompassQuestCompleted },
+          { description: "Find 'Artisan's Fine Tools'.", isCompleted: () => this.inventory.has("fine-tools-f2") || this.trueCompassQuestCompleted },
+          { description: "Locate a 'Prismatic Lens'.", isCompleted: () => this.inventory.has("prismatic-lens-f2") || this.trueCompassQuestCompleted },
+          { description: "Use these items at the 'Ancient Repair Bench' to repair the compass.", isCompleted: () => this.trueCompassQuestCompleted },
         ],
         isCompleted: () => this.trueCompassQuestCompleted
       });
@@ -774,12 +781,13 @@ export class Labyrinth {
       this.placeElementInBossPassage(mysteriousBox.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
-        description: [
-          "Find the 'Labyrinth Key'.",
-          "Use the 'Labyrinth Key' to open the 'Mysterious Box'.",
-          "Obtain the 'Heart of the Labyrinth'.",
-          "Defeat 'The Watcher of the Core'.",
-          "Sacrifice the 'Heart of the Labyrinth' at the 'Ancient Altar' to destroy the Labyrinth."
+        title: "The Heart of the Labyrinth",
+        steps: [
+          { description: "Find the 'Labyrinth Key'.", isCompleted: () => this.inventory.has("labyrinth-key-f3") || this.mysteriousBoxOpened },
+          { description: "Use the 'Labyrinth Key' to open the 'Mysterious Box'.", isCompleted: () => this.mysteriousBoxOpened },
+          { description: "Obtain the 'Heart of the Labyrinth'.", isCompleted: () => this.heartOfLabyrinthObtained },
+          { description: "Defeat 'The Watcher of the Core'.", isCompleted: () => this.bossDefeated },
+          { description: "Sacrifice the 'Heart of the Labyrinth' at the 'Ancient Altar' to destroy the Labyrinth.", isCompleted: () => this.heartSacrificed },
         ],
         isCompleted: () => this.bossDefeated && this.heartSacrificed
       });
@@ -1274,7 +1282,7 @@ export class Labyrinth {
     return grid;
   }
 
-  public getCurrentFloorObjective(): { description: string[]; isCompleted: () => boolean; } {
+  public getCurrentFloorObjective(): { title: string; steps: { description: string; isCompleted: () => boolean; }[]; isCompleted: () => boolean; } {
     return this.floorObjectives.get(this.currentFloor)!; // Should always exist
   }
 
@@ -1286,7 +1294,7 @@ export class Labyrinth {
 
     const currentObjective = this.getCurrentFloorObjective();
     if (!currentObjective.isCompleted()) {
-      this.addMessage(`You cannot proceed to the next floor yet. Objective: ${currentObjective.description.join(' ')}`);
+      this.addMessage(`You cannot proceed to the next floor yet. Objective: ${currentObjective.steps.map(step => step.description).join(' ')}`);
       return;
     }
 
@@ -1294,7 +1302,7 @@ export class Labyrinth {
     this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
     this.markVisited(this.playerLocation);
     this.addMessage(`You successfully descended to Floor ${this.currentFloor + 1}!`);
-    this.addMessage(this.getCurrentFloorObjective().description.join(' '));
+    this.addMessage(this.getCurrentFloorObjective().steps.map(step => step.description).join(' '));
   }
 
   // NEW: Method to skip to the next floor for testing purposes
@@ -1304,7 +1312,7 @@ export class Labyrinth {
       this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
       this.markVisited(this.playerLocation);
       this.addMessage(`[DEV MODE] Skipping to Floor ${this.currentFloor + 1}!`);
-      this.addMessage(this.getCurrentFloorObjective().description.join(' '));
+      this.addMessage(this.getCurrentFloorObjective().steps.map(step => step.description).join(' '));
       // Reset boss state if skipping to the last floor
       if (this.currentFloor === this.NUM_FLOORS - 1) {
         this.bossDefeated = false;

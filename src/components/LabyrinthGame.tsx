@@ -128,25 +128,25 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const distance = Math.round(Math.max(Math.abs(endX - startX), Math.abs(endY - startY)));
       const wasJump = labyrinth.lastActionType === 'jump';
 
-      let animationDuration = 200; // Default move duration
+      let animationDuration = 150; // Default move duration
       let peakHeight = 0; // Default no vertical offset
 
       if (wasJump) {
         switch (distance) {
           case 3:
-            animationDuration = 1000;
+            animationDuration = 650;
             peakHeight = -0.8;
             break;
           case 2:
-            animationDuration = 700;
+            animationDuration = 450;
             peakHeight = -0.6;
             break;
           case 1:
-            animationDuration = 400;
+            animationDuration = 250;
             peakHeight = -0.3;
             break;
           default:
-            animationDuration = 200;
+            animationDuration = 150;
             peakHeight = 0;
         }
       }
@@ -320,7 +320,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, labyrinth.getCurrentFloor()]);
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, gameVersion]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();

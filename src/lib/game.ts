@@ -1303,6 +1303,16 @@ export class Labyrinth {
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
 
+    // Check for enemy at target location
+    const enemyId = this.enemyLocations.get(targetCoordStr);
+    if (enemyId) {
+        const enemy = this.enemies.get(enemyId);
+        if (enemy && !enemy.defeated) {
+            this.addMessage(`A ${enemy.name} blocks your path! You cannot move forward.`);
+            return; // Prevent movement
+        }
+    }
+
     // NEW: Check for death trap
     if (this.deathTrapsLocations.has(targetCoordStr)) {
       this.playerLocation = { x: newX, y: newY }; // Move player onto the trap for visual

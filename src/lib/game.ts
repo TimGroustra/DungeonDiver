@@ -170,6 +170,7 @@ export class Labyrinth {
   public items: Map<string, Item>;
   private floorObjectives: Map<number, { description: string[]; isCompleted: () => boolean; }>; // New: Objectives per floor, now an array of strings
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
+  private floorStartLocations: Map<number, Coordinate>; // New: Location of the start of each floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
   private playerDeaths: number; // New: Track player deaths
@@ -243,6 +244,7 @@ export class Labyrinth {
     this.items = new Map();
     this.floorObjectives = new Map();
     this.floorExitStaircases = new Map();
+    this.floorStartLocations = new Map();
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
@@ -323,8 +325,8 @@ export class Labyrinth {
     while (rooms.length < this.NUM_ROOMS_PER_FLOOR && attempts < MAX_ROOM_ATTEMPTS) {
       const width = Math.floor(Math.random() * (this.MAX_ROOM_SIZE - this.MIN_ROOM_SIZE + 1)) + this.MIN_ROOM_SIZE;
       const height = Math.floor(Math.random() * (this.MAX_ROOM_SIZE - this.MIN_ROOM_SIZE + 1)) + this.MIN_ROOM_SIZE;
-      const x = Math.floor(Math.random() * (this.MAP_WIDTH - width));
-      const y = Math.floor(Math.random() * (this.MAP_HEIGHT - height));
+      const x = 1 + Math.floor(Math.random() * (this.MAP_WIDTH - width - 2));
+      const y = 1 + Math.floor(Math.random() * (this.MAP_HEIGHT - height - 2));
 
       const newRoom: Room = { x, y, width, height, id: `room-${rooms.length}-f${floor}`, center: { x: x + Math.floor(width / 2), y: y + Math.floor(height / 2) } };
 
@@ -343,9 +345,9 @@ export class Labyrinth {
   }
 
   private _isValidRoomPlacement(floorMap: (LogicalRoom | 'wall')[][], newRoom: Room, existingRooms: Room[]): boolean {
-    // Check map boundaries
-    if (newRoom.x < 0 || newRoom.x + newRoom.width > this.MAP_WIDTH ||
-        newRoom.y < 0 || newRoom.y + newRoom.height > this.MAP_HEIGHT) {
+    // Check map boundaries (with a 1-tile border)
+    if (newRoom.x < 1 || newRoom.x + newRoom.width >= this.MAP_WIDTH - 1 ||
+        newRoom.y < 1 || newRoom.y + newRoom.height >= this.MAP_HEIGHT - 1) {
       return false;
     }
 
@@ -434,7 +436,7 @@ export class Labyrinth {
       // Carve a square around the current point
       for (let cy = y - halfWidth; cy <= y + halfWidth; cy++) {
         for (let cx = x - halfWidth; cx <= x + halfWidth; cx++) {
-          if (cx >= 0 && cx < this.MAP_WIDTH && cy >= 0 && cy < this.MAP_HEIGHT) {
+          if (cx > 0 && cx < this.MAP_WIDTH - 1 && cy > 0 && cy < this.MAP_HEIGHT - 1) {
             floorMap[cy][cx] = 'open';
           }
         }
@@ -449,7 +451,7 @@ export class Labyrinth {
     // Ensure the end point area is also carved
     for (let cy = y - halfWidth; cy <= y + halfWidth; cy++) {
       for (let cx = x - halfWidth; cx <= x + halfWidth; cx++) {
-        if (cx >= 0 && cx < this.MAP_WIDTH && cy >= 0 && cy < this.MAP_HEIGHT) {
+        if (cx > 0 && cx < this.MAP_WIDTH - 1 && cy > 0 && cy < this.MAP_HEIGHT - 1) {
           floorMap[cy][cx] = 'open';
         }
       }
@@ -457,48 +459,50 @@ export class Labyrinth {
   }
 
   private _placeStartAndExit(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
-    const startX = 0;
-    const startY = 0;
-
-    // Ensure the starting cell is an open room
-    if (floorMap[startY][startX] === 'wall') {
-      floorMap[startY][startX] = new LogicalRoom(`room-${startX}-${startY}-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
+    let startLocation: Coordinate;
+    if (rooms.length > 0) {
+        startLocation = { ...rooms[0].center };
     } else {
-      // If it's already 'open' from room generation, convert it to LogicalRoom
-      floorMap[startY][startX] = new LogicalRoom(`room-${startX}-${startY}-f${floor}`, `Floor ${floor + 1} Entrance`, "You stand at the entrance of this floor. A cold, foreboding draft whispers from the darkness ahead.");
+        // Fallback if no rooms are generated
+        const centerX = Math.floor(this.MAP_WIDTH / 2);
+        const centerY = Math.floor(this.MAP_HEIGHT / 2);
+        startLocation = { x: centerX, y: centerY };
+        if (floorMap[centerY][centerX] === 'wall') {
+            floorMap[centerY][centerX] = new LogicalRoom(`room-center-f${floor}`, `Isolated Chamber`, "You are in an isolated chamber.");
+        }
     }
-    this.playerLocation = { x: startX, y: startY };
-
-    // Connect to first room if it exists and is not the start room itself
-    if (rooms.length > 0 && (rooms[0].center.x !== startX || rooms[0].center.y !== startY)) {
-      this._carveCorridor(floorMap, {x: startX, y: startY}, rooms[0].center);
-    } else if (rooms.length > 1) { // If first room is start, connect to second
-      this._carveCorridor(floorMap, {x: startX, y: startY}, rooms[1].center);
+    this.floorStartLocations.set(floor, startLocation);
+    if (floor === 0) {
+        this.playerLocation = startLocation;
     }
 
     // Place staircase to next floor in a random, accessible room (not the start room)
     if (floor < this.NUM_FLOORS - 1) {
-      let exitRoom: Room | undefined;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 100;
-      while (!exitRoom && attempts < MAX_ATTEMPTS) {
-        const randomIndex = Math.floor(Math.random() * rooms.length);
-        const potentialExitRoom = rooms[randomIndex];
-        if (potentialExitRoom.x !== startX || potentialExitRoom.y !== startY) { // Not the start room
-          exitRoom = potentialExitRoom;
+        let exitRoom: Room | undefined;
+        if (rooms.length > 1) {
+            let attempts = 0;
+            const MAX_ATTEMPTS = 100;
+            while (!exitRoom && attempts < MAX_ATTEMPTS) {
+                const randomIndex = Math.floor(Math.random() * rooms.length);
+                if (randomIndex !== 0) { // Not the start room (index 0)
+                    exitRoom = rooms[randomIndex];
+                }
+                attempts++;
+            }
+            if (!exitRoom) exitRoom = rooms[1]; // Fallback
+        } else if (rooms.length === 1) {
+            exitRoom = rooms[0];
         }
-        attempts++;
-      }
 
-      if (exitRoom) {
-        const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
-        this.items.set(staircase.id, staircase);
-        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
-        this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
-        this.floorExitStaircases.set(floor, staircaseCoord);
-      } else {
-        console.warn(`Could not place staircase on floor ${floor}.`);
-      }
+        if (exitRoom) {
+            const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
+            this.items.set(staircase.id, staircase);
+            const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
+            this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
+            this.floorExitStaircases.set(floor, staircaseCoord);
+        } else {
+            console.warn(`Could not place staircase on floor ${floor}.`);
+        }
     }
   }
 
@@ -902,7 +906,8 @@ export class Labyrinth {
 
       if (isValidPlacement) {
         // Ensure it's not too close to player start on floor 0
-        if (floor === 0 && (Math.max(Math.abs(startX - this.playerLocation.x), Math.abs(startY - this.playerLocation.y)) <= 5)) {
+        const startLoc = this.floorStartLocations.get(floor);
+        if (startLoc && (Math.max(Math.abs(startX - startLoc.x), Math.abs(startY - startLoc.y)) <= 5)) {
           isValidPlacement = false;
         }
       }
@@ -988,6 +993,7 @@ export class Labyrinth {
     let placed = false;
     let attempts = 0;
     const MAX_ATTEMPTS = 1000;
+    const startLoc = this.floorStartLocations.get(floor);
 
     while (!placed && attempts < MAX_ATTEMPTS) {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
@@ -997,8 +1003,8 @@ export class Labyrinth {
 
       // Common invalid placement conditions for all elements
       if (
-        (x === 0 && y === 0 && floor === 0) || // Not at game start (only for floor 0)
-        (isHostile && Math.max(x, y) <= 5 && floor === 0) || // Hostile elements not in safe zone on floor 0
+        (startLoc && x === startLoc.x && y === startLoc.y) || // Not at floor start
+        (isHostile && startLoc && Math.max(Math.abs(x - startLoc.x), Math.abs(y - startLoc.y)) <= 5) || // Hostile elements not in safe zone
         (floor === this.NUM_FLOORS - 1 && this.bossPassageCoords.has(coordStr)) || // Not on boss passage or altar
         currentFloorMap[y][x] === 'wall' || // Must be an open room
         this.enemyLocations.has(coordStr) || // Already an enemy
@@ -1238,7 +1244,7 @@ export class Labyrinth {
     }
 
     this.currentFloor++;
-    this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
+    this.playerLocation = this.floorStartLocations.get(this.currentFloor)!;
     this.markVisited(this.playerLocation);
     this.addMessage(`You successfully descended to Floor ${this.currentFloor + 1}!`);
     this.addMessage(this.getCurrentFloorObjective().description.join(' '));

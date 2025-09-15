@@ -217,14 +217,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameStarted || gameResult !== null || isAnimatingMovement) return; // Do not allow input if game is over or animating
-      switch (event.key) {
-        case "ArrowUp": event.preventDefault(); handleMove("north"); break;
-        case "ArrowDown": event.preventDefault(); handleMove("south"); break;
-        case "ArrowLeft": event.preventDefault(); handleMove("west"); break;
-        case "ArrowRight": event.preventDefault(); handleMove("east"); break;
+      switch (event.key.toLowerCase()) {
+        case "arrowup":
+        case "w":
+          event.preventDefault(); handleMove("north"); break;
+        case "arrowdown":
+        case "s":
+          event.preventDefault(); handleMove("south"); break;
+        case "arrowleft":
+        case "a":
+          event.preventDefault(); handleMove("west"); break;
+        case "arrowright":
+        case "d":
+          event.preventDefault(); handleMove("east"); break;
         case " ": event.preventDefault(); handleJump(); break; // Space bar for jump
-        case "Shift": event.preventDefault(); handleSearch(); break;
-        case "Control": event.preventDefault(); handleInteract(); break;
+        case "shift": event.preventDefault(); handleSearch(); break;
+        case "control": event.preventDefault(); handleInteract(); break;
       }
     };
 
@@ -684,7 +692,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
           {renderMap()}
           <div className="absolute bottom-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/ ৫০ p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span></p>
           </div>
           {renderHud()}
 

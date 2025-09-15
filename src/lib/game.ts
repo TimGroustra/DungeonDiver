@@ -686,7 +686,7 @@ export class Labyrinth {
         isCompleted: () => this.trueCompassQuestCompleted
       });
 
-    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4: The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
       const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
@@ -1425,7 +1425,7 @@ export class Labyrinth {
         enemy.health = 0; // Instant death
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
-        this.bloodPools.set(targetCoordStr, time + 180); // Add blood pool for 3 minutes
+        // Removed: this.bloodPools.set(targetCoordStr, time + 180); // Blood pool will be added after animation
       }
     }
 
@@ -1481,7 +1481,7 @@ export class Labyrinth {
     }
   }
 
-  public clearJumpDefeatedEnemy() {
+  public clearJumpDefeatedEnemy(currentTime: number) {
     if (this.lastJumpDefeatedEnemyId) {
       const enemy = this.enemies.get(this.lastJumpDefeatedEnemyId);
       if (enemy) {
@@ -1497,6 +1497,7 @@ export class Labyrinth {
       }
       if (enemyCoordStr) {
         this.enemyLocations.delete(enemyCoordStr);
+        this.bloodPools.set(enemyCoordStr, currentTime + 180); // Add blood pool here after enemy is removed
       }
       this.lastJumpDefeatedEnemyId = null;
     }

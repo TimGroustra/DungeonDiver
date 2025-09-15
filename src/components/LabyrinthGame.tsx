@@ -126,14 +126,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const startY = lastSettledLogicalPositionRef.current.y;
       const endX = newLogicalPos.x;
       const endY = newLogicalPos.y;
-      const startTime = Date.now();
+      const animationStartTime = Date.now(); // Renamed to avoid confusion with game's startTime
 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
       const animationDuration = isJump ? 1000 : 200; // Jumps are slow, moves are fast
 
       const animate = () => {
         const now = Date.now();
-        const elapsed = now - startTime;
+        const elapsed = now - animationStartTime;
         const progress = Math.min(1, elapsed / animationDuration);
 
         const easedProgress = progress; // Linear progress for all movement
@@ -166,16 +166,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
           setVerticalJumpOffset(0);
 
-          // NEW: Clear jump-defeated enemy after animation
+          // NEW: Clear jump-defeated enemy after animation, passing current elapsedTime
           if (labyrinth.lastJumpDefeatedEnemyId) {
-            labyrinth.clearJumpDefeatedEnemy();
-            setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy
+            labyrinth.clearJumpDefeatedEnemy(elapsedTime); // Pass elapsedTime here
+            setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy and show blood pool
           }
         }
       };
       requestAnimationFrame(animate);
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor(), elapsedTime]); // Depend on actual game state player location, floor, and elapsedTime
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over

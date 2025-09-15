@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left footprint -->
+  <path d="M10,16 C10,14 12,12 14,12 C16,12 18,14 18,16 C18,18 16,20 14,20 C12,20 10,18 10,16 Z" 
+        fill="#8a0303" />
+  <path d="M12,16 C12,15 13,14 14,14 C15,14 16,15 16,16 C16,17 15,18 14,18 C13,18 12,17 12,16 Z" 
+        fill="#6a0101" opacity="0.7" />
+  
+  <!-- Right footprint -->
+  <path d="M22,16 C22,14 24,12 26,12 C28,12 30,14 30,16 C30,18 28,20 26,20 C24,20 22,18 22,16 Z" 
+        fill="#8a0303" transform="translate(-4,0)" />
+  <path d="M24,16 C24,15 25,14 26,14 C27,14 28,15 28,16 C28,17 27,18 26,18 C25,18 24,17 24,16 Z" 
+        fill="#6a0101" opacity="0.7" transform="translate(-4,0)" />
+  
+  <!-- Blood splatter details -->
+  <circle cx="11" cy="15" r="1" fill="#6a0101" />
+  <circle cx="25" cy="17" r="1" fill="#6a0101" />
+</svg>

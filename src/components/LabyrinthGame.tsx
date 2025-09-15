@@ -37,6 +37,9 @@ import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
 import ShadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
 
+// Import item sprites
+import AncientRepairBenchSprite from "@/assets/sprites/items/ancient-repair-bench.svg"; // NEW: Import the repair bench SVG
+
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -55,6 +58,12 @@ const enemySpriteMap: { [key: string]: string } = {
   "Rattling Skeleton": SkeletonSprite,
   "Whispering Shadow": ShadowSprite,
   "The Watcher of the Core": WatcherSprite,
+};
+
+// NEW: Map for item sprites
+const itemSpriteMap: { [key: string]: string } = {
+  "Ancient Repair Bench": AncientRepairBenchSprite,
+  // Add other item sprites here as they are created
 };
 
 const emojiMap: { [key: string]: string } = {
@@ -76,7 +85,7 @@ const emojiMap: { [key: string]: string } = {
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
   "Hidden Spring": "🌿",
-  "Ancient Repair Bench": "🔨",
+  // "Ancient Repair Bench": "🔨", // Removed emoji, now using SVG
   "Mysterious Box": "📦",
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",
@@ -541,12 +550,41 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const item = labyrinth.getItem(itemId);
+            // NEW: Render item sprites if available, otherwise fallback to emoji
+            const itemSprite = item ? itemSpriteMap[item.name.replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "").trim()] : undefined;
+            if (itemSprite) {
+              return (
+                <image
+                  key={`item-${itemId}`}
+                  href={itemSprite}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  className="animate-pulse"
+                />
+              );
+            }
             return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central" className="animate-pulse">{getEmojiForElement(item.name)}</text>;
           })}
           {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
+            // NEW: Render static item sprites if available, otherwise fallback to emoji
+            const itemSprite = item ? itemSpriteMap[item.name.replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "").trim()] : undefined;
+            if (itemSprite) {
+              return (
+                <image
+                  key={`static-${itemId}`}
+                  href={itemSprite}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                />
+              );
+            }
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
           {/* NEW: Render death traps first, as they are always visible and have a distinct look */}

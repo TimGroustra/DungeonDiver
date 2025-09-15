@@ -270,6 +270,12 @@ export class Labyrinth {
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
 
     this.initializeLabyrinth();
+
+    // Reveal all static items by default
+    for (const coordStr of this.staticItemLocations.keys()) {
+      this.revealedStaticItems.add(coordStr);
+    }
+
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
     this.addMessage(this.getCurrentFloorObjective().description.join(' ')); // Join for initial message
     this.markVisited(this.playerLocation);

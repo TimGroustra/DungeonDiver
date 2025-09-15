@@ -317,7 +317,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const getEmojiForElement = (elementName: string): string => {
-    return emojiMap[elementName] || "❓";
+    // Extract the base name by removing prefixes like "Rusty", "Iron", "Steel", "Mithril", "Ancient"
+    const baseName = elementName
+      .replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "")
+      .trim();
+    return emojiMap[baseName] || "❓";
   };
 
   const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, gameVersion]);

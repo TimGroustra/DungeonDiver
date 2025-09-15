@@ -130,7 +130,7 @@ const Index: React.FC = () => {
         <div className="flex flex-col items-center text-center">
           <h1
             className="font-cinzel text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-6"
-            style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.7)" }}
+            style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.7)", transform: "translateY(-2cm)" }}
           >
             Labyrinth of Eldoria
           </h1>

@@ -2074,6 +2074,24 @@ export class Labyrinth {
             this.enemyLocations.set(newCoordStr, enemyId);
             this.addMessage(`${enemy.name} moved from (${oldX},${oldY}) to (${move.x},${move.y}).`);
             moved = true;
+
+            // NEW LOGIC: Check for traps at the new enemy location
+            if (this.deathTrapsLocations.has(newCoordStr)) {
+                enemy.health = 0; // Instant death
+                enemy.defeated = true;
+                this.addMessage(`The ${enemy.name} stumbled into an Instant Death Trap and was instantly obliterated!`);
+                this.enemyLocations.delete(newCoordStr); // Remove enemy from map
+            } else if (this.trapsLocations.has(newCoordStr) && !this.triggeredTraps.has(newCoordStr)) {
+                const trapDamage = 10;
+                enemy.takeDamage(trapDamage);
+                this.triggeredTraps.add(newCoordStr); // Mark trap as triggered
+                this.revealedTraps.add(newCoordStr); // Also mark as revealed
+                this.addMessage(`The ${enemy.name} triggered a hidden trap and took ${trapDamage} damage! Its health is now ${enemy.health}.`);
+                if (enemy.defeated) {
+                    this.addMessage(`The ${enemy.name} was defeated by a trap!`);
+                    this.enemyLocations.delete(newCoordStr); // Remove enemy from map
+                }
+            }
             break; // Enemy moved, stop trying other moves
         }
     }

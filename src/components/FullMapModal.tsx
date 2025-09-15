@@ -10,10 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Labyrinth } from "@/lib/game";
 import { generateSvgPaths } from "@/lib/map-renderer";
-import { cn } from "@/lib/utils";
-import { Skull } from "lucide-react"; // Import Skull icon for traps
-import { emojiMap, enemySpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import shared assets
-
+import { cn } from "@/lib/utils"; // Keep cn for potential future use, though not strictly needed for this change
 
 interface FullMapModalProps {
   isOpen: boolean;
@@ -21,15 +18,11 @@ interface FullMapModalProps {
   labyrinth: Labyrinth;
 }
 
-
 const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth }) => {
   const currentFloor = labyrinth.getCurrentFloor();
   const mapWidth = labyrinth["MAP_WIDTH"];
   const mapHeight = labyrinth["MAP_HEIGHT"];
   const playerLoc = labyrinth.getPlayerLocation();
-  const visitedCells = labyrinth.getVisitedCells();
-  const revealedTraps = labyrinth.getRevealedTraps();
-  const allVisibleTraps = new Set([...revealedTraps]);
 
   const { wallPath, floorPath } = React.useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, currentFloor]);
 
@@ -48,13 +41,84 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]); // Re-run effect when isOpen or onClose changes
+  }, [isOpen, onClose]);
+
+  // Helper function to get active quest objective coordinates
+  const getActiveQuestObjectiveCoords = (): { x: number; y: number; type: string; }[] => {
+    const activeObjectives: { x: number; y: number; type: string; }[] = [];
+    if (!labyrinth) return activeObjectives;
+
+    // Helper to add an objective if it's not completed and exists on the map
+    const addObjective = (id: string, map: Map<string, string | boolean>, type: string) => {
+      for (const [coordStr, elementId] of map.entries()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === currentFloor && elementId === id) {
+          activeObjectives.push({ x, y, type });
+          return; // Found it, no need to search further for this ID
+        }
+      }
+    };
+
+    // Floor 0: The Echoes of the Lost Scholar
+    if (currentFloor === 0 && !labyrinth["scholarAmuletQuestCompleted"]) {
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "journal-f0")) {
+        addObjective("journal-f0", labyrinth.itemLocations, "item");
+      }
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "charged-crystal-f0")) {
+        addObjective("charged-crystal-f0", labyrinth.itemLocations, "item");
+      }
+      addObjective("ancient-mechanism-f0", labyrinth.staticItemLocations, "static");
+    }
+    // Floor 1: The Whispering Well's Thirst
+    else if (currentFloor === 1 && !labyrinth["whisperingWellQuestCompleted"]) {
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "enchanted-flask-f1")) {
+        addObjective("enchanted-flask-f1", labyrinth.itemLocations, "item");
+      }
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "living-water-f1")) { // If flask is filled, water is in inventory
+        addObjective("hidden-spring-f1", labyrinth.staticItemLocations, "static");
+      }
+      addObjective("dry-well-f1", labyrinth.staticItemLocations, "static");
+    }
+    // Floor 2: The Broken Compass's Secret
+    else if (currentFloor === 2 && !labyrinth["trueCompassQuestCompleted"]) {
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "broken-compass-f2")) {
+        addObjective("broken-compass-f2", labyrinth.itemLocations, "item");
+      }
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "fine-tools-f2")) {
+        addObjective("fine-tools-f2", labyrinth.itemLocations, "item");
+      }
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "prismatic-lens-f2")) {
+        addObjective("prismatic-lens-f2", labyrinth.itemLocations, "item");
+      }
+      addObjective("repair-bench-f2", labyrinth.staticItemLocations, "static");
+    }
+    // Floor 3 (last floor): The Heart of the Labyrinth
+    else if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && (!labyrinth["bossDefeated"] || !labyrinth["heartSacrificed"])) {
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "labyrinth-key-f3")) {
+        addObjective("labyrinth-key-f3", labyrinth.itemLocations, "item");
+      }
+      if (!labyrinth["mysteriousBoxOpened"]) {
+        addObjective("mysterious-box-f3", labyrinth.staticItemLocations, "static");
+      }
+      if (!labyrinth.getInventoryItems().some(i => i.item.id === "heart-of-labyrinth-f3")) {
+         if (labyrinth["mysteriousBoxOpened"]) {
+            addObjective("heart-of-labyrinth-f3", labyrinth.itemLocations, "item");
+         }
+      }
+      if (!labyrinth["bossDefeated"]) {
+        addObjective("watcher-of-the-core-f3", labyrinth.enemyLocations, "enemy");
+      }
+      if (!labyrinth["heartSacrificed"]) {
+        addObjective("ancient-altar-f3", labyrinth.staticItemLocations, "static");
+      }
+    }
+
+    return activeObjectives;
+  };
+
+  const activeQuestObjectives = getActiveQuestObjectiveCoords();
 
   const renderFullMap = () => {
-    const bossState = labyrinth.getBossState();
-    const bossPassageCoords = labyrinth.bossPassageCoords;
-    const isBossDefeated = labyrinth.isBossDefeated();
-
     return (
       <div className="relative w-full h-full overflow-hidden">
         <svg viewBox={`0 0 ${mapWidth} ${mapHeight}`} className="w-full h-full" shapeRendering="crispEdges">
@@ -69,39 +133,6 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth 
               <rect width="1" height="1" fill="#5a4d5c" />
               <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
             </pattern>
-            <pattern id="death-trap-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
-              <rect width="1" height="1" fill="black" />
-              <path d="M0.1 0.9 L0.2 0.7 L0.3 0.9 Z" fill="#888" />
-              <path d="M0.3 0.8 L0.4 0.6 L0.5 0.8 Z" fill="#888" />
-              <path d="M0.5 0.9 L0.6 0.7 L0.7 0.9 Z" fill="#888" />
-              <path d="M0.7 0.8 L0.8 0.6 L0.9 0.8 Z" fill="#888" />
-              <path d="M0.1 0.5 L0.2 0.3 L0.3 0.5 Z" fill="#888" />
-              <path d="M0.3 0.4 L0.4 0.2 L0.5 0.4 Z" fill="#888" />
-              <path d="M0.5 0.5 L0.6 0.3 L0.7 0.5 Z" fill="#888" />
-              <path d="M0.7 0.4 L0.8 0.2 L0.9 0.4 Z" fill="#888" />
-              <path d="M0.1 0.1 L0.2 0.0 L0.3 0.1 Z" fill="#888" />
-              <path d="M0.3 0.0 L0.4 -0.2 L0.5 0.0 Z" fill="#888" />
-              <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
-              <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
-            </pattern>
-            <pattern id="revealed-trap-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
-              <rect width="1" height="1" fill="#3a2d3c" />
-              <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
-              <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
-              <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
-              <path d="M0.1 0.9 L0.2 0.7 L0.3 0.9 Z" fill="#888" />
-              <path d="M0.3 0.8 L0.4 0.6 L0.5 0.8 Z" fill="#888" />
-              <path d="M0.5 0.9 L0.6 0.7 L0.7 0.9 Z" fill="#888" />
-              <path d="M0.7 0.8 L0.8 0.6 L0.9 0.8 Z" fill="#888" />
-              <path d="M0.1 0.5 L0.2 0.3 L0.3 0.5 Z" fill="#888" />
-              <path d="M0.3 0.4 L0.4 0.2 L0.5 0.4 Z" fill="#888" />
-              <path d="M0.5 0.5 L0.6 0.3 L0.7 0.5 Z" fill="#888" />
-              <path d="M0.7 0.4 L0.8 0.2 L0.9 0.4 Z" fill="#888" />
-              <path d="M0.1 0.1 L0.2 0.0 L0.3 0.1 Z" fill="#888" />
-              <path d="M0.3 0.0 L0.4 -0.2 L0.5 0.0 Z" fill="#888" />
-              <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
-              <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
-            </pattern>
           </defs>
 
           <g>
@@ -109,129 +140,13 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth 
             <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
             <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.05} />
 
-            {/* Render visited cells overlay */}
-            {Array.from(visitedCells).map(coordStr => {
-              const [x, y] = coordStr.split(',').map(Number);
-              return (
-                <rect
-                  key={`visited-${coordStr}`}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill="rgba(0, 255, 0, 0.1)" // Light green overlay for visited cells
-                />
-              );
-            })}
-
-            {/* Render Boss Passage Overlay */}
-            {currentFloor === labyrinth["NUM_FLOORS"] - 1 && !isBossDefeated && Array.from(bossPassageCoords).map((coordStr) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor) return null;
-
-              const isRedLight = bossState === 'red_light';
-              const isSafeTile = labyrinth.bossSafeTiles.has(coordStr);
-
-              const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent';
-              const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : '';
-
-              return (
-                <rect
-                  key={`boss-passage-${coordStr}`}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill={fill}
-                  className={className}
-                />
-              );
-            })}
-
-            {/* Render decorative elements (torches) */}
-            {Array.from(labyrinth.getDecorativeElements().entries()).map(([coordStr, type]) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor) return null;
-              // For full map, just show a small indicator for torches
-              return <circle key={`deco-${coordStr}`} cx={x + 0.5} cy={y + 0.5} r="0.1" fill={type === 'torch_lit' ? 'yellow' : '#555'} />;
-            })}
-
-            {/* Render enemies */}
-            {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor) return null;
-              const enemy = labyrinth.getEnemy(enemyId);
-              if (!enemy || enemy.defeated) return null;
-              const enemySprite = enemySpriteMap[enemy.name];
-              if (enemySprite) {
-                return (
-                  <image
-                    key={`enemy-${enemyId}`}
-                    href={enemySprite}
-                    x={x}
-                    y={y}
-                    width="1"
-                    height="1"
-                  />
-                );
-              }
-              return null;
-            })}
-
-            {/* Render items */}
-            {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor) return null;
-              const item = labyrinth.getItem(itemId);
-              return <text key={`item-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.6" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
-            })}
-
-            {/* Render static items */}
-            {Array.from(labyrinth.staticItemLocations.entries()).map(([coordStr, itemId]) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
-              const item = labyrinth.getItem(itemId);
-              return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
-            })}
-
-            {/* Render death traps */}
-            {Array.from(labyrinth.deathTrapsLocations.keys()).map((coordStr) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor) return null;
-              return (
-                <rect
-                  key={`death-trap-${coordStr}`}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill="url(#death-trap-pattern-full)"
-                  stroke="rgba(0,0,0,0.8)"
-                  strokeWidth={0.05}
-                />
-              );
-            })}
-
-            {/* Render normal traps (only if revealed and not a death trap) */}
-            {Array.from(allVisibleTraps).map((coordStr) => {
-              const [x, y, f] = coordStr.split(',').map(Number);
-              if (f !== currentFloor || labyrinth.deathTrapsLocations.has(coordStr)) return null;
-              return (
-                <rect
-                  key={`trap-glow-${coordStr}`}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  fill="url(#revealed-trap-pattern-full)"
-                  stroke="rgba(255, 0, 0, 0.8)"
-                  strokeWidth={0.05}
-                />
-              );
-            })}
+            {/* Render active quest objectives */}
+            {activeQuestObjectives.map((obj, index) => (
+              <circle key={`objective-${obj.x}-${obj.y}-${index}`} cx={obj.x + 0.5} cy={obj.y + 0.5} r="0.3" fill="gold" stroke="orange" strokeWidth="0.1" />
+            ))}
 
             {/* Render player */}
-            <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r="0.4" fill="cyan" stroke="white" strokeWidth="0.1" />
+            <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r="0.4" fill="cyan" stroke="white" strokeWidth="0.1" className="animate-pulse-fast" />
           </g>
         </svg>
       </div>

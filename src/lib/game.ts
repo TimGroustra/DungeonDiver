@@ -1275,7 +1275,7 @@ export class Labyrinth {
         this.playerStunnedTurns--;
         const directions = ["north", "south", "east", "west"];
         const randomDirection = directions[Math.floor(Math.random() * directions.length)] as "north" | "south" | "east" | "west";
-        this.addMessage(`You are disoriented! You attempt to move ${direction}, but stumble ${randomDirection} instead!`);
+        this.addMessage(`You attempt to move ${direction}, but stumble ${randomDirection} instead!`);
         direction = randomDirection;
     }
 
@@ -1902,6 +1902,7 @@ export class Labyrinth {
               const livingWater = new Item("living-water-f1", "Living Water", "Water from a hidden spring, shimmering with life. It feels potent.", false, 'quest');
               this.items.set(livingWater.id, livingWater);
               this._handleFoundItem(livingWater, currentCoord); // Add to inventory
+              this.inventory.delete("enchanted-flask-f1"); // Remove the flask after use
               this.addMessage("You fill your Enchanted Flask with the Living Water from the Hidden Spring!");
             } else {
               this.addMessage("Your Enchanted Flask is already filled with Living Water.");

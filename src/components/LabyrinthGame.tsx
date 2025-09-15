@@ -126,14 +126,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const startY = lastSettledLogicalPositionRef.current.y;
       const endX = newLogicalPos.x;
       const endY = newLogicalPos.y;
-      const animationStartTime = Date.now();
+      const startTime = Date.now();
 
       const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
       const animationDuration = isJump ? 1000 : 200; // Jumps are slow, moves are fast
 
       const animate = () => {
         const now = Date.now();
-        const elapsed = now - animationStartTime;
+        const elapsed = now - startTime;
         const progress = Math.min(1, elapsed / animationDuration);
 
         const easedProgress = progress; // Linear progress for all movement
@@ -168,15 +168,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
           // NEW: Clear jump-defeated enemy after animation
           if (labyrinth.lastJumpDefeatedEnemyId) {
-            const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-            labyrinth.clearJumpDefeatedEnemy(currentElapsedTime);
+            labyrinth.clearJumpDefeatedEnemy();
             setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy
           }
         }
       };
       requestAnimationFrame(animate);
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor(), labyrinth, startTime]); // Depend on actual game state player location and floor
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over

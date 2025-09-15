@@ -1426,6 +1426,7 @@ export class Labyrinth {
         enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
+        this.bloodPools.set(targetCoordStr, time + 180); // Add blood pool for 3 minutes
       }
     }
 
@@ -1481,7 +1482,7 @@ export class Labyrinth {
     }
   }
 
-  public clearJumpDefeatedEnemy(time: number) {
+  public clearJumpDefeatedEnemy() {
     if (this.lastJumpDefeatedEnemyId) {
       // Find the coordinate of the defeated enemy
       let enemyCoordStr: string | undefined;
@@ -1493,7 +1494,6 @@ export class Labyrinth {
       }
       if (enemyCoordStr) {
         this.enemyLocations.delete(enemyCoordStr);
-        this.bloodPools.set(enemyCoordStr, time + 180); // Add blood pool for 3 minutes
       }
       this.lastJumpDefeatedEnemyId = null;
     }

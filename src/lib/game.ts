@@ -192,7 +192,7 @@ export class Labyrinth {
   // Watcher of the Core Boss specific states
   public watcherOfTheCore: Enemy | undefined;
   public watcherLocation: Coordinate | undefined;
-  private bossState: 'red_light' | 'green_light';
+  private bossState: 'red_light' | 'not_watching'; // Changed from 'green_light' to 'not_watching'
   private lastBossStateChange: number;
   private isRedLightPulseActive: boolean; // Flag for current pulse
   private playerStunnedTurns: number; // How many turns player is stunned/misdirected
@@ -262,7 +262,7 @@ export class Labyrinth {
     // Watcher of the Core Boss specific initializations
     this.watcherOfTheCore = undefined;
     this.watcherLocation = undefined;
-    this.bossState = 'green_light'; // Starts not watching
+    this.bossState = 'not_watching'; // Starts not watching
     this.lastBossStateChange = Date.now();
     this.isRedLightPulseActive = false;
     this.playerStunnedTurns = 0;
@@ -2317,14 +2317,14 @@ export class Labyrinth {
     if (now - this.lastBossStateChange > stateChangeInterval) {
         this.lastBossStateChange = now;
         
-        if (this.bossState === 'green_light') {
+        if (this.bossState === 'not_watching') { // Changed from 'green_light'
             this.bossState = 'red_light';
             this.isRedLightPulseActive = true; // Set pulse active
             if (isInBossPassage) { // Only show message if player is in the passage
                 this.addMessage("The Labyrinth's Gaze turns towards you! The passage pulses with a blinding light! DO NOT MOVE!");
             }
-        } else {
-            this.bossState = 'green_light';
+        } else { // If bossState is 'red_light'
+            this.bossState = 'not_watching'; // Changed to 'not_watching'
             this.isRedLightPulseActive = false; // Reset pulse
             if (isInBossPassage) { // Only show message if player is in the passage
                 this.addMessage("The Labyrinth's Gaze shifts away. The passage dims. You may move.");
@@ -2346,7 +2346,7 @@ export class Labyrinth {
     }
   }
 
-  public getBossState(): 'red_light' | 'green_light' {
+  public getBossState(): 'red_light' | 'not_watching' { // Updated return type
     return this.bossState;
   }
 

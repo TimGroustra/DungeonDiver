@@ -480,7 +480,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (f !== currentFloor) return null;
 
             const isRedLight = bossState === 'red_light';
-            const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.1)'; // Red for red_light, green for green_light
+            // Changed fill: only show red light, otherwise transparent
+            const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent'; 
             const className = isRedLight ? 'animate-pulse-fast' : ''; // Apply pulse animation for red light
 
             return (

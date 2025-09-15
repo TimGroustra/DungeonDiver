@@ -216,7 +216,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement) return; // Do not allow input if game is over or animating
+      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat) return; // Do not allow input if game is over, animating, or key is held down
       switch (event.key.toLowerCase()) {
         case "arrowup":
         case "w":

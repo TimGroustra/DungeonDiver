@@ -1,0 +1,11 @@
+<svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg">
+  <!-- Adventurer body (facing south) -->
+  <rect x="0.4" y="0.3" width="0.2" height="0.4" fill="#8B4513"/>
+  <circle cx="0.5" cy="0.25" r="0.1" fill="#F0D9B5"/>
+  <rect x="0.42" y="0.7" width="0.06" height="0.2" fill="#696969"/>
+  <rect x="0.52" y="0.7" width="0.06" height="0.2" fill="#696969"/>
+  <rect x="0.35" y="0.35" width="0.05" height="0.2" fill="#F0D9B5"/>
+  <rect x="0.6" y="0.35" width="0.05" height="0.2" fill="#F0D9B5"/>
+  <!-- Fist (attacking south) -->
+  <circle cx="0.5" cy="0.7" r="0.05" fill="#F0D9B5"/>
+</svg>

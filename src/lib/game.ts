@@ -763,7 +763,6 @@ export class Labyrinth {
 
   private _placeDecorativeElements(floor: number) {
     const currentFloorMap = this.floors.get(floor)!;
-    const lightFixtureTypes = ['torch_unlit', 'torch_lit'];
     const numTorches = 50; // Total number of torch elements per floor
 
     // Place light fixtures
@@ -794,8 +793,8 @@ export class Labyrinth {
                     !this.decorativeElements.has(coordStr) &&
                     (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor)
                 ) {
-                    const randomType = lightFixtureTypes[Math.floor(Math.random() * lightFixtureTypes.length)];
-                    this.decorativeElements.set(coordStr, randomType);
+                    // Default to 'torch_unlit'
+                    this.decorativeElements.set(coordStr, 'torch_unlit');
                     placed = true;
                 }
             }

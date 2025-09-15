@@ -438,7 +438,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
-            if (!enemy || enemy.defeated) return null; // Only render if not defeated
+            if (!enemy || (enemy.defeated && enemy.id !== labyrinth.lastJumpDefeatedEnemyId)) return null;
             const enemySprite = enemySpriteMap[enemy.name];
             if (enemySprite) {
               return (

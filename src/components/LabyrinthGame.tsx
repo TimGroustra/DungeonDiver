@@ -19,7 +19,7 @@ import AdventurerSouth from "@/assets/sprites/adventurer/adventurer-south.svg";
 import AdventurerEast from "@/assets/sprites/adventurer/adventurer-east.svg";
 import AdventurerWest from "@/assets/sprites/adventurer/adventurer-west.svg";
 import AdventurerNorthSword from "@/assets/sprites/adventurer/adventurer-north-sword.svg";
-import AdventurerSouthSword from "@/assets/sprites/adventurer/adventurer-south-sword.svg";
+import AdventurerSouthSword from "@/assets/sprites/adventurer/adventurer-south-sword.보다
 import AdventurerEastSword from "@/assets/sprites/adventurer/adventurer-east-sword.svg";
 import AdventurerWestSword from "@/assets/sprites/adventurer/adventurer-west-sword.svg";
 import AdventurerNorthShield from "@/assets/sprites/adventurer/adventurer-north-shield.svg";
@@ -398,6 +398,28 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
             <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
           </pattern>
+          {/* NEW: Revealed Trap Pattern (Floor background + spikes) */}
+          <pattern id="revealed-trap-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" fill="#3a2d3c" /> {/* Floor background color */}
+            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" /> {/* Floor grid lines */}
+            <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
+            <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
+            {/* Spikes from death-trap-pattern */}
+            <path d="M0.1 0.9 L0.2 0.7 L0.3 0.9 Z" fill="#888" />
+            <path d="M0.3 0.8 L0.4 0.6 L0.5 0.8 Z" fill="#888" />
+            <path d="M0.5 0.9 L0.6 0.7 L0.7 0.9 Z" fill="#888" />
+            <path d="M0.7 0.8 L0.8 0.6 L0.9 0.8 Z" fill="#888" />
+
+            <path d="M0.1 0.5 L0.2 0.3 L0.3 0.5 Z" fill="#888" />
+            <path d="M0.3 0.4 L0.4 0.2 L0.5 0.4 Z" fill="#888" />
+            <path d="M0.5 0.5 L0.6 0.3 L0.7 0.5 Z" fill="#888" />
+            <path d="M0.7 0.4 L0.8 0.2 L0.9 0.4 Z" fill="#888" />
+
+            <path d="M0.1 0.1 L0.2 0.0 L0.3 0.1 Z" fill="#888" />
+            <path d="M0.3 0.0 L0.4 -0.2 L0.5 0.0 Z" fill="#888" />
+            <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
+            <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
+          </pattern>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
@@ -471,8 +493,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 y={y}
                 width="1"
                 height="1"
-                fill="rgba(255, 0, 0, 0.5)"
-                stroke="rgba(255, 0, 0, 0.8)"
+                fill="url(#revealed-trap-pattern)" // Use the new pattern
+                stroke="rgba(255, 0, 0, 0.8)" // Keep a subtle red border for danger
                 strokeWidth={0.05}
                 className={playerOnTrap ? "animate-pulse-fast" : ""}
               />

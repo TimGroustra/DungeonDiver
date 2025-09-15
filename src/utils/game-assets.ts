@@ -1,5 +1,11 @@
 // src/utils/game-assets.ts
 
+// Import SVG files directly
+import goblinSprite from "@/assets/sprites/enemies/goblin.svg";
+import skeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
+import shadowSprite from "@/assets/sprites/enemies/shadow.svg";
+import watcherSprite from "@/assets/sprites/enemies/watcher.svg";
+
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
   "Vial of Lumina": "🧪",
@@ -30,10 +36,10 @@ export const emojiMap: { [key: string]: string } = {
 
 // Map for enemy sprites
 export const enemySpriteMap: { [key: string]: string } = {
-  "Grumbling Goblin": "/assets/sprites/enemies/goblin.svg",
-  "Rattling Skeleton": "/assets/sprites/enemies/skeleton.svg",
-  "Whispering Shadow": "/assets/sprites/enemies/shadow.svg",
-  "The Watcher of the Core": "/assets/sprites/enemies/watcher.svg",
+  "Grumbling Goblin": goblinSprite,
+  "Rattling Skeleton": skeletonSprite,
+  "Whispering Shadow": shadowSprite,
+  "The Watcher of the Core": watcherSprite,
 };
 
 // Helper function to get emoji for an element, handling prefixes

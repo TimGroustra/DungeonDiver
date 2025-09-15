@@ -76,8 +76,8 @@ const emojiMap: { [key: string]: string } = {
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
   "Hidden Spring": "🌿",
-  "Ancient Repair Bench": " forge", // Changed to forge emoji
-  "Mysterious Box": "📦",
+  "Ancient Repair Bench": " forge",
+  "Mysterious Box": " chest", // Changed to treasure chest emoji
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",
   "Triggered Trap": "☠️",

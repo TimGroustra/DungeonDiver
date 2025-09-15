@@ -519,6 +519,18 @@ export class Labyrinth {
       }
     }
 
+    // NEW: Add wall tiles every second tile in the central row of the boss passage
+    for (let x = passageStartX; x <= passageEndX; x++) {
+      // Ensure it's an open tile before converting to wall
+      if (floorMap[passageCenterY][x] !== 'wall') {
+        // Place a wall every second tile, starting from passageStartX
+        if ((x - passageStartX) % 2 === 0) { // Check if it's an even offset from the start
+          floorMap[passageCenterY][x] = 'wall';
+          this.bossPassageCoords.delete(`${x},${passageCenterY},${floor}`); // Remove from boss passage coords
+        }
+      }
+    }
+
     // Add some "alcoves" or wider sections to make it less linear
     const numAlcoves = 3;
     for (let i = 0; i < numAlcoves; i++) {

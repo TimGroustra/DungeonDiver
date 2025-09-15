@@ -320,7 +320,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth.getCurrentFloor()]);
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, labyrinth.getCurrentFloor()]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();

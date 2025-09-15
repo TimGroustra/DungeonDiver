@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,23 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth 
   const allVisibleTraps = new Set([...revealedTraps]);
 
   const { wallPath, floorPath } = React.useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, currentFloor]);
+
+  // Add keyboard listener for 'M' key to close the modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]); // Re-run effect when isOpen or onClose changes
 
   const renderFullMap = () => {
     const bossState = labyrinth.getBossState();

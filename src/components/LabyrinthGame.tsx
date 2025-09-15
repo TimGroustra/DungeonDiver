@@ -38,7 +38,8 @@ import ShadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
 
 // Import item sprites
-import AncientRepairBenchSprite from "@/assets/sprites/items/ancient-repair-bench.svg"; // NEW: Import the repair bench SVG
+import AncientRepairBenchSprite from "@/assets/sprites/items/ancient-repair-bench.svg";
+import FountainSprite from "@/assets/sprites/items/fountain.svg"; // NEW: Import the fountain SVG
 
 interface LabyrinthGameProps {
   playerName: string;
@@ -63,6 +64,7 @@ const enemySpriteMap: { [key: string]: string } = {
 // NEW: Map for item sprites
 const itemSpriteMap: { [key: string]: string } = {
   "Ancient Repair Bench": AncientRepairBenchSprite,
+  "Hidden Spring": FountainSprite, // NEW: Map Hidden Spring to FountainSprite
   // Add other item sprites here as they are created
 };
 
@@ -84,8 +86,7 @@ const emojiMap: { [key: string]: string } = {
   "Heart of the Labyrinth": "❤️‍🔥",
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
-  "Hidden Spring": "🌿",
-  // "Ancient Repair Bench": "🔨", // Removed emoji, now using SVG
+  // "Hidden Spring": "🌿", // Removed emoji, now using SVG
   "Mysterious Box": "📦",
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",

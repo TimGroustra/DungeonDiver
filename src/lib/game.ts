@@ -1265,6 +1265,28 @@ export class Labyrinth {
     this.addMessage(this.getCurrentFloorObjective().description.join(' '));
   }
 
+  // NEW: Method to skip to the next floor for testing purposes
+  public nextFloor(playerName: string, time: number) {
+    if (this.currentFloor < this.NUM_FLOORS - 1) {
+      this.currentFloor++;
+      this.playerLocation = { x: 0, y: 0 }; // Appear at the entrance of the new floor
+      this.markVisited(this.playerLocation);
+      this.addMessage(`[DEV MODE] Skipping to Floor ${this.currentFloor + 1}!`);
+      this.addMessage(this.getCurrentFloorObjective().description.join(' '));
+      // Reset boss state if skipping to the last floor
+      if (this.currentFloor === this.NUM_FLOORS - 1) {
+        this.bossDefeated = false;
+        this.bossState = 'not_watching';
+        this.playerStunnedTurns = 0;
+        this.lastGazeDamageTimestamp = 0;
+      }
+    } else {
+      // If on the last floor, trigger victory
+      this.setGameOver('victory', playerName, time);
+      this.addMessage("[DEV MODE] You've reached the final floor and triggered victory!");
+    }
+  }
+
   private _tryActivateWellBlessing(playerName: string, time: number, currentCause: string): boolean {
     const blessingEntry = this.inventory.get("well-blessing-f1");
     if (blessingEntry && blessingEntry.quantity > 0 && blessingEntry.item.effectValue) {
@@ -1830,7 +1852,7 @@ export class Labyrinth {
 
     // Check for floor exit staircase
     const staircaseCoord = this.floorExitStaircases.get(this.currentFloor);
-    if (staircaseCoord && staircaseCoord.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
+    if (staircaseCoord && staircase.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
       this.ascendFloor(playerName, time);
       interacted = true;
     }

@@ -316,6 +316,24 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     toast.success("You have been revived! Continue your adventure!");
   };
 
+  // NEW: Handler for the "Next Floor (DEV)" button
+  const handleNextFloorDev = () => {
+    if (gameResult !== null) {
+      toast.info("Game is over. Cannot skip floors.");
+      return;
+    }
+    labyrinth.nextFloor(playerName, elapsedTime);
+    setGameVersion(prev => prev + 1); // Force re-render
+    // If it was the last floor and nextFloor triggered victory, onGameOver will be called
+    if (labyrinth.isGameOver()) {
+      const result = labyrinth.getGameResult();
+      if (result) {
+        onGameOver(result);
+        setHasGameOverBeenDispatched(true);
+      }
+    }
+  };
+
   const getEmojiForElement = (elementName: string): string => {
     // Extract the base name by removing prefixes like "Rusty", "Iron", "Steel", "Mithril", "Ancient"
     const baseName = elementName
@@ -730,6 +748,19 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span></p>
           </div>
           {renderHud()}
+
+          {/* NEW: Next Floor (DEV) button */}
+          {import.meta.env.DEV && (
+            <div className="absolute top-2 right-2 z-10">
+              <Button 
+                onClick={handleNextFloorDev} 
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1"
+                disabled={gameResult !== null}
+              >
+                Next Floor (DEV)
+              </Button>
+            </div>
+          )}
 
           {gameResult && (
             <GameOverScreen result={gameResult} onRestart={onGameRestart} onRevive={handleReviveClick} />

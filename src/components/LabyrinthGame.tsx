@@ -31,17 +31,6 @@ import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-s
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
-// NEW: Import attack sprites
-import AdventurerNorthAttack from "@/assets/sprites/adventurer/adventurer-north-attack.svg";
-import AdventurerSouthAttack from "@/assets/sprites/adventurer/adventurer-south-attack.svg";
-import AdventurerEastAttack from "@/assets/sprites/adventurer/adventurer-east-attack.svg";
-import AdventurerWestAttack from "@/assets/sprites/adventurer/adventurer-west-attack.svg";
-import AdventurerNorthSwordAttack from "@/assets/sprites/adventurer/adventurer-north-sword-attack.svg";
-import AdventurerSouthSwordAttack from "@/assets/sprites/adventurer/adventurer-south-sword-attack.svg";
-import AdventurerEastSwordAttack from "@/assets/sprites/adventurer/adventurer-east-sword-attack.svg";
-import AdventurerWestSwordAttack from "@/assets/sprites/adventurer/adventurer-west-sword-attack.svg";
-
-
 // Import enemy sprites
 import GoblinSprite from "@/assets/sprites/enemies/goblin.svg";
 import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
@@ -104,7 +93,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const [isAttacking, setIsAttacking] = useState(false); // NEW: State for attack animation
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -228,7 +216,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement || isAttacking) return; // Do not allow input if game is over, animating, or attacking
+      if (!gameStarted || gameResult !== null || isAnimatingMovement) return; // Do not allow input if game is over or animating
       switch (event.key.toLowerCase()) {
         case "arrowup":
         case "w":
@@ -260,7 +248,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isAttacking]); // Add gameResult and isAnimatingMovement, isAttacking to dependencies
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement]); // Add gameResult and isAnimatingMovement to dependencies
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
@@ -278,50 +266,44 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleAttack = () => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot attack right now."); return; }
-    
-    setIsAttacking(true); // Start attack animation
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot attack right now."); return; }
     labyrinth.attack(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
-
-    setTimeout(() => {
-      setIsAttacking(false); // End attack animation after 200ms
-    }, 200);
   };
 
   const handleJump = () => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot jump right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleSearch = () => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot search right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
     setGameVersion(prev => prev + 1);
   };
 
   const handleInteract = () => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleShieldBash = () => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot perform Shield Bash right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot perform Shield Bash right now."); return; }
     labyrinth.shieldBash(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null || isAnimatingMovement || isAttacking) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + prev + 1);
   };
@@ -378,25 +360,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         east: AdventurerEastSwordShield,
         west: AdventurerWestSwordShield,
       },
-      // NEW: Attack sprites
-      attack_unarmed: {
-        north: AdventurerNorthAttack,
-        south: AdventurerSouthAttack,
-        east: AdventurerEastAttack,
-        west: AdventurerWestAttack,
-      },
-      attack_sword: {
-        north: AdventurerNorthSwordAttack,
-        south: AdventurerSouthSwordAttack,
-        east: AdventurerEastSwordAttack,
-        west: AdventurerWestSwordAttack,
-      },
     };
 
     let equipmentState: keyof typeof spriteMap = 'default';
-    if (isAttacking) {
-      equipmentState = equippedWeapon ? 'attack_sword' : 'attack_unarmed';
-    } else if (equippedWeapon && equippedShield) {
+    if (equippedWeapon && equippedShield) {
       equipmentState = 'sword_shield';
     } else if (equippedWeapon) {
       equipmentState = 'sword';
@@ -612,7 +579,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   size="sm"
                   className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
                   onClick={handleAttack}
-                  disabled={gameResult !== null || isAnimatingMovement || isAttacking}
+                  disabled={gameResult !== null || isAnimatingMovement}
                 >
                   Attack (Q)
                 </Button>
@@ -627,7 +594,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   size="sm"
                   className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
                   onClick={handleShieldBash}
-                  disabled={gameResult !== null || isAnimatingMovement || isAttacking}
+                  disabled={gameResult !== null || isAnimatingMovement}
                 >
                   Bash (E)
                 </Button>
@@ -638,7 +605,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {equippedAmulet ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)} disabled={gameResult !== null || isAnimatingMovement || isAttacking}>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)}>
                   Unequip
                 </Button>
               </div>
@@ -650,7 +617,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 <div>
                   <p className="font-bold text-amber-200 flex items-center"><Compass className="w-4 h-4 mr-2 text-green-400"/> {equippedCompass.name}</p>
                 </div>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)} disabled={gameResult !== null || isAnimatingMovement || isAttacking}>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)}>
                   Unequip
                 </Button>
               </div>
@@ -678,7 +645,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         <p className="text-xs text-stone-300 italic mt-1">{item.description}</p>
                       </div>
                       {(item.type === 'consumable' || isEquippable) && (
-                        <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)} disabled={gameResult !== null || isAnimatingMovement || isAttacking}>
+                        <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)}>
                           {isEquippable ? 'Equip' : 'Use'}
                         </Button>
                       )}

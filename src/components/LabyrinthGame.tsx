@@ -31,25 +31,6 @@ import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-s
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
-// Import new attack sprites
-import AdventurerNorthAttack from "@/assets/sprites/adventurer/adventurer-north-attack.svg";
-import AdventurerSouthAttack from "@/assets/sprites/adventurer/adventurer-south-attack.svg";
-import AdventurerEastAttack from "@/assets/sprites/adventurer/adventurer-east-attack.svg";
-import AdventurerWestAttack from "@/assets/sprites/adventurer/adventurer-west-attack.svg";
-import AdventurerNorthSwordAttack from "@/assets/sprites/adventurer/adventurer-north-sword-attack.svg";
-import AdventurerSouthSwordAttack from "@/assets/sprites/adventurer/adventurer-south-sword-attack.svg";
-import AdventurerEastSwordAttack from "@/assets/sprites/adventurer/adventurer-east-sword-attack.svg";
-import AdventurerWestSwordAttack from "@/assets/sprites/adventurer/adventurer-west-sword-attack.svg";
-import AdventurerNorthShieldAttack from "@/assets/sprites/adventurer/adventurer-north-shield-attack.svg";
-import AdventurerSouthShieldAttack from "@/assets/sprites/adventurer/adventurer-south-shield-attack.svg";
-import AdventurerEastShieldAttack from "@/assets/sprites/adventurer/adventurer-east-shield-attack.svg";
-import AdventurerWestShieldAttack from "@/assets/sprites/adventurer/adventurer-west-shield-attack.svg";
-import AdventurerNorthSwordShieldAttack from "@/assets/sprites/adventurer/adventurer-north-sword-shield-attack.svg";
-import AdventurerSouthSwordShieldAttack from "@/assets/sprites/adventurer/adventurer-south-sword-shield-attack.svg";
-import AdventurerEastSwordShieldAttack from "@/assets/sprites/adventurer/adventurer-east-sword-shield-attack.svg";
-import AdventurerWestSwordShieldAttack from "@/assets/sprites/adventurer/adventurer-west-sword-shield-attack.svg";
-
-
 // Import enemy sprites
 import GoblinSprite from "@/assets/sprites/enemies/goblin.svg";
 import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
@@ -68,7 +49,6 @@ interface LabyrinthGameProps {
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
-const ACTION_ANIMATION_DURATION = 300; // Milliseconds for attack/bash animation
 
 const enemySpriteMap: { [key: string]: string } = {
   "Grumbling Goblin": GoblinSprite,
@@ -113,8 +93,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
-  const [isPerformingAction, setIsPerformingAction] = useState(false); // New state for attack/bash animation
-  const actionAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for action animation timeout
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -129,11 +107,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       lastSettledLogicalPositionRef.current = newLabyrinth.getPlayerLocation(); // Sync ref
       setGameVersion(0);
       setHasGameOverBeenDispatched(false);
-      setIsPerformingAction(false); // Reset action animation state
-      if (actionAnimationTimeoutRef.current) {
-        clearTimeout(actionAnimationTimeoutRef.current);
-        actionAnimationTimeoutRef.current = null;
-      }
     }
   }, [gameStarted]); // Depend only on gameStarted for initial setup
 
@@ -292,58 +265,45 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return () => clearInterval(intervalId);
   }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
-  const triggerActionAnimation = () => {
-    setIsPerformingAction(true);
-    if (actionAnimationTimeoutRef.current) {
-      clearTimeout(actionAnimationTimeoutRef.current);
-    }
-    actionAnimationTimeoutRef.current = setTimeout(() => {
-      setIsPerformingAction(false);
-      actionAnimationTimeoutRef.current = null;
-    }, ACTION_ANIMATION_DURATION);
-  };
-
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleAttack = () => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot attack right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot attack right now."); return; }
     labyrinth.attack(playerName, elapsedTime);
-    triggerActionAnimation(); // Trigger animation
     setGameVersion(prev => prev + 1);
   };
 
   const handleJump = () => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot jump right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleSearch = () => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot search right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
     setGameVersion(prev => prev + 1);
   };
 
   const handleInteract = () => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleShieldBash = () => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot perform Shield Bash right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot perform Shield Bash right now."); return; }
     labyrinth.shieldBash(playerName, elapsedTime);
-    triggerActionAnimation(); // Trigger animation
     setGameVersion(prev => prev + 1);
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null || isAnimatingMovement || isPerformingAction) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + prev + 1);
   };
@@ -375,95 +335,43 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const equippedShield = labyrinth.getEquippedShield();
     const direction = labyrinth.lastMoveDirection;
 
-    const adventurerIdleSprites = {
-      north: AdventurerNorth,
-      south: AdventurerSouth,
-      east: AdventurerEast,
-      west: AdventurerWest,
+    const spriteMap = {
+      default: {
+        north: AdventurerNorth,
+        south: AdventurerSouth,
+        east: AdventurerEast,
+        west: AdventurerWest,
+      },
+      sword: {
+        north: AdventurerNorthSword,
+        south: AdventurerSouthSword,
+        east: AdventurerEastSword,
+        west: AdventurerWestSword,
+      },
+      shield: {
+        north: AdventurerNorthShield,
+        south: AdventurerSouthShield,
+        east: AdventurerEastShield,
+        west: AdventurerWestShield,
+      },
+      sword_shield: {
+        north: AdventurerNorthSwordShield,
+        south: AdventurerSouthSwordShield,
+        east: AdventurerEastSwordShield,
+        west: AdventurerWestSwordShield,
+      },
     };
 
-    const adventurerSwordSprites = {
-      north: AdventurerNorthSword,
-      south: AdventurerSouthSword,
-      east: AdventurerEastSword,
-      west: AdventurerWestSword,
-    };
-
-    const adventurerShieldSprites = {
-      north: AdventurerNorthShield,
-      south: AdventurerSouthShield,
-      east: AdventurerEastShield,
-      west: AdventurerWestShield,
-    };
-
-    const adventurerSwordShieldSprites = {
-      north: AdventurerNorthSwordShield,
-      south: AdventurerSouthSwordShield,
-      east: AdventurerEastSwordShield,
-      west: AdventurerWestSwordShield,
-    };
-
-    const adventurerAttackSprites = {
-      north: AdventurerNorthAttack,
-      south: AdventurerSouthAttack,
-      east: AdventurerEastAttack,
-      west: AdventurerWestAttack,
-    };
-
-    const adventurerSwordAttackSprites = {
-      north: AdventurerNorthSwordAttack,
-      south: AdventurerSouthSwordAttack,
-      east: AdventurerEastSwordAttack,
-      west: AdventurerWestSwordAttack,
-    };
-
-    const adventurerShieldAttackSprites = { // Used for Shield Bash
-      north: AdventurerNorthShieldAttack,
-      south: AdventurerSouthShieldAttack,
-      east: AdventurerEastShieldAttack,
-      west: AdventurerWestShieldAttack,
-    };
-
-    const adventurerSwordShieldAttackSprites = { // Used for attack when both are equipped
-      north: AdventurerNorthSwordShieldAttack,
-      south: AdventurerSouthSwordShieldAttack,
-      east: AdventurerEastSwordShieldAttack,
-      west: AdventurerWestSwordShieldAttack,
-    };
-
-    let currentAdventurerSprite: string;
-
-    if (isPerformingAction) {
-      if (labyrinth.lastActionType === 'attack') {
-        if (equippedWeapon && equippedShield) {
-          currentAdventurerSprite = adventurerSwordShieldAttackSprites[direction];
-        } else if (equippedWeapon) {
-          currentAdventurerSprite = adventurerSwordAttackSprites[direction];
-        } else {
-          currentAdventurerSprite = adventurerAttackSprites[direction]; // Unarmed attack
-        }
-      } else if (labyrinth.lastActionType === 'shieldBash') {
-        if (equippedShield) {
-          currentAdventurerSprite = adventurerShieldAttackSprites[direction]; // Shield bash animation
-        } else {
-          currentAdventurerSprite = adventurerIdleSprites[direction]; // Should not happen if bash is disabled without shield
-        }
-      } else {
-        currentAdventurerSprite = adventurerIdleSprites[direction]; // Fallback
-      }
-    } else {
-      // Idle sprites
-      if (equippedWeapon && equippedShield) {
-        currentAdventurerSprite = adventurerSwordShieldSprites[direction];
-      } else if (equippedWeapon) {
-        currentAdventurerSprite = adventurerSwordSprites[direction];
-      } else if (equippedShield) {
-        currentAdventurerSprite = adventurerShieldSprites[direction];
-      } else {
-        currentAdventurerSprite = adventurerIdleSprites[direction];
-      }
+    let equipmentState: keyof typeof spriteMap = 'default';
+    if (equippedWeapon && equippedShield) {
+      equipmentState = 'sword_shield';
+    } else if (equippedWeapon) {
+      equipmentState = 'sword';
+    } else if (equippedShield) {
+      equipmentState = 'shield';
     }
 
+    const adventurerSprite = spriteMap[equipmentState][direction];
     const yOffset = direction === 'south' ? -0.55 : -0.6;
 
     const visibleDecorativeElements = Array.from(labyrinth.getDecorativeElements().entries()).filter(([coordStr, type]) => {
@@ -638,7 +546,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           })}
         </g>
         <image
-          href={currentAdventurerSprite}
+          href={adventurerSprite}
           x={animatedPlayerPosition.x - 0.3}
           y={animatedPlayerPosition.y + yOffset + verticalJumpOffset}
           width="1.6"
@@ -671,7 +579,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   size="sm"
                   className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
                   onClick={handleAttack}
-                  disabled={gameResult !== null || isAnimatingMovement || isPerformingAction}
+                  disabled={gameResult !== null || isAnimatingMovement}
                 >
                   Attack (Q)
                 </Button>
@@ -686,7 +594,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   size="sm"
                   className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
                   onClick={handleShieldBash}
-                  disabled={gameResult !== null || isAnimatingMovement || isPerformingAction}
+                  disabled={gameResult !== null || isAnimatingMovement}
                 >
                   Bash (E)
                 </Button>
@@ -697,7 +605,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {equippedAmulet ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)} disabled={gameResult !== null || isAnimatingMovement || isPerformingAction}>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)}>
                   Unequip
                 </Button>
               </div>
@@ -709,7 +617,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 <div>
                   <p className="font-bold text-amber-200 flex items-center"><Compass className="w-4 h-4 mr-2 text-green-400"/> {equippedCompass.name}</p>
                 </div>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)} disabled={gameResult !== null || isAnimatingMovement || isPerformingAction}>
+                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)}>
                   Unequip
                 </Button>
               </div>
@@ -737,7 +645,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         <p className="text-xs text-stone-300 italic mt-1">{item.description}</p>
                       </div>
                       {(item.type === 'consumable' || isEquippable) && (
-                        <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)} disabled={gameResult !== null || isAnimatingMovement || isPerformingAction}>
+                        <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)}>
                           {isEquippable ? 'Equip' : 'Use'}
                         </Button>
                       )}

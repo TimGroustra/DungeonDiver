@@ -6,8 +6,12 @@
             if (f !== currentFloor) return null;
 
             const isRedLight = bossState === 'red_light';
-            // Only show red light effect, no green light
-            if (isRedLight) {
+            // Calculate if this is a safe tile (every 6th tile from passage start)
+            const passageStartX = labyrinth["MAP_WIDTH"] - 40;
+            const isSafeTile = (x - passageStartX) % 6 === 0;
+            
+            // Only show red light effect on non-safe tiles during red light
+            if (isRedLight && !isSafeTile) {
               return (
                 <rect
                   key={`boss-passage-${coordStr}`}

@@ -497,9 +497,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (f !== currentFloor) return null;
 
             const isRedLight = bossState === 'red_light';
+            const isSafeTile = labyrinth.bossSafeTiles.has(coordStr); // Check if it's a safe tile
+
             // Changed fill: only show red light, otherwise transparent
             const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent'; 
-            const className = isRedLight ? 'animate-pulse-fast' : ''; // Apply pulse animation for red light
+            // Apply pulse animation only if it's red light AND NOT a safe tile
+            const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : ''; 
 
             return (
               <rect

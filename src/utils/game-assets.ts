@@ -44,8 +44,7 @@ export const enemySpriteMap: { [key: string]: string } = {
 
 // Helper function to get emoji for an element, handling prefixes
 export const getEmojiForElement = (elementName: string): string => {
-  const baseName = elementName
-    .replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "")
-    .trim();
-  return emojiMap[baseName] || "❓";
+  // Ensure the elementName is a string before calling replace and trim
+  const cleanedName = typeof elementName === 'string' ? elementName.replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "").trim() : '';
+  return emojiMap[cleanedName] || "❓";
 };

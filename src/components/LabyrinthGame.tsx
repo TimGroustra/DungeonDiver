@@ -97,6 +97,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
+  const pendingGameUpdate = useRef(false); // New ref to track pending non-player-movement updates
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef(labyrinth.getPlayerLocation());
@@ -110,6 +111,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       lastSettledLogicalPositionRef.current = newLabyrinth.getPlayerLocation(); // Sync ref
       setGameVersion(0);
       setHasGameOverBeenDispatched(false);
+      pendingGameUpdate.current = false; // Reset pending updates
     }
   }, [gameStarted]); // Depend only on gameStarted for initial setup
 
@@ -166,16 +168,24 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
           setVerticalJumpOffset(0);
 
-          // NEW: Clear jump-defeated enemy after animation, passing current elapsedTime
+          // Clear jump-defeated enemy after animation, passing current elapsedTime
           if (labyrinth.lastJumpDefeatedEnemyId) {
             labyrinth.clearJumpDefeatedEnemy(elapsedTime); // Pass elapsedTime here
-            setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy and show blood pool
           }
+          
+          // Trigger a game state update after player animation completes
+          // This ensures other map elements and sidebar update after player has visually settled
+          setGameVersion(prev => prev + 1);
+          pendingGameUpdate.current = false; // Clear any pending updates
         }
       };
       requestAnimationFrame(animate);
+    } else if (pendingGameUpdate.current && !isAnimatingMovement) {
+      // If player is not animating but there's a pending update, trigger it now
+      setGameVersion(prev => prev + 1);
+      pendingGameUpdate.current = false;
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor(), elapsedTime]); // Depend on actual game state player location, floor, and elapsedTime
+  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor(), elapsedTime, isAnimatingMovement]); // Depend on actual game state player location, floor, and isAnimatingMovement
 
   useEffect(() => {
     if (gameResult !== null) return; // Do not process game logic if game is over
@@ -221,12 +231,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       poolsToRemove.forEach(coordStr => labyrinth.bloodPools.delete(coordStr));
 
       if (changed) {
-        setGameVersion(prev => prev + 1); // Force re-render to remove blood pools
+        // If blood pools changed, and player is not animating, update immediately
+        if (!isAnimatingMovement) {
+          setGameVersion(prev => prev + 1);
+        } else {
+          // Otherwise, mark as pending
+          pendingGameUpdate.current = true;
+        }
       }
     }, 1000); // Check every second
 
     return () => clearInterval(interval);
-  }, [gameStarted, elapsedTime, labyrinth, gameResult]);
+  }, [gameStarted, elapsedTime, labyrinth, gameResult, isAnimatingMovement]);
 
 
   useEffect(() => {
@@ -265,40 +281,45 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
         labyrinth.processBossLogic();
       }
-      setGameVersion(prev => prev + 1);
+      // Defer gameVersion update if player is animating
+      if (isAnimatingMovement) {
+        pendingGameUpdate.current = true;
+      } else {
+        setGameVersion(prev => prev + 1);
+      }
     }, moveSpeed);
     return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
+  }, [gameStarted, labyrinth, playerName, startTime, gameResult, isAnimatingMovement]); // Add isAnimatingMovement to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    // setGameVersion(prev => prev + 1); // Removed: gameVersion update handled by animation useEffect
   };
 
   const handleJump = () => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    // setGameVersion(prev => prev + 1); // Removed: gameVersion update handled by animation useEffect
   };
 
   const handleSearch = () => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
-    setGameVersion(prev => prev + 1);
+    setGameVersion(prev => prev + 1); // Keep: Search is an instant action
   };
 
   const handleInteract = () => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setGameVersion(prev => prev + 1); // Keep: Interact is an instant action
   };
 
   const handleUseItem = (itemId: string) => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
-    setGameVersion(prev => prev + prev + 1);
+    setGameVersion(prev => prev + 1); // Keep: Use item is an instant action
   };
 
   const handleReviveClick = () => {
@@ -313,7 +334,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     return emojiMap[elementName] || "❓";
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [gameVersion === 0]);
+  // Update useMemo dependency to react to floor changes and new labyrinth instances
+  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, labyrinth.getCurrentFloor()]);
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();

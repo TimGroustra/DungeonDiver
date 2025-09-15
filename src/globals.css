@@ -136,14 +136,4 @@
   .is-flashing {
     animation: flash-effect 200ms ease-out;
   }
-
-  /* NEW: Blood pool fade-out animation */
-  @keyframes fade-out {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
-
-  .fade-out-blood-pool {
-    animation: fade-out 10s forwards; /* Fades out over 10 seconds */
-  }
 }

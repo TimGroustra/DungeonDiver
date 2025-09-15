@@ -175,7 +175,6 @@ export class Labyrinth {
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
-  public bloodPools: Map<string, number>; // "x,y,floor" -> timestamp_to_disappear (in seconds)
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -246,7 +245,6 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
-    this.bloodPools = new Map(); // Initialize blood pools map
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -686,7 +684,7 @@ export class Labyrinth {
         isCompleted: () => this.trueCompassQuestCompleted
       });
 
-    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4: The Heart of the Labyrinth
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
       const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
@@ -1308,7 +1306,6 @@ export class Labyrinth {
             if (enemy.defeated) {
                 this.addMessage(`You have defeated the ${enemy.name}!`);
                 this.enemyLocations.delete(targetCoordStr);
-                this.bloodPools.set(targetCoordStr, time + 180); // Add blood pool for 3 minutes
             }
             return; // Player attacks and does not move
         }
@@ -1423,9 +1420,9 @@ export class Labyrinth {
       const enemy = this.enemies.get(enemyId);
       if (enemy && !enemy.defeated) {
         enemy.health = 0; // Instant death
+        enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
-        // Removed: this.bloodPools.set(targetCoordStr, time + 180); // Blood pool will be added after animation
       }
     }
 
@@ -1481,12 +1478,8 @@ export class Labyrinth {
     }
   }
 
-  public clearJumpDefeatedEnemy(currentTime: number) {
+  public clearJumpDefeatedEnemy() {
     if (this.lastJumpDefeatedEnemyId) {
-      const enemy = this.enemies.get(this.lastJumpDefeatedEnemyId);
-      if (enemy) {
-        enemy.defeated = true;
-      }
       // Find the coordinate of the defeated enemy
       let enemyCoordStr: string | undefined;
       for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
@@ -1497,7 +1490,6 @@ export class Labyrinth {
       }
       if (enemyCoordStr) {
         this.enemyLocations.delete(enemyCoordStr);
-        this.bloodPools.set(enemyCoordStr, currentTime + 180); // Add blood pool here after enemy is removed
       }
       this.lastJumpDefeatedEnemyId = null;
     }
@@ -1801,7 +1793,6 @@ export class Labyrinth {
                 const bossCoordStr = `${this.watcherLocation?.x},${this.watcherLocation?.y},${this.currentFloor}`;
                 if (bossCoordStr) {
                     this.enemyLocations.delete(bossCoordStr);
-                    this.bloodPools.set(bossCoordStr, time + 180); // Add blood pool for 3 minutes
                 }
                 interacted = true;
             } else if (this.bossDefeated) {
@@ -2111,7 +2102,6 @@ export class Labyrinth {
                 enemy.defeated = true;
                 this.addMessage(`The ${enemy.name} stumbled into an Instant Death Trap and was instantly obliterated!`);
                 this.enemyLocations.delete(newCoordStr); // Remove enemy from map
-                this.bloodPools.set(newCoordStr, time + 180); // Add blood pool for 3 minutes
             } else if (this.trapsLocations.has(newCoordStr) && !this.triggeredTraps.has(newCoordStr)) {
                 const trapDamage = 10;
                 enemy.takeDamage(trapDamage);
@@ -2121,7 +2111,6 @@ export class Labyrinth {
                 if (enemy.defeated) {
                     this.addMessage(`The ${enemy.name} was defeated by a trap!`);
                     this.enemyLocations.delete(newCoordStr); // Remove enemy from map
-                    this.bloodPools.set(newCoordStr, time + 180); // Add blood pool for 3 minutes
                 }
             }
             break; // Enemy moved, stop trying other moves

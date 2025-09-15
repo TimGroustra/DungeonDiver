@@ -37,6 +37,9 @@ import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
 import ShadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
 
+// Import blood pool sprite
+import BloodPoolSprite from "@/assets/sprites/blood-pool.svg";
+
 interface LabyrinthGameProps {
   playerName: string;
   gameStarted: boolean;
@@ -197,6 +200,34 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       labyrinth.clearLastHit();
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, gameResult]); // Add gameResult to dependencies
+
+  // Effect to clean up expired blood pools
+  useEffect(() => {
+    if (!gameStarted || gameResult !== null) return;
+
+    const interval = setInterval(() => {
+      let changed = false;
+      const currentFloor = labyrinth.getCurrentFloor();
+      const poolsToRemove: string[] = [];
+
+      for (const [coordStr, disappearTime] of labyrinth.bloodPools.entries()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === currentFloor && elapsedTime >= disappearTime) {
+          poolsToRemove.push(coordStr);
+          changed = true;
+        }
+      }
+
+      poolsToRemove.forEach(coordStr => labyrinth.bloodPools.delete(coordStr));
+
+      if (changed) {
+        setGameVersion(prev => prev + 1); // Force re-render to remove blood pools
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval);
+  }, [gameStarted, elapsedTime, labyrinth, gameResult]);
+
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -454,6 +485,24 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               );
             }
             return null;
+          })}
+          {/* Render blood pools */}
+          {Array.from(labyrinth.bloodPools.entries()).map(([coordStr, disappearTime]) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+            const remainingTime = disappearTime - elapsedTime;
+            const isFading = remainingTime <= 10; // Start fading in the last 10 seconds
+            return (
+              <image
+                key={`blood-pool-${coordStr}`}
+                href={BloodPoolSprite}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                className={cn(isFading && 'fade-out-blood-pool')}
+              />
+            );
           })}
           {Array.from(labyrinth.itemLocations.entries()).map(([coordStr, itemId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);

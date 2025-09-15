@@ -1,223 +1,260 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import LabyrinthGame from "@/components/LabyrinthGame";
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Loader2, Skull } from "lucide-react";
-import { GameResult } from "@/lib/game";
-import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
-interface LeaderboardEntry {
-  id: number;
-  player_name: string;
-  score_time: number;
-  deaths: number;
-  created_at: string;
-}
-
-const formatTime = (seconds: number) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
-const Index: React.FC = () => {
-  const [playerName, setPlayerName] = useState<string>("");
-  const [gameStarted, setGameStarted] = useState<boolean>(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [elapsedTime, setElapsedTime] = useState<number>(0);
-  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
-  const [gameResult, setGameResult] = useState<GameResult | null>(null);
-  const [gameKey, setGameKey] = useState<number>(0); // New state for forcing LabyrinthGame re-initialization
-  const queryClient = useQueryClient();
-  const isMobile = useIsMobile(); // Use the hook
+const Index = () => {
+  const [walletAddress, setWalletAddress] = useState('');
+  const [scoreTime, setScoreTime] = useState('');
+  const [playerName, setPlayerName] = useState('');
+  const [deaths, setDeaths] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [etnLeaderboard, setEtnLeaderboard] = useState([]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (gameStarted && startTime !== null && gameResult === null) {
-      interval = setInterval(() => {
-        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [gameStarted, startTime, gameResult]);
+    fetchLeaderboard();
+    fetchEtnLeaderboard();
+  }, []);
 
-  const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["leaderboard"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leaderboard")
-        .select("id, player_name, score_time, deaths")
-        .order("deaths", { ascending: true })
-        .order("score_time", { ascending: true })
-        .limit(10);
-      if (error) throw error;
-      return data;
-    },
-    enabled: showLeaderboard,
-  });
-
-  const addLeaderboardEntryMutation = useMutation({
-    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number }) => {
-      const { data, error } = await supabase
-        .from("leaderboard")
-        .insert([entry]);
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-      toast.success("Score submitted to leaderboard!");
-    },
-    onError: (error) => {
-      toast.error(`Failed to submit score: ${error.message}`);
-    },
-  });
-
-  const handleStartGame = () => {
-    if (playerName.trim()) {
-      setGameStarted(true);
-      setStartTime(Date.now());
-      setShowLeaderboard(false);
-      setGameResult(null); // Clear any previous game result
-      setElapsedTime(0); // Reset timer for new game
-      setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
+  const fetchLeaderboard = async () => {
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .order('score_time', { ascending: true })
+      .limit(10);
+    if (error) {
+      toast.error("Error fetching leaderboard: " + error.message);
     } else {
-      toast.error("Please enter your player name.");
+      setLeaderboard(data);
     }
   };
 
-  const handleGameOver = useCallback((result: GameResult) => {
-    // Keep gameStarted true so LabyrinthGame remains mounted for overlay
-    setStartTime(null); // Stop timer
-    setGameResult(result); // Set game result to display overlay
-    if (result.type === 'victory') {
-      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
-      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time, deaths: result.deaths || 0 });
+  const fetchEtnLeaderboard = async () => {
+    const { data, error } = await supabase
+      .from('etn_leaderboard')
+      .select('*')
+      .order('score_time', { ascending: true })
+      .limit(10);
+    if (error) {
+      toast.error("Error fetching ETN leaderboard: " + error.message);
     } else {
-      toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
+      setEtnLeaderboard(data);
     }
-    setShowLeaderboard(false);
-  }, [addLeaderboardEntryMutation]);
-
-  const handleGameRestart = () => {
-    setGameStarted(true); // Restart game
-    setStartTime(Date.now());
-    setElapsedTime(0);
-    setShowLeaderboard(false);
-    setGameResult(null); // Clear game result to hide overlay
-    setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
   };
 
-  const handleRevive = () => {
-    // Clear the game result to hide the overlay
-    setGameResult(null); 
-    // Resume the timer from the elapsed time at the point of defeat
-    setStartTime(Date.now() - (elapsedTime * 1000));
-    // Do NOT change gameStarted or gameKey here, as we are continuing the current session
+  const handleSubmitLeaderboard = async () => {
+    if (!playerName || !scoreTime) {
+      toast.error("Player Name and Score Time are required.");
+      return;
+    }
+    const { error } = await supabase
+      .from('leaderboard')
+      .insert([{ player_name: playerName, score_time: parseFloat(scoreTime), deaths: deaths }]);
+    if (error) {
+      toast.error("Error submitting leaderboard entry: " + error.message);
+    } else {
+      toast.success("Leaderboard entry submitted successfully!");
+      fetchLeaderboard();
+      setPlayerName('');
+      setScoreTime('');
+      setDeaths(0);
+    }
+  };
+
+  const handleSubmitEtnLeaderboard = async () => {
+    if (!walletAddress || !scoreTime) {
+      toast.error("Wallet Address and Score Time are required.");
+      return;
+    }
+    const { error } = await supabase
+      .from('etn_leaderboard')
+      .insert([{ wallet_address: walletAddress, score_time: parseFloat(scoreTime) }]);
+    if (error) {
+      toast.error("Error submitting ETN leaderboard entry: " + error.message);
+    } else {
+      toast.success("ETN Leaderboard entry submitted successfully!");
+      fetchEtnLeaderboard();
+      setWalletAddress('');
+      setScoreTime('');
+    }
   };
 
   return (
-    <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if game not started, no leaderboard, and no game result
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Background elements for visual flair */}
+      <div className="absolute top-0 left-0 w-full h-full z-0">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500 rounded-full mix-blend-lighten filter blur-3xl opacity-30 animate-blob"></div>
+        <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-yellow-500 rounded-full mix-blend-lighten filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-pink-500 rounded-full mix-blend-lighten filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-4xl">
         <div className="flex flex-col items-center text-center">
           <h1
             className="font-cinzel text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-6"
-            style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.7)", transform: "translateY(-2cm)" }}
+            style={{ textShadow: "4px 4px 16px rgba(0,0,0,0.9)", transform: "translateY(-2cm)" }}
           >
-            Labyrinth of Eldoria
+            ETERNAL GATES
           </h1>
-          <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
-              <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isMobile ? (
-                <p className="text-red-400 text-center font-bold text-lg">To play this game, visit this site from your desktop browser.</p>
+          <p className="text-xl text-gray-300 mb-12 max-w-2xl">
+            A thrilling adventure awaits. Conquer the gates, defeat your foes, and etch your name in history.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full">
+          {/* Leaderboard Section */}
+          <div className="bg-gray-800 bg-opacity-70 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-gray-700">
+            <h2 className="text-3xl font-bold text-yellow-400 mb-4">Leaderboard</h2>
+            <ul className="space-y-2 mb-6">
+              {leaderboard.length > 0 ? (
+                leaderboard.map((entry, index) => (
+                  <li key={entry.id} className="flex justify-between items-center bg-gray-700 bg-opacity-50 p-3 rounded-md">
+                    <span className="font-medium text-lg">{index + 1}. {entry.player_name}</span>
+                    <span className="text-yellow-300">{entry.score_time}s ({entry.deaths} deaths)</span>
+                  </li>
+                ))
               ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
+                <li className="text-gray-400">No entries yet. Be the first!</li>
+              )}
+            </ul>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                  Submit Score
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-yellow-400">Submit Your Score</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Enter your player name, score time, and number of deaths to join the leaderboard.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="playerName" className="text-right text-gray-300">
+                      Player Name
+                    </Label>
                     <Input
                       id="playerName"
                       value={playerName}
                       onChange={(e) => setPlayerName(e.target.value)}
-                      placeholder="Your adventurer name"
-                      className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
+                      className="col-span-3 bg-gray-700 border-gray-600 text-white"
                     />
                   </div>
-                  <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
-                    Start New Game
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="scoreTime" className="text-right text-gray-300">
+                      Score Time (s)
+                    </Label>
+                    <Input
+                      id="scoreTime"
+                      type="number"
+                      value={scoreTime}
+                      onChange={(e) => setScoreTime(e.target.value)}
+                      className="col-span-3 bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="deaths" className="text-right text-gray-300">
+                      Deaths
+                    </Label>
+                    <Input
+                      id="deaths"
+                      type="number"
+                      value={deaths}
+                      onChange={(e) => setDeaths(parseInt(e.target.value))}
+                      className="col-span-3 bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" onClick={handleSubmitLeaderboard} className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                    Submit Score
                   </Button>
-                </>
-              )}
-              <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
-                View Leaderboard
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-      {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if game not started, no game result
-        <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-amber-300">Leaderboard</CardTitle>
-            <CardDescription className="text-stone-400">Top adventurers who escaped the Labyrinth.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isLoadingLeaderboard ? (
-              <div className="flex justify-center items-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
-              </div>
-            ) : leaderboardError ? (
-              <p className="text-red-400 text-center">Error loading leaderboard: {leaderboardError.message}</p>
-            ) : (
-              <ul className="space-y-2">
-                {leaderboard?.map((entry, index) => (
-                  <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
-                    <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
-                    <div className="flex items-center space-x-2 text-stone-300">
-                      <div className="flex items-center" title="Deaths">
-                        <Skull className="h-4 w-4 mr-1 text-gray-400" />
-                        <span>{entry.deaths}</span>
-                      </div>
-                      <span>{formatTime(entry.score_time)}</span>
-                    </div>
+          {/* ETN Leaderboard Section */}
+          <div className="bg-gray-800 bg-opacity-70 backdrop-blur-sm p-6 rounded-lg shadow-lg border border-gray-700">
+            <h2 className="text-3xl font-bold text-purple-400 mb-4">ETN Leaderboard</h2>
+            <ul className="space-y-2 mb-6">
+              {etnLeaderboard.length > 0 ? (
+                etnLeaderboard.map((entry, index) => (
+                  <li key={entry.id} className="flex justify-between items-center bg-gray-700 bg-opacity-50 p-3 rounded-md">
+                    <span className="font-medium text-lg">{index + 1}. {entry.wallet_address.substring(0, 6)}...{entry.wallet_address.substring(entry.wallet_address.length - 4)}</span>
+                    <span className="text-purple-300">{entry.score_time}s</span>
                   </li>
-                ))}
-                {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet. Be the first!</p>}
-              </ul>
-            )}
-            <Separator className="my-4 bg-amber-800" />
-            <Button onClick={() => setShowLeaderboard(false)} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
-              Back to Main Menu
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+                ))
+              ) : (
+                <li className="text-gray-400">No ETN entries yet. Be the first!</li>
+              )}
+            </ul>
 
-      {gameStarted && ( // LabyrinthGame is always mounted if gameStarted is true
-        <LabyrinthGame
-          key={gameKey} // Use key to force re-initialization only when starting a new game
-          playerName={playerName}
-          gameStarted={gameStarted}
-          startTime={startTime}
-          elapsedTime={elapsedTime}
-          onGameOver={handleGameOver}
-          onGameRestart={handleGameRestart}
-          gameResult={gameResult} // Pass gameResult to LabyrinthGame
-          onRevive={handleRevive} // Pass handleRevive to LabyrinthGame
-        />
-      )}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                  Submit ETN Score
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white border-gray-700">
+                <DialogHeader>
+                  <DialogTitle className="text-purple-400">Submit Your ETN Score</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Enter your wallet address and score time to join the ETN leaderboard.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="walletAddress" className="text-right text-gray-300">
+                      Wallet Address
+                    </Label>
+                    <Input
+                      id="walletAddress"
+                      value={walletAddress}
+                      onChange={(e) => setWalletAddress(e.target.value)}
+                      className="col-span-3 bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="etnScoreTime" className="text-right text-gray-300">
+                      Score Time (s)
+                    </Label>
+                    <Input
+                      id="etnScoreTime"
+                      type="number"
+                      value={scoreTime}
+                      onChange={(e) => setScoreTime(e.target.value)}
+                      className="col-span-3 bg-gray-700 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit" onClick={handleSubmitEtnLeaderboard} className="bg-purple-600 hover:bg-purple-700 text-white">
+                    Submit ETN Score
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

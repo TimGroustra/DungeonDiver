@@ -568,14 +568,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {equippedWeapon ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
-                <Button
-                  size="sm"
-                  className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
-                  onClick={handleAttack}
-                  disabled={gameResult !== null || isAnimatingMovement}
-                >
-                  Attack (Q)
-                </Button>
+                {/* Removed Attack button */}
               </div>
             ) : (
               <p className="italic text-stone-400">No weapon equipped.</p>
@@ -583,14 +576,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {equippedShield ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
-                <Button
-                  size="sm"
-                  className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
-                  onClick={handleShieldBash}
-                  disabled={gameResult !== null || isAnimatingMovement}
-                >
-                  Bash (E)
-                </Button>
+                {/* Removed Bash button */}
               </div>
             ) : (
               <p className="italic text-stone-400">No shield equipped.</p>

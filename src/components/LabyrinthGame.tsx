@@ -80,7 +80,6 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Box": "📦",
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",
-  "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
   "Instant Death Trap": "💀", // NEW: Emoji for death trap
 };

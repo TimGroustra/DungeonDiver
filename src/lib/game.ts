@@ -824,10 +824,10 @@ export class Labyrinth {
     }
 }
 
-  private getCoordForElement(id: string, locationMap: Map<string, string | boolean>, floor: number): Coordinate | undefined {
+  private getCoordForElement(id: string, locationMap: Map<string, string | boolean>): Coordinate | undefined {
     for (const [coordStr, elementId] of locationMap.entries()) {
       const [x, y, f] = coordStr.split(',').map(Number);
-      if (elementId === id && f === floor) {
+      if (elementId === id && f === this.currentFloor) {
         return { x, y };
       }
     }
@@ -1852,7 +1852,7 @@ export class Labyrinth {
 
     // Check for floor exit staircase
     const staircaseCoord = this.floorExitStaircases.get(this.currentFloor);
-    if (staircaseCoord && staircase.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
+    if (staircaseCoord && staircaseCoord.x === this.playerLocation.x && staircaseCoord.y === this.playerLocation.y) {
       this.ascendFloor(playerName, time);
       interacted = true;
     }
@@ -2012,22 +2012,9 @@ export class Labyrinth {
     if (puzzleId) {
       const puzzle = this.puzzles.get(puzzleId);
       if (puzzle && !puzzle.solved) {
-        if (puzzle.id === "grand-riddle-3") { // Floor 3 Grand Riddle
-            const attempt = prompt("The Grand Riddle of Eternity: I have cities, but no houses; forests, but no trees; and water, but no fish. What am I? (Type your answer)");
-            if (attempt) {
-                if (puzzle.solve(attempt)) {
-                    this.addMessage(`A deep rumble echoes through the chamber as the riddle is solved! The path to escape is revealed!`);
-                    if (puzzle.reward) {
-                        this._handleFoundItem(puzzle.reward, currentCoord); // Use the new handler for puzzle reward
-                    }
-                } else {
-                    this.addMessage(`Your answer echoes, but the riddle remains unsolved. Try again.`);
-                }
-            } else {
-                this.addMessage("You decide not to attempt the riddle for now.");
-            }
-            interacted = true;
-        }
+        // Removed "Grand Riddle of Eternity" interaction logic
+        this.addMessage("You find a puzzle, but it seems to be inactive or already solved.");
+        interacted = true;
       }
     }
 
@@ -2038,7 +2025,7 @@ export class Labyrinth {
 
       switch (this.lastMoveDirection) {
         case "north": targetY--; break;
-        case "south": targetY++; break;
+        case "south": targetY--; break;
         case "east":  targetX++; break;
         case "west":  targetX--; break;
       }

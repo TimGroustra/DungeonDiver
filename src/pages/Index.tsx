@@ -127,36 +127,44 @@ const Index: React.FC = () => {
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if game not started, no leaderboard, and no game result
-        <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
-            <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {isMobile ? (
-              <p className="text-red-400 text-center font-bold text-lg">To play this game, visit this site from your desktop browser.</p>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
-                  <Input
-                    id="playerName"
-                    value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder="Your adventurer name"
-                    className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
-                  />
-                </div>
-                <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
-                  Start New Game
-                </Button>
-              </>
-            )}
-            <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
-              View Leaderboard
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center text-center">
+          <h1
+            className="font-cinzel text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-6"
+            style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.7)" }}
+          >
+            Labyrinth of Eldoria
+          </h1>
+          <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
+              <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isMobile ? (
+                <p className="text-red-400 text-center font-bold text-lg">To play this game, visit this site from your desktop browser.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
+                    <Input
+                      id="playerName"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="Your adventurer name"
+                      className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
+                    />
+                  </div>
+                  <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+                    Start New Game
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
+                View Leaderboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if game not started, no game result

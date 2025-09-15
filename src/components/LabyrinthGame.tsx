@@ -86,33 +86,42 @@ const emojiMap: { [key: string]: string } = {
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
-  const [labyrinth, setLabyrinth] = useState<Labyrinth>(new Labyrinth());
+  const [labyrinth, setLabyrinth] = useState<Labyrinth | null>(null); // Initialize as null
   const [gameVersion, setGameVersion] = useState(0);
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
-  const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState(labyrinth.getPlayerLocation()); // Visual position for animation
+  const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState({ x: 0, y: 0 }); // Initialize with default values
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
-  const lastSettledLogicalPositionRef = useRef(labyrinth.getPlayerLocation());
+  const lastSettledLogicalPositionRef = useRef({ x: 0, y: 0 }); // Initialize with default values
 
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
     if (gameStarted) { // Only create a new Labyrinth if game is started
-      const newLabyrinth = new Labyrinth();
-      setLabyrinth(newLabyrinth);
-      setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
-      lastSettledLogicalPositionRef.current = newLabyrinth.getPlayerLocation(); // Sync ref
-      setGameVersion(0);
-      setHasGameOverBeenDispatched(false);
+      try {
+        const newLabyrinth = new Labyrinth();
+        setLabyrinth(newLabyrinth);
+        setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
+        lastSettledLogicalPositionRef.current = newLabyrinth.getPlayerLocation(); // Sync ref
+        setGameVersion(0);
+        setHasGameOverBeenDispatched(false);
+        console.log("Labyrinth initialized. Map grid:", newLabyrinth.getMapGrid());
+      } catch (error) {
+        console.error("Error initializing Labyrinth:", error);
+        toast.error("Failed to start game: " + (error as Error).message);
+        setLabyrinth(null); // Ensure labyrinth is null if initialization fails
+      }
     }
   }, [gameStarted]); // Depend only on gameStarted for initial setup
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
+    if (!labyrinth) return; // Ensure labyrinth is initialized
+
     const newLogicalPos = labyrinth.getPlayerLocation();
     const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
 
@@ -189,10 +198,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       };
       requestAnimationFrame(animate);
     }
-  }, [labyrinth.getPlayerLocation().x, labyrinth.getPlayerLocation().y, labyrinth.getCurrentFloor()]); // Depend on actual game state player location and floor
+  }, [labyrinth?.getPlayerLocation().x, labyrinth?.getPlayerLocation().y, labyrinth?.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
-    if (gameResult !== null) return; // Do not process game logic if game is over
+    if (gameResult !== null || !labyrinth) return; // Do not process game logic if game is over or labyrinth not initialized
 
     const newMessages = labyrinth.getMessages();
     if (newMessages.length > 0) {
@@ -217,7 +226,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat) return; // Do not allow input if game is over, animating, or key is held down
+      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return; // Do not allow input if game is over, animating, or key is held down
       
       if (event.key.toLowerCase() === 'm') {
         event.preventDefault();
@@ -261,7 +270,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen]); // Add gameResult and isAnimatingMovement to dependencies
 
   useEffect(() => {
-    if (!gameStarted || gameResult !== null) return; // Do not process enemy movement if game is over
+    if (!gameStarted || gameResult !== null || !labyrinth) return; // Do not process enemy movement if game is over
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const intervalId = setInterval(() => {
@@ -276,49 +285,50 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleAttack = () => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot attack right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot attack right now."); return; }
     labyrinth.attack(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleJump = () => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot jump right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleSearch = () => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot search right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
     setGameVersion(prev => prev + 1);
   };
 
   const handleInteract = () => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleShieldBash = () => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot perform Shield Bash right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; }
     labyrinth.shieldBash(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setGameVersion(prev => prev + prev + 1);
   };
 
   const handleReviveClick = () => {
+    if (!labyrinth) return;
     labyrinth.revivePlayer();
     onRevive();
     setHasGameOverBeenDispatched(false);
@@ -328,7 +338,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // NEW: Handler for the "Next Floor (DEV)" button
   const handleNextFloorDev = () => {
-    if (gameResult !== null) {
+    if (gameResult !== null || !labyrinth) {
       toast.info("Game is over. Cannot skip floors.");
       return;
     }
@@ -344,9 +354,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
   };
 
-  const { wallPath, floorPath } = useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, gameVersion]);
+  const { wallPath, floorPath } = useMemo(() => {
+    if (!labyrinth) return { wallPath: '', floorPath: '' };
+    return generateSvgPaths(labyrinth.getMapGrid());
+  }, [labyrinth, gameVersion]);
 
   const renderMap = () => {
+    if (!labyrinth) return null; // Ensure labyrinth is initialized
+
     const playerLoc = labyrinth.getPlayerLocation();
     const viewportSize = 15;
     const viewBox = `${animatedPlayerPosition.x - viewportSize / 2 + 0.5} ${animatedPlayerPosition.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
@@ -607,6 +622,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const renderSidebarContent = () => {
+    if (!labyrinth) return null; // Ensure labyrinth is initialized
+
     const equippedWeapon = labyrinth.getEquippedWeapon();
     const equippedShield = labyrinth.getEquippedShield();
     const equippedAmulet = labyrinth.getEquippedAmulet();
@@ -707,38 +724,51 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     );
   };
 
-  const renderHud = () => (
-    <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
-      <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
-        <div className="flex items-center gap-1" title="Health">
-          <Heart className="text-red-500" size={10} />
-          <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
-        </div>
-        <Separator orientation="vertical" className="h-3 bg-amber-800" />
-        <div className="flex items-center gap-1" title="Attack">
-          <Sword className="text-orange-400" size={10} />
-          <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
-        </div>
-        <Separator orientation="vertical" className="h-3 bg-amber-800" />
-        <div className="flex items-center gap-1" title="Defense">
-          <Shield className="text-blue-400" size={10} />
-          <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
-        </div>
-        <Separator orientation="vertical" className="h-3 bg-amber-800" />
-        <div className="flex items-center gap-1" title="Search Radius">
-          <Target className="text-purple-400" size={10} />
-          <span className="font-bold">{labyrinth.getSearchRadius()}</span>
-        </div>
-        <Separator orientation="vertical" className="h-3 bg-amber-800" />
-        <div className="flex items-center gap-1" title="Deaths">
-          <Skull className="text-gray-400" size={10} />
-          <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+  const renderHud = () => {
+    if (!labyrinth) return null; // Ensure labyrinth is initialized
+
+    return (
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
+        <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
+          <div className="flex items-center gap-1" title="Health">
+            <Heart className="text-red-500" size={10} />
+            <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+          </div>
+          <Separator orientation="vertical" className="h-3 bg-amber-800" />
+          <div className="flex items-center gap-1" title="Attack">
+            <Sword className="text-orange-400" size={10} />
+            <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
+          </div>
+          <Separator orientation="vertical" className="h-3 bg-amber-800" />
+          <div className="flex items-center gap-1" title="Defense">
+            <Shield className="text-blue-400" size={10} />
+            <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
+          </div>
+          <Separator orientation="vertical" className="h-3 bg-amber-800" />
+          <div className="flex items-center gap-1" title="Search Radius">
+            <Target className="text-purple-400" size={10} />
+            <span className="font-bold">{labyrinth.getSearchRadius()}</span>
+          </div>
+          <Separator orientation="vertical" className="h-3 bg-amber-800" />
+          <div className="flex items-center gap-1" title="Deaths">
+            <Skull className="text-gray-400" size={10} />
+            <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   if (!gameStarted) return null;
+
+  // Display a loading/error screen if labyrinth is not initialized
+  if (!labyrinth) {
+    return (
+      <div className="fixed inset-0 bg-red-800 text-white flex items-center justify-center text-2xl">
+        Loading Labyrinth... (If this persists, check console for errors)
+      </div>
+    );
+  }
 
   return (
     <div 

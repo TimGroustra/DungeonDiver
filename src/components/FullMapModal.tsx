@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Labyrinth } from "@/lib/game";
 import { generateSvgPaths } from "@/lib/map-renderer";
-import { cn } from "@/lib/utils"; // Keep cn for potential future use, though not strictly needed for this change
+import { cn } from "@/lib/utils";
 
 interface FullMapModalProps {
   isOpen: boolean;
@@ -25,23 +25,6 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth 
   const playerLoc = labyrinth.getPlayerLocation();
 
   const { wallPath, floorPath } = React.useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, currentFloor]);
-
-  // Add keyboard listener for 'M' key to close the modal
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 'm') {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
 
   // Helper function to get active quest objective coordinates
   const getActiveQuestObjectiveCoords = (): { x: number; y: number; type: string; }[] => {

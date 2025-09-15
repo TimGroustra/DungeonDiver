@@ -1,10 +1,5 @@
-// If you need both default and named exports:
 const LabyrinthGame = () => {
-  // component implementation
+  // ... component implementation ...
 };
 
-// Named exports (if any)
-export { SomeHelperFunction }; 
-
-// Default export (required)
-export default LabyrinthGame;
+export default LabyrinthGame;  // Must have this line

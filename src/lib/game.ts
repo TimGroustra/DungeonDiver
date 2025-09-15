@@ -1412,13 +1412,15 @@ export class Labyrinth {
     const destination = pathCoordinates[2];
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
 
-    // Check for enemies at destination. If there is an enemy, the jump fails.
+    // NEW LOGIC: If there is an enemy at the destination, the player lands on it and defeats it instantly.
     const enemyId = this.enemyLocations.get(targetCoordStr);
     if (enemyId) {
       const enemy = this.enemies.get(enemyId);
       if (enemy && !enemy.defeated) {
-        this.addMessage(`You can't jump onto an enemy! The ${enemy.name} blocks your landing.`);
-        return;
+        enemy.health = 0; // Instant death
+        enemy.defeated = true;
+        this.enemyLocations.delete(targetCoordStr); // Remove enemy from map
+        this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
       }
     }
 

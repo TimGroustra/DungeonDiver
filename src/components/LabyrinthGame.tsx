@@ -324,7 +324,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const renderMap = () => {
     const playerLoc = labyrinth.getPlayerLocation();
-    const visitedCells = labyrinth.getVisitedCells();
     const viewportSize = 15;
     const viewBox = `${animatedPlayerPosition.x - viewportSize / 2 + 0.5} ${animatedPlayerPosition.y - viewportSize / 2 + 0.5} ${viewportSize} ${viewportSize}`;
     const currentFloor = labyrinth.getCurrentFloor();
@@ -398,13 +397,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <rect width="1" height="1" fill="#5a4d5c" />
             <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
           </pattern>
-          <mask id="fog-mask">
-            <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="black" />
-            {Array.from(visitedCells).map(cellCoord => {
-              const [x, y] = cellCoord.split(',').map(Number);
-              return <circle key={cellCoord} cx={x + 0.5} cy={y + 0.5} r={labyrinth.getSearchRadius()} fill="white" />;
-            })}
-          </mask>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">
             <rect x="0.4" y="0.4" width="0.2" height="0.5" fill="#8b4513" />
@@ -465,7 +457,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
           </pattern>
         </defs>
-        <g mask="url(#fog-mask)">
+        <g>
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
           {visibleDecorativeElements.map(([coordStr, type]) => {

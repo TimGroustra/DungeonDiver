@@ -13,6 +13,7 @@ import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
+import { emojiMap, enemySpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import shared assets
 
 // Import adventurer sprites from the new assets location
 import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
@@ -32,11 +33,6 @@ import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-s
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
 
-// Import enemy sprites
-import GoblinSprite from "@/assets/sprites/enemies/goblin.svg";
-import SkeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
-import ShadowSprite from "@/assets/sprites/enemies/shadow.svg";
-import WatcherSprite from "@/assets/sprites/enemies/watcher.svg";
 
 interface LabyrinthGameProps {
   playerName: string;
@@ -51,39 +47,6 @@ interface LabyrinthGameProps {
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 
-const enemySpriteMap: { [key: string]: string } = {
-  "Grumbling Goblin": GoblinSprite,
-  "Rattling Skeleton": SkeletonSprite,
-  "Whispering Shadow": ShadowSprite,
-  "The Watcher of the Core": WatcherSprite,
-};
-
-const emojiMap: { [key: string]: string } = {
-  "Vial of Lumina": "🧪",
-  "Blade of the Labyrinth": "🗡️",
-  "Aegis of the Guardian": "🛡️",
-  "Tattered Journal": "📜",
-  "Pulsating Crystal": "🔮",
-  "Scholar's Amulet": "💎",
-  "Enchanted Flask": "🍶",
-  "Living Water": "💧",
-  "Whispering Well's Blessing": "✨",
-  "Broken Compass": "🧭",
-  "Artisan's Fine Tools": "🛠️",
-  "Prismatic Lens": "🌈",
-  "True Compass": "🗺️",
-  "Labyrinth Key": "🔑",
-  "Heart of the Labyrinth": "❤️‍🔥",
-  "Ancient Mechanism": "⚙️",
-  "Whispering Well": "🕳️",
-  "Hidden Spring": "🌿",
-  "Ancient Repair Bench": " forge",
-  "Mysterious Box": " chest", // Changed to treasure chest emoji
-  "Ancient Altar": "🛐",
-  "Mysterious Staircase": "🪜",
-  "Triggered Trap": "☠️",
-  "Instant Death Trap": "💀", // NEW: Emoji for death trap
-};
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
   const [labyrinth, setLabyrinth] = useState<Labyrinth | null>(null); // Initialize as null

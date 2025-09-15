@@ -12,6 +12,8 @@ import { Labyrinth } from "@/lib/game";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { cn } from "@/lib/utils";
 import { Skull } from "lucide-react"; // Import Skull icon for traps
+import { emojiMap, enemySpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import shared assets
+
 
 interface FullMapModalProps {
   isOpen: boolean;
@@ -19,46 +21,6 @@ interface FullMapModalProps {
   labyrinth: Labyrinth;
 }
 
-const emojiMap: { [key: string]: string } = {
-  "Vial of Lumina": "🧪",
-  "Blade of the Labyrinth": "🗡️",
-  "Aegis of the Guardian": "🛡️",
-  "Tattered Journal": "📜",
-  "Pulsating Crystal": "🔮",
-  "Scholar's Amulet": "💎",
-  "Enchanted Flask": "🍶",
-  "Living Water": "💧",
-  "Whispering Well's Blessing": "✨",
-  "Broken Compass": "🧭",
-  "Artisan's Fine Tools": "🛠️",
-  "Prismatic Lens": "🌈",
-  "True Compass": "🗺️",
-  "Labyrinth Key": "🔑",
-  "Heart of the Labyrinth": "❤️‍🔥",
-  "Ancient Mechanism": "⚙️",
-  "Whispering Well": "🕳️",
-  "Hidden Spring": "🌿",
-  "Ancient Repair Bench": " forge",
-  "Mysterious Box": " chest",
-  "Ancient Altar": "🛐",
-  "Mysterious Staircase": "🪜",
-  "Triggered Trap": "☠️",
-  "Instant Death Trap": "💀",
-};
-
-const enemySpriteMap: { [key: string]: string } = {
-  "Grumbling Goblin": "/assets/sprites/enemies/goblin.svg",
-  "Rattling Skeleton": "/assets/sprites/enemies/skeleton.svg",
-  "Whispering Shadow": "/assets/sprites/enemies/shadow.svg",
-  "The Watcher of the Core": "/assets/sprites/enemies/watcher.svg",
-};
-
-const getEmojiForElement = (elementName: string): string => {
-  const baseName = elementName
-    .replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "")
-    .trim();
-  return emojiMap[baseName] || "❓";
-};
 
 const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth }) => {
   const currentFloor = labyrinth.getCurrentFloor();

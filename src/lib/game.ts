@@ -1391,27 +1391,45 @@ export class Labyrinth {
       case "west": dx = -1; break;
     }
 
-    const pathCoordinates: Coordinate[] = [];
-    for (let i = 1; i <= 3; i++) {
-      pathCoordinates.push({
+    let destination: Coordinate | null = null;
+    let jumpLength = 0;
+
+    // Find the farthest possible jump destination up to 3 blocks
+    for (let i = 3; i >= 1; i--) {
+      const targetCoord = {
         x: this.playerLocation.x + dx * i,
         y: this.playerLocation.y + dy * i,
-      });
-    }
+      };
 
-    // Check if path is valid (no walls)
-    for (const coord of pathCoordinates) {
-      if (
-        coord.x < 0 || coord.x >= this.MAP_WIDTH ||
-        coord.y < 0 || coord.y >= this.MAP_HEIGHT ||
-        currentMap[coord.y][coord.x] === 'wall'
-      ) {
-        this.addMessage("You can't jump through a wall!");
-        return;
+      // Check if the path up to this point is clear
+      let pathIsValid = true;
+      for (let j = 1; j <= i; j++) {
+        const pathCoord = {
+          x: this.playerLocation.x + dx * j,
+          y: this.playerLocation.y + dy * j,
+        };
+        if (
+          pathCoord.x < 0 || pathCoord.x >= this.MAP_WIDTH ||
+          pathCoord.y < 0 || pathCoord.y >= this.MAP_HEIGHT ||
+          currentMap[pathCoord.y][pathCoord.x] === 'wall'
+        ) {
+          pathIsValid = false;
+          break;
+        }
+      }
+
+      if (pathIsValid) {
+        destination = targetCoord;
+        jumpLength = i;
+        break; // Found the farthest valid spot, so we stop
       }
     }
 
-    const destination = pathCoordinates[2];
+    if (!destination) {
+      this.addMessage("You can't jump, there's a wall in the way!");
+      return;
+    }
+
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
 
     // NEW LOGIC: If there is an enemy at the destination, the player lands on it and defeats it instantly.
@@ -1460,7 +1478,8 @@ export class Labyrinth {
     this.markVisited(this.playerLocation);
 
     const currentRoom = this.getCurrentLogicalRoom();
-    this.addMessage(currentRoom ? `You leap forward three spaces! ${currentRoom.description}` : `You leap forward three spaces!`);
+    const plural = jumpLength > 1 ? 's' : '';
+    this.addMessage(currentRoom ? `You leap forward ${jumpLength} space${plural}! ${currentRoom.description}` : `You leap forward ${jumpLength} space${plural}!`);
 
     // Check for traps at destination
     if (this.trapsLocations.has(targetCoordStr) && !this.triggeredTraps.has(targetCoordStr)) {

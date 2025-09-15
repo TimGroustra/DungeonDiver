@@ -5,6 +5,7 @@ import goblinSprite from "@/assets/sprites/enemies/goblin.svg";
 import skeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
 import shadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import watcherSprite from "@/assets/sprites/enemies/watcher.svg";
+import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repair-bench.svg"; // New import
 
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
@@ -26,8 +27,8 @@ export const emojiMap: { [key: string]: string } = {
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
   "Hidden Spring": "🌿",
-  "Ancient Repair Bench": " forge",
-  "Mysterious Box": " chest",
+  "Ancient Repair Bench": "🛠️", // Changed to a more generic tool emoji
+  "Mysterious Box": "📦", // Changed to a more generic box emoji
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",
   "Triggered Trap": "☠️",
@@ -40,6 +41,11 @@ export const enemySpriteMap: { [key: string]: string } = {
   "Rattling Skeleton": skeletonSprite,
   "Whispering Shadow": shadowSprite,
   "The Watcher of the Core": watcherSprite,
+};
+
+// New map for static item sprites
+export const staticItemSpriteMap: { [key: string]: string } = {
+  "Ancient Repair Bench": ancientRepairBenchSprite,
 };
 
 // Helper function to get emoji for an element, handling prefixes

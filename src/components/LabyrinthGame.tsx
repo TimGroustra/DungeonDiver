@@ -13,7 +13,7 @@ import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
-import { emojiMap, enemySpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import shared assets
+import { emojiMap, enemySpriteMap, staticItemSpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import new staticItemSpriteMap
 
 // Import adventurer sprites from the new assets location
 import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
@@ -402,7 +402,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </pattern>
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#5a4d5c" />
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
           </pattern>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">
@@ -528,6 +528,20 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor || !labyrinth.getRevealedStaticItems().has(coordStr)) return null;
             const item = labyrinth.getItem(itemId);
+            const staticItemSprite = staticItemSpriteMap[item.name]; // Check for a dedicated sprite
+
+            if (staticItemSprite) {
+              return (
+                <image
+                  key={`static-${itemId}`}
+                  href={staticItemSprite}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                />
+              );
+            }
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
           {/* NEW: Render death traps first, as they are always visible and have a distinct look */}

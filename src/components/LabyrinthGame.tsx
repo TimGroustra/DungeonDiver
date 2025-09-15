@@ -230,6 +230,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "arrowright":
         case "d":
           event.preventDefault(); handleMove("east"); break;
+        case "q": event.preventDefault(); handleAttack(); break; // 'Q' for attack
         case " ": event.preventDefault(); handleJump(); break; // Space bar for jump
         case "shift": event.preventDefault(); handleSearch(); break;
         case "control": event.preventDefault(); handleInteract(); break;
@@ -267,6 +268,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
+    setGameVersion(prev => prev + 1);
+  };
+
+  const handleAttack = () => {
+    if (gameResult !== null || isAnimatingMovement) { toast.info("Cannot attack right now."); return; }
+    labyrinth.attack(playerName, elapsedTime);
     setGameVersion(prev => prev + 1);
   };
 
@@ -568,6 +575,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {equippedWeapon ? (
               <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
                 <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
+                <Button
+                  size="sm"
+                  className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600"
+                  onClick={handleAttack}
+                  disabled={gameResult !== null || isAnimatingMovement}
+                >
+                  Attack (Q)
+                </Button>
               </div>
             ) : (
               <p className="italic text-stone-400">No weapon equipped.</p>
@@ -707,7 +722,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
           {renderMap()}
           <div className="absolute bottom-2 left-2 text-center text-stone-300 text-xs z-10 bg-black/ ৫০ p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span></p>
           </div>
           {renderHud()}
 

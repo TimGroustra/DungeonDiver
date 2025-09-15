@@ -175,7 +175,7 @@ export class Labyrinth {
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
-  public lastActionType: 'move' | 'jump' | 'shieldBash' = 'move'; // New property, added 'shieldBash'
+  public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -1296,27 +1296,12 @@ export class Labyrinth {
       return;
     }
 
-    const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
-    const enemyId = this.enemyLocations.get(targetCoordStr);
-    if (enemyId) {
-        const enemy = this.enemies.get(enemyId);
-        if (enemy && !enemy.defeated) {
-            const damageDealt = this.getCurrentAttackDamage();
-            enemy.takeDamage(damageDealt);
-            this.lastHitEntityId = enemy.id;
-            this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
-            if (enemy.defeated) {
-                this.addMessage(`You have defeated the ${enemy.name}!`);
-                this.enemyLocations.delete(targetCoordStr);
-            }
-            return; // Player attacks and does not move
-        }
-    }
-
     if (currentMap[newY][newX] === 'wall') {
       this.addMessage("A solid, ancient stone wall blocks your path, cold to the touch. You cannot go that way.");
       return;
     }
+
+    const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
 
     // NEW: Check for death trap
     if (this.deathTrapsLocations.has(targetCoordStr)) {
@@ -1365,6 +1350,56 @@ export class Labyrinth {
                 this.setGameOver('defeat', playerName, time, "Hidden Trap");
             }
         }
+    }
+  }
+
+  public attack(playerName: string, time: number) {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
+    this.lastActionType = 'attack'; // Set action type
+
+    if (this.playerStunnedTurns > 0) {
+      this.addMessage("You are too disoriented to attack effectively!");
+      return;
+    }
+
+    const currentMap = this.floors.get(this.currentFloor)!;
+    let targetX = this.playerLocation.x;
+    let targetY = this.playerLocation.y;
+
+    switch (this.lastMoveDirection) {
+      case "north": targetY--; break;
+      case "south": targetY++; break;
+      case "east": targetX++; break;
+      case "west": targetX--; break;
+    }
+
+    if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT) {
+      this.addMessage("You swing at empty air. There's nothing to attack in that direction.");
+      return;
+    }
+
+    const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
+    const enemyId = this.enemyLocations.get(targetCoordStr);
+
+    if (enemyId) {
+      const enemy = this.enemies.get(enemyId);
+      if (enemy && !enemy.defeated) {
+        const damageDealt = this.getCurrentAttackDamage();
+        enemy.takeDamage(damageDealt);
+        this.lastHitEntityId = enemy.id;
+        this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
+        if (enemy.defeated) {
+          this.addMessage(`You have defeated the ${enemy.name}!`);
+          this.enemyLocations.delete(targetCoordStr);
+        }
+      } else {
+        this.addMessage("You swing your weapon, but there's no living enemy there.");
+      }
+    } else {
+      this.addMessage("You swing your weapon, but there's nothing to attack in that direction.");
     }
   }
 

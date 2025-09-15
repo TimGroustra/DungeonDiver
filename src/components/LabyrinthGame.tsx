@@ -19,7 +19,7 @@ import AdventurerSouth from "@/assets/sprites/adventurer/adventurer-south.svg";
 import AdventurerEast from "@/assets/sprites/adventurer/adventurer-east.svg";
 import AdventurerWest from "@/assets/sprites/adventurer/adventurer-west.svg";
 import AdventurerNorthSword from "@/assets/sprites/adventurer/adventurer-north-sword.svg";
-import AdventurerSouthSword from "@/assets/sprites/adventurer/adventurer-south-sword.보다
+import AdventurerSouthSword from "@/assets/sprites/adventurer/adventurer-south-sword.svg";
 import AdventurerEastSword from "@/assets/sprites/adventurer/adventurer-east-sword.svg";
 import AdventurerWestSword from "@/assets/sprites/adventurer/adventurer-west-sword.svg";
 import AdventurerNorthShield from "@/assets/sprites/adventurer/adventurer-north-shield.svg";

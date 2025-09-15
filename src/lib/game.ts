@@ -198,6 +198,7 @@ export class Labyrinth {
   private playerStunnedTurns: number; // How many turns player is stunned/misdirected
   private bossDefeated: boolean;
   public bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
+  public bossSafeTiles: Set<string>; // NEW: Coordinates of tiles safe from Watcher's Gaze
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
@@ -268,6 +269,7 @@ export class Labyrinth {
     this.playerStunnedTurns = 0;
     this.bossDefeated = false;
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
+    this.bossSafeTiles = new Set<string>(); // NEW: Initialize bossSafeTiles
 
     this.initializeLabyrinth();
 
@@ -521,12 +523,16 @@ export class Labyrinth {
 
     // NEW: Add wall tiles every second tile in the central row of the boss passage
     for (let x = passageStartX; x <= passageEndX; x++) {
+      const coordStr = `${x},${passageCenterY},${floor}`;
       // Ensure it's an open tile before converting to wall
       if (floorMap[passageCenterY][x] !== 'wall') {
         // Place a wall every second tile, starting from passageStartX
         if ((x - passageStartX) % 2 === 0) { // Check if it's an even offset from the start
           floorMap[passageCenterY][x] = 'wall';
-          this.bossPassageCoords.delete(`${x},${passageCenterY},${floor}`); // Remove from boss passage coords
+          this.bossPassageCoords.delete(coordStr); // Remove from boss passage coords
+        } else {
+          // If it's an odd offset, it remains open and is a safe tile
+          this.bossSafeTiles.add(coordStr); // Add to safe tiles
         }
       }
     }
@@ -558,6 +564,7 @@ export class Labyrinth {
         if (floorMap[pY][pX] !== 'wall') { // Only place pillar if it's currently open
             floorMap[pY][pX] = 'wall';
             this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
+            this.bossSafeTiles.delete(`${pX},${pY},${floor}`); // Also remove from safe tiles if it becomes a wall
         }
     }
 
@@ -1342,7 +1349,8 @@ export class Labyrinth {
         const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
         const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
         const isInPassage = this.bossPassageCoords.has(targetCoordStr);
-        if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
+        // Apply damage/stun only if in boss passage AND NOT on a safe tile
+        if (this.bossState === 'red_light' && (wasInPassage || isInPassage) && !this.bossSafeTiles.has(targetCoordStr)) {
             const damageTaken = 25;
             this.playerHealth -= damageTaken;
             this.lastHitEntityId = 'player';
@@ -1522,7 +1530,8 @@ export class Labyrinth {
       const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
       const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
       const isInPassage = this.bossPassageCoords.has(targetCoordStr);
-      if (this.bossState === 'red_light' && (wasInPassage || isInPassage)) {
+      // Apply damage/stun only if in boss passage AND NOT on a safe tile
+      if (this.bossState === 'red_light' && (wasInPassage || isInPassage) && !this.bossSafeTiles.has(targetCoordStr)) {
         const damageTaken = 25;
         this.playerHealth -= damageTaken;
         this.lastHitEntityId = 'player';
@@ -2343,7 +2352,8 @@ export class Labyrinth {
             }
 
             // If player was in the passage and didn't move during Red Light, boss takes stress damage
-            if (isInBossPassage && this.playerStunnedTurns === 0) { // Check isInBossPassage here too
+            // The playerStunnedTurns check implicitly handles safe tiles, as moving onto one prevents stun.
+            if (isInBossPassage && this.playerStunnedTurns === 0) { 
                 if (this.watcherOfTheCore) {
                     const stressDamage = 10; // Damage to boss for successful evasion
                     this.watcherOfTheCore.takeDamage(stressDamage);

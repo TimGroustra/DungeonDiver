@@ -480,7 +480,7 @@ export class Labyrinth {
       if (exitRoom) {
         const staircase = new Item(`staircase-f${floor}-to-f${floor + 1}`, "Mysterious Staircase", "A spiraling staircase leading deeper into the labyrinth. It seems to be magically sealed.", true, 'static');
         this.items.set(staircase.id, staircase);
-        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.c_y };
+        const staircaseCoord = { x: exitRoom.center.x, y: exitRoom.center.y };
         this.staticItemLocations.set(`${staircaseCoord.x},${staircaseCoord.y},${floor}`, staircase.id);
         this.floorExitStaircases.set(floor, staircaseCoord);
       } else {
@@ -866,38 +866,94 @@ export class Labyrinth {
     return false;
   }
 
+  // New method: Checks if a coordinate is too close to non-trap elements
+  private isTooCloseToNonTraps(newX: number, newY: number, floor: number): boolean {
+    const checkMaps = [
+      this.enemyLocations,
+      this.puzzleLocations,
+      this.itemLocations,
+      this.staticItemLocations
+      // Exclude this.trapsLocations from this check
+    ];
+
+    for (const map of checkMaps) {
+      for (const coordStr of map.keys()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === floor) {
+          const distance = Math.max(Math.abs(newX - x), Math.abs(newY - y));
+          if (distance < this.MIN_ELEMENT_DISTANCE) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  // New method: Counts adjacent traps
+  private countAdjacentTraps(x: number, y: number, floor: number): number {
+    let count = 0;
+    const neighbors = this.getValidNeighbors(x, y);
+    for (const neighbor of neighbors) {
+      const coordStr = `${neighbor.x},${neighbor.y},${floor}`;
+      if (this.trapsLocations.has(coordStr)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   private placeElementRandomly(id: string, locationMap: Map<string, string | boolean>, floor: number, isHostile: boolean = false) {
     let placed = false;
     let attempts = 0;
-    const MAX_ATTEMPTS = 1000; // Prevent infinite loops in very dense maps
+    const MAX_ATTEMPTS = 1000;
 
     while (!placed && attempts < MAX_ATTEMPTS) {
       const x = Math.floor(Math.random() * this.MAP_WIDTH);
       const y = Math.floor(Math.random() * this.MAP_HEIGHT);
-      const coordStr = `${x},${y},${floor}`; // Include floor in coordinate string
-      const currentFloorMap = this.floors.get(this.currentFloor)!;
+      const coordStr = `${x},${y},${floor}`;
+      const currentFloorMap = this.floors.get(floor)!;
 
-      // Ensure not placed at player start (0,0) of this floor, or on an existing element, and only in an open room
-      // Also, avoid placing elements on the boss's passage or altar location on the last floor
-      const isBossPassageOrAltar = (floor === this.NUM_FLOORS - 1) && this.bossPassageCoords.has(coordStr);
-
+      // Common invalid placement conditions for all elements
       if (
-        (!isHostile || Math.max(x, y) > 5) && // New condition for safe zone
-        (x !== 0 || y !== 0) && // Not at floor entrance
-        !isBossPassageOrAltar && // Not on boss passage or altar
-        currentFloorMap[y][x] !== 'wall' && // Must be an open room
-        !locationMap.has(coordStr) && // Check if the *current* locationMap already has something here
-        !this.enemyLocations.has(coordStr) &&
-        !this.puzzleLocations.has(coordStr) &&
-        !this.itemLocations.has(coordStr) &&
-        !this.staticItemLocations.has(coordStr) &&
-        !this.trapsLocations.has(coordStr) &&
-        !this.isTooClose(x, y, floor) // Check for minimum distance to other elements
+        (x === 0 && y === 0 && floor === 0) || // Not at game start (only for floor 0)
+        (isHostile && Math.max(x, y) <= 5 && floor === 0) || // Hostile elements not in safe zone on floor 0
+        (floor === this.NUM_FLOORS - 1 && this.bossPassageCoords.has(coordStr)) || // Not on boss passage or altar
+        currentFloorMap[y][x] === 'wall' || // Must be an open room
+        this.enemyLocations.has(coordStr) || // Already an enemy
+        this.puzzleLocations.has(coordStr) || // Already a puzzle
+        this.itemLocations.has(coordStr) || // Already a loose item
+        this.staticItemLocations.has(coordStr) // Already a static item
       ) {
-        locationMap.set(coordStr, id);
-        placed = true;
+        attempts++;
+        continue;
       }
-      attempts++;
+
+      const isTrapPlacement = locationMap === this.trapsLocations;
+
+      if (isTrapPlacement) {
+        // For traps, check distance to non-trap elements
+        if (this.isTooCloseToNonTraps(x, y, floor)) {
+          attempts++;
+          continue;
+        }
+        // For traps, also check the adjacent trap limit (up to 4 total, including current)
+        const adjacentTraps = this.countAdjacentTraps(x, y, floor);
+        if (adjacentTraps >= 4) { 
+          attempts++;
+          continue;
+        }
+      } else {
+        // For non-trap elements, use the general isTooClose check (which includes traps)
+        if (this.isTooClose(x, y, floor)) {
+          attempts++;
+          continue;
+        }
+      }
+
+      // If all checks pass, place the element
+      locationMap.set(coordStr, id);
+      placed = true;
     }
 
     if (!placed) {

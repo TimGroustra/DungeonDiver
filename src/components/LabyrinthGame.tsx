@@ -125,8 +125,31 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       const endY = newLogicalPos.y;
       const startTime = Date.now();
 
-      const isJump = Math.abs(endX - startX) === 3 || Math.abs(endY - startY) === 3;
-      const animationDuration = isJump ? 1000 : 200; // Jumps are slow, moves are fast
+      const distance = Math.round(Math.max(Math.abs(endX - startX), Math.abs(endY - startY)));
+      const wasJump = labyrinth.lastActionType === 'jump';
+
+      let animationDuration = 200; // Default move duration
+      let peakHeight = 0; // Default no vertical offset
+
+      if (wasJump) {
+        switch (distance) {
+          case 3:
+            animationDuration = 1000;
+            peakHeight = -0.8;
+            break;
+          case 2:
+            animationDuration = 700;
+            peakHeight = -0.6;
+            break;
+          case 1:
+            animationDuration = 400;
+            peakHeight = -0.3;
+            break;
+          default:
+            animationDuration = 200;
+            peakHeight = 0;
+        }
+      }
 
       const animate = () => {
         const now = Date.now();
@@ -140,17 +163,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
         setAnimatedPlayerPosition({ x: currentX, y: currentY });
 
-        if (isJump) {
+        if (peakHeight !== 0) { // Only calculate vertical offset if it's a jump
           const distProgress = Math.max(0, Math.min(1, easedProgress));
-          const peakHeight = -0.8;
-          let verticalOffset = 0;
-          if (distProgress <= 0.7) {
-            const p_up = distProgress / 0.7;
-            verticalOffset = peakHeight * (1 - Math.pow(1 - p_up, 2));
-          } else {
-            const p_down = (distProgress - 0.7) / 0.3;
-            verticalOffset = peakHeight * Math.pow(1 - p_down, 2);
-          }
+          // A simple sine-based arc for all jumps
+          const verticalOffset = peakHeight * Math.sin(distProgress * Math.PI);
           setVerticalJumpOffset(verticalOffset);
         }
 

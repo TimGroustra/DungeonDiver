@@ -175,6 +175,7 @@ export class Labyrinth {
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
+  public lastActionType: 'move' | 'jump' = 'move'; // New property
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -733,7 +734,7 @@ export class Labyrinth {
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor, true);
 
       const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(35 * enemyHealthMultiplier), Math.floor(18 * enemyDamageMultiplier)); // Adjusted base health and damage
-      this.enemies.set(skeleton.id, skeleton);
+      this.items.set(skeleton.id, skeleton);
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
       const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(40 * enemyHealthMultiplier), Math.floor(20 * enemyDamageMultiplier)); // Adjusted base health and damage
@@ -1259,6 +1260,7 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    this.lastActionType = 'move'; // Set action type
 
     // NEW: Store current location as last safe location BEFORE moving
     this.lastSafePlayerLocation = { ...this.playerLocation };
@@ -1371,6 +1373,7 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    this.lastActionType = 'jump'; // Set action type
 
     // NEW: Store current location as last safe location BEFORE jumping
     this.lastSafePlayerLocation = { ...this.playerLocation };

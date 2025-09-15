@@ -174,6 +174,7 @@ export class Labyrinth {
   public lastHitEntityId: string | null = null; // For flash effect
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
+  public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -243,6 +244,7 @@ export class Labyrinth {
     this.floorExitStaircases = new Map();
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
+    this.lastJumpDefeatedEnemyId = null; // Initialize new property
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -1419,7 +1421,7 @@ export class Labyrinth {
       if (enemy && !enemy.defeated) {
         enemy.health = 0; // Instant death
         enemy.defeated = true;
-        this.enemyLocations.delete(targetCoordStr); // Remove enemy from map
+        this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
       }
     }
@@ -1473,6 +1475,23 @@ export class Labyrinth {
           this.setGameOver('defeat', playerName, time, "Hidden Trap");
         }
       }
+    }
+  }
+
+  public clearJumpDefeatedEnemy() {
+    if (this.lastJumpDefeatedEnemyId) {
+      // Find the coordinate of the defeated enemy
+      let enemyCoordStr: string | undefined;
+      for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
+        if (enemyId === this.lastJumpDefeatedEnemyId) {
+          enemyCoordStr = coordStr;
+          break;
+        }
+      }
+      if (enemyCoordStr) {
+        this.enemyLocations.delete(enemyCoordStr);
+      }
+      this.lastJumpDefeatedEnemyId = null;
     }
   }
 

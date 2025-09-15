@@ -162,6 +162,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           setAnimatedPlayerPosition(newLogicalPos); // Ensure it snaps to final logical position
           lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
           setVerticalJumpOffset(0);
+
+          // NEW: Clear jump-defeated enemy after animation
+          if (labyrinth.lastJumpDefeatedEnemyId) {
+            labyrinth.clearJumpDefeatedEnemy();
+            setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy
+          }
         }
       };
       requestAnimationFrame(animate);
@@ -432,7 +438,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             const enemy = labyrinth.getEnemy(enemyId);
-            if (!enemy || enemy.defeated) return null;
+            if (!enemy || enemy.defeated) return null; // Only render if not defeated
             const enemySprite = enemySpriteMap[enemy.name];
             if (enemySprite) {
               return (

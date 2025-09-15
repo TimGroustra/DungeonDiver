@@ -379,11 +379,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
-          {/* NEW: Death Trap Pattern */}
+          {/* NEW: Death Trap Pattern - Spike Pit */}
           <pattern id="death-trap-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
-            <rect width="1" height="1" fill="#1a0a0a" /> {/* Dark background */}
-            <path d="M 0.1 0.1 L 0.9 0.9 M 0.9 0.1 L 0.1 0.9" stroke="#ff0000" strokeWidth="0.1" /> {/* Red X */}
-            <circle cx="0.5" cy="0.5" r="0.2" fill="rgba(0,0,0,0.5)" /> {/* Dark center */}
+            <rect width="1" height="1" fill="#2d1e0a" />
+            <path d="M0.1,0.9 L0.5,0.1 L0.9,0.9 Z" fill="#1a1206" />
+            <path d="M0.2,0.8 L0.5,0.3 L0.8,0.8 Z" fill="#3a2810" />
+            <rect x="0.4" y="0.85" width="0.2" height="0.15" fill="#1a1206" />
           </pattern>
         </defs>
         <g mask="url(#fog-mask)">
@@ -438,7 +439,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 width="1"
                 height="1"
                 fill="url(#death-trap-pattern)"
-                stroke="rgba(0,0,0,0.8)"
+                stroke="#1a1206"
                 strokeWidth={0.05}
                 className="animate-pulse-slow" // Black glow effect
               />

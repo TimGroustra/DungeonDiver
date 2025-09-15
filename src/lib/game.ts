@@ -560,13 +560,45 @@ export class Labyrinth {
     // Add some pillars to break up the vastness of the boss passage
     const numPillars = 20;
     for (let i = 0; i < numPillars; i++) {
-        const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
-        const pY = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
-        // Ensure pillar is not on the direct middle path
-        if (floorMap[pY][pX] !== 'wall') { // Only place pillar if it's currently open
-            floorMap[pY][pX] = 'wall';
-            this.bossPassageCoords.delete(`${pX},${pY},${floor}`); // It's a wall now
-            this.bossSafeTiles.delete(`${pX},${pY},${floor}`); // Also remove from safe tiles if it becomes a wall
+        let placed = false;
+        let attempts = 0;
+        const MAX_PILLAR_ATTEMPTS = 100; // Limit attempts for a single pillar
+
+        while (!placed && attempts < MAX_PILLAR_ATTEMPTS) {
+            const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
+            const pY = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
+            const coordStr = `${pX},${pY},${floor}`;
+
+            // Check if the spot is currently open
+            if (floorMap[pY][pX] !== 'wall') {
+                // Temporarily mark as wall to check for blockage
+                const originalCell = floorMap[pY][pX]; // Store original state
+                floorMap[pY][pX] = 'wall';
+
+                // Check if this placement would block the entire vertical slice of the passage
+                let isBlocked = true;
+                for (let checkY = passageCenterY - halfCorridor; checkY <= passageCenterY + halfCorridor; checkY++) {
+                    // Ensure checkY is within map bounds
+                    if (checkY >= 0 && checkY < this.MAP_HEIGHT && floorMap[checkY][pX] !== 'wall') {
+                        isBlocked = false;
+                        break;
+                    }
+                }
+
+                if (!isBlocked) {
+                    // If not blocked, confirm placement
+                    this.bossPassageCoords.delete(coordStr);
+                    this.bossSafeTiles.delete(coordStr);
+                    placed = true;
+                } else {
+                    // If blocked, revert and try again
+                    floorMap[pY][pX] = originalCell; // Revert to original state
+                }
+            }
+            attempts++;
+        }
+        if (!placed) {
+            console.warn(`Could not place a random pillar without blocking the boss passage at floor ${floor}.`);
         }
     }
 

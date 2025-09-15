@@ -175,7 +175,7 @@ export class Labyrinth {
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
-  public lastActionType: 'move' | 'jump' = 'move'; // New property
+  public lastActionType: 'move' | 'jump' | 'shieldBash' = 'move'; // New property, added 'shieldBash'
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -685,7 +685,7 @@ export class Labyrinth {
         isCompleted: () => this.trueCompassQuestCompleted
       });
 
-    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4): The Heart of the Labyrinth
+    } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4: The Heart of the Labyrinth
       const passageStartX = this.MAP_WIDTH - 40;
       const passageEndX = this.MAP_WIDTH - 1;
       const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
@@ -1514,6 +1514,118 @@ export class Labyrinth {
         this.enemyLocations.delete(enemyCoordStr);
       }
       this.lastJumpDefeatedEnemyId = null;
+    }
+  }
+
+  public shieldBash(playerName: string, time: number) {
+    if (this.gameOver) {
+      this.addMessage("The game is over. Please restart.");
+      return;
+    }
+    this.lastActionType = 'shieldBash';
+
+    if (!this.equippedShield) {
+      this.addMessage("You need a shield to perform a Shield Bash!");
+      return;
+    }
+
+    this.lastSafePlayerLocation = { ...this.playerLocation };
+
+    if (this.playerStunnedTurns > 0) {
+      this.addMessage("You are too disoriented to perform a Shield Bash!");
+      return;
+    }
+
+    const currentMap = this.floors.get(this.currentFloor)!;
+    let dx = 0;
+    let dy = 0;
+
+    switch (this.lastMoveDirection) {
+      case "north": dy = -1; break;
+      case "south": dy = 1; break;
+      case "east": dx = 1; break;
+      case "west": dx = -1; break;
+    }
+
+    const frontX = this.playerLocation.x + dx;
+    const frontY = this.playerLocation.y + dy;
+    const frontCoordStr = `${frontX},${frontY},${this.currentFloor}`;
+
+    if (frontX < 0 || frontX >= this.MAP_WIDTH || frontY < 0 || frontY >= this.MAP_HEIGHT || currentMap[frontY][frontX] === 'wall') {
+      this.addMessage("There's no open space in front of you to bash!");
+      return;
+    }
+
+    const enemyId = this.enemyLocations.get(frontCoordStr);
+    if (!enemyId) {
+      this.addMessage("There's no enemy to bash in front of you.");
+      return;
+    }
+
+    const enemy = this.enemies.get(enemyId);
+    if (!enemy || enemy.defeated) {
+      this.addMessage("That enemy is already defeated.");
+      return;
+    }
+
+    // Calculate destination 2 tiles behind the enemy (3 tiles from player)
+    const pushX = this.playerLocation.x + dx * 3;
+    const pushY = this.playerLocation.y + dy * 3;
+    const pushCoordStr = `${pushX},${pushY},${this.currentFloor}`;
+
+    let canPush = true;
+    // Check the two tiles the enemy would move through
+    for (let i = 1; i <= 2; i++) {
+      const checkX = this.playerLocation.x + dx * (1 + i);
+      const checkY = this.playerLocation.y + dy * (1 + i);
+      const checkCoordStr = `${checkX},${checkY},${this.currentFloor}`;
+
+      if (checkX < 0 || checkX >= this.MAP_WIDTH || checkY < 0 || checkY >= this.MAP_HEIGHT || currentMap[checkY][checkX] === 'wall') {
+        canPush = false;
+        break;
+      }
+      // Also check if another living enemy blocks the path
+      const blockingEnemyId = this.enemyLocations.get(checkCoordStr);
+      if (blockingEnemyId && blockingEnemyId !== enemyId) {
+        const blockingEnemy = this.enemies.get(blockingEnemyId);
+        if (blockingEnemy && !blockingEnemy.defeated) {
+          canPush = false;
+          break;
+        }
+      }
+    }
+
+    if (canPush) {
+      this.enemyLocations.delete(frontCoordStr);
+      this.enemyLocations.set(pushCoordStr, enemyId);
+      this.addMessage(`You bash the ${enemy.name}, sending it flying backwards!`);
+
+      // Check for traps at the new enemy location
+      if (this.deathTrapsLocations.has(pushCoordStr)) {
+        enemy.health = 0; // Instant death
+        enemy.defeated = true;
+        this.addMessage(`The ${enemy.name} was pushed into an Instant Death Trap and was instantly obliterated!`);
+        this.enemyLocations.delete(pushCoordStr);
+      } else if (this.trapsLocations.has(pushCoordStr) && !this.triggeredTraps.has(pushCoordStr)) {
+        const trapDamage = 10;
+        enemy.takeDamage(trapDamage);
+        this.triggeredTraps.add(pushCoordStr);
+        this.revealedTraps.add(pushCoordStr);
+        this.addMessage(`The ${enemy.name} was pushed into a hidden trap and took ${trapDamage} damage! Its health is now ${enemy.health}.`);
+        if (enemy.defeated) {
+          this.addMessage(`The ${enemy.name} was defeated by a trap!`);
+          this.enemyLocations.delete(pushCoordStr);
+        }
+      }
+    } else {
+      const bashDamage = 20; // Damage for hitting an obstacle
+      enemy.takeDamage(bashDamage);
+      this.lastHitEntityId = enemy.id;
+      this.addMessage(`You bash the ${enemy.name} into an obstacle! It takes ${bashDamage} damage! Its health is now ${enemy.health}.`);
+      if (enemy.defeated) {
+        this.addMessage(`You have defeated the ${enemy.name}!`);
+        this.enemyLocations.delete(frontCoordStr);
+      }
     }
   }
 

@@ -381,10 +381,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </symbol>
           {/* NEW: Death Trap Pattern - Spike Pit */}
           <pattern id="death-trap-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
-            <rect width="1" height="1" fill="#2d1e0a" />
-            <path d="M0.1,0.9 L0.5,0.1 L0.9,0.9 Z" fill="#1a1206" />
-            <path d="M0.2,0.8 L0.5,0.3 L0.8,0.8 Z" fill="#3a2810" />
-            <rect x="0.4" y="0.85" width="0.2" height="0.15" fill="#1a1206" />
+            <rect width="1" height="1" fill="black" /> {/* Pitch black background */}
+            {/* Many small spikes */}
+            <path d="M0.1 0.9 L0.2 0.7 L0.3 0.9 Z" fill="#888" />
+            <path d="M0.3 0.8 L0.4 0.6 L0.5 0.8 Z" fill="#888" />
+            <path d="M0.5 0.9 L0.6 0.7 L0.7 0.9 Z" fill="#888" />
+            <path d="M0.7 0.8 L0.8 0.6 L0.9 0.8 Z" fill="#888" />
+
+            <path d="M0.1 0.5 L0.2 0.3 L0.3 0.5 Z" fill="#888" />
+            <path d="M0.3 0.4 L0.4 0.2 L0.5 0.4 Z" fill="#888" />
+            <path d="M0.5 0.5 L0.6 0.3 L0.7 0.5 Z" fill="#888" />
+            <path d="M0.7 0.4 L0.8 0.2 L0.9 0.4 Z" fill="#888" />
+
+            <path d="M0.1 0.1 L0.2 0.0 L0.3 0.1 Z" fill="#888" />
+            <path d="M0.3 0.0 L0.4 -0.2 L0.5 0.0 Z" fill="#888" />
+            <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
+            <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
           </pattern>
         </defs>
         <g mask="url(#fog-mask)">
@@ -439,9 +451,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 width="1"
                 height="1"
                 fill="url(#death-trap-pattern)"
-                stroke="#1a1206"
+                stroke="rgba(0,0,0,0.8)"
                 strokeWidth={0.05}
-                className="animate-pulse-slow" // Black glow effect
+                // Removed className="animate-pulse-slow"
               />
             );
           })}

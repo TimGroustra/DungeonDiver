@@ -1,23 +1,28 @@
 <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Base blood pool shape -->
-  <path d="M8,16 C8,10 12,8 16,8 C20,8 24,10 24,16 C24,22 20,24 16,24 C12,24 8,22 8,16 Z" 
+  <!-- Base blood pool shape - larger and irregular -->
+  <path d="M16 4 C24 4 28 8 28 16 C28 24 24 28 16 28 C8 28 4 24 4 16 C4 12 6 8 10 6 C12 5 14 4 16 4 Z M16 4 
+           C18 3 20 4 22 6 C24 8 26 10 27 13 C28 16 28 19 27 22 C26 25 24 27 22 28 C20 29 18 29 16 28 C14 29 12 29 10 28 C8 27 6 25 5 22 C4 19 4 16 5 13 C6 10 8 8 10 6 Z" 
         fill="#8a0303" />
   
-  <!-- Darker blood details -->
-  <path d="M10,16 C10,12 13,10 16,10 C19,10 22,12 22,16 C22,20 19,22 16,22 C13,22 10,20 10,16 Z" 
+  <!-- Darker blood details - adjusted to new shape -->
+  <path d="M16 6 C22 6 25 9 25 16 C25 23 22 26 16 26 C10 26 7 23 7 16 C7 12 9 9 12 7 C14 6 15 6 16 6 Z M16 6 
+           C17 5 19 6 20 7 C22 9 23 11 24 14 C24 17 23 20 22 22 C21 24 19 25 16 25 C13 25 11 24 10 22 C9 20 8 17 8 14 C9 11 11 9 12 7 Z" 
         fill="#6a0101" opacity="0.7" />
   
-  <!-- Blood highlights -->
-  <path d="M12,16 C12,14 14,12 16,12 C18,12 20,14 20,16 C20,18 18,20 16,20 C14,20 12,18 12,16 Z" 
+  <!-- Blood highlights - adjusted to new shape -->
+  <path d="M16 10 C19 10 20 12 20 16 C20 20 19 22 16 22 C13 22 12 20 12 16 C12 12 13 10 16 10 Z M16 10 
+           C17 9 18 10 19 11 C19 13 19 15 18 17 C17 19 15 20 13 19 C11 18 10 16 10 14 C11 12 13 11 14 10 Z" 
         fill="#b00505" opacity="0.5" />
   
-  <!-- Blood splatter details -->
-  <circle cx="9" cy="14" r="1" fill="#6a0101" />
-  <circle cx="23" cy="18" r="1" fill="#6a0101" />
-  <circle cx="20" cy="12" r="1" fill="#6a0101" />
-  <circle cx="12" cy="20" r="1" fill="#6a0101" />
+  <!-- Blood splatter details - adjusted positions -->
+  <circle cx="8" cy="12" r="1" fill="#6a0101" />
+  <circle cx="24" cy="20" r="1" fill="#6a0101" />
+  <circle cx="21" cy="9" r="1" fill="#6a0101" />
+  <circle cx="11" cy="23" r="1" fill="#6a0101" />
+  <circle cx="18" cy="5" r="1" fill="#6a0101" />
+  <circle cx="6" cy="18" r="1" fill="#6a0101" />
   
-  <!-- Shiny reflection -->
-  <path d="M14,12 C14,11 15,10 16,10 C17,10 18,11 18,12 C18,13 17,14 16,14 C15,14 14,13 14,12 Z" 
+  <!-- Shiny reflection - adjusted position -->
+  <path d="M14,10 C14,9 15,8 16,8 C17,8 18,9 18,10 C18,11 17,12 16,12 C15,12 14,11 14,10 Z" 
         fill="#ffffff" opacity="0.3" />
 </svg>

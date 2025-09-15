@@ -1,12 +1,13 @@
 <svg viewBox="0 0 1 1" xmlns="http://www.w3.org/2000/svg">
-  <!-- Adventurer body (facing east) -->
+  <!-- Adventurer body -->
   <rect x="0.4" y="0.3" width="0.2" height="0.4" fill="#8B4513"/>
   <circle cx="0.5" cy="0.25" r="0.1" fill="#F0D9B5"/>
   <rect x="0.42" y="0.7" width="0.06" height="0.2" fill="#696969"/>
   <rect x="0.52" y="0.7" width="0.06" height="0.2" fill="#696969"/>
-  <rect x="0.35" y="0.35" width="0.05" height="0.2" fill="#F0D9B5"/>
-  <rect x="0.6" y="0.35" width="0.05" height="0.2" fill="#F0D9B5"/>
+  <!-- Arms for east attack -->
+  <rect x="0.35" y="0.35" width="0.05" height="0.2" fill="#F0D9B5"/> <!-- Left arm (slightly back) -->
+  <rect x="0.6" y="0.4" width="0.1" height="0.05" fill="#F0D9B5"/> <!-- Right arm (extended) -->
   <!-- Sword (attacking east) -->
-  <rect x="0.55" y="0.4" width="0.1" height="0.04" fill="#A0522D"/> <!-- Hilt -->
-  <path d="M0.65 0.41 L0.8 0.42 L0.8 0.39 L0.65 0.4 Z" fill="#C0C0C0"/> <!-- Blade, slightly angled -->
+  <rect x="0.65" y="0.4" width="0.05" height="0.04" fill="#A0522D"/> <!-- Hilt -->
+  <rect x="0.7" y="0.41" width="0.1" height="0.02" fill="#C0C0C0"/> <!-- Blade -->
 </svg>

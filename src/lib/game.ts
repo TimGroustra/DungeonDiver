@@ -161,6 +161,7 @@ export class Labyrinth {
   public staticItemLocations: Map<string, string>; // "x,y,floor" -> itemId (for hidden/static items)
   public revealedStaticItems: Set<string>; // Stores "x,y,floor" strings of revealed static items
   public trapsLocations: Map<string, boolean>; // "x,y,floor" -> true for trap locations
+  public deathTrapsLocations: Map<string, string>; // "x,y,floor" -> trapId (for multi-tile traps) // NEW
   public triggeredTraps: Set<string>; // Stores "x,y,floor" strings of triggered traps
   public revealedTraps: Set<string>; // Stores "x,y,floor" strings of revealed (but not triggered) traps
   public decorativeElements: Map<string, string>; // "x,y,floor" -> decorativeType (e.g., 'rubble', 'moss')
@@ -172,6 +173,7 @@ export class Labyrinth {
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
   public lastHitEntityId: string | null = null; // For flash effect
   private playerDeaths: number; // New: Track player deaths
+  private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
 
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
@@ -230,6 +232,7 @@ export class Labyrinth {
     this.staticItemLocations = new Map();
     this.revealedStaticItems = new Set<string>();
     this.trapsLocations = new Map();
+    this.deathTrapsLocations = new Map(); // NEW: Initialize death traps map
     this.triggeredTraps = new Set<string>(); // Initialize new set for triggered traps
     this.revealedTraps = new Set<string>(); // Initialize new set for revealed traps
     this.decorativeElements = new Map(); // Initialize new map for decorative elements
@@ -239,6 +242,7 @@ export class Labyrinth {
     this.floorObjectives = new Map();
     this.floorExitStaircases = new Map();
     this.playerDeaths = 0; // Initialize player deaths
+    this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -740,6 +744,12 @@ export class Labyrinth {
     for (let i = 0; i < numTraps; i++) {
       this.placeElementRandomly(`trap-${floor}-${i}`, this.trapsLocations, floor, true);
     }
+
+    // NEW: Add death traps
+    const numDeathTraps = 1; // One 2x2 death trap per floor
+    for (let i = 0; i < numDeathTraps; i++) {
+      this.placeDeathTrap(`death-trap-${floor}-${i}`, floor);
+    }
   }
 
   private _placeDecorativeElements(floor: number) {
@@ -771,6 +781,7 @@ export class Labyrinth {
                     !this.itemLocations.has(coordStr) &&
                     !this.staticItemLocations.has(coordStr) &&
                     !this.trapsLocations.has(coordStr) &&
+                    !this.deathTrapsLocations.has(coordStr) && // NEW: Check against death traps
                     !this.decorativeElements.has(coordStr) &&
                     (x !== this.playerLocation.x || y !== this.playerLocation.y || floor !== this.currentFloor)
                 ) {
@@ -829,6 +840,7 @@ export class Labyrinth {
         !this.itemLocations.has(coordStr) &&
         !this.staticItemLocations.has(coordStr) &&
         !this.trapsLocations.has(coordStr) &&
+        !this.deathTrapsLocations.has(coordStr) && // NEW: Check against death traps
         !this.isTooClose(x, y, floor) && // Still respect minimum distance
         this.floors.get(floor)![y][x] !== 'wall' // Must be an open room
       ) {
@@ -843,13 +855,73 @@ export class Labyrinth {
     }
   }
 
+  // NEW: Method to place a 2x2 death trap
+  private placeDeathTrap(id: string, floor: number) {
+    let placed = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 1000;
+
+    while (!placed && attempts < MAX_ATTEMPTS) {
+      // Ensure there's space for a 2x2 trap
+      const startX = Math.floor(Math.random() * (this.MAP_WIDTH - 1));
+      const startY = Math.floor(Math.random() * (this.MAP_HEIGHT - 1));
+
+      const potentialCoords: Coordinate[] = [
+        { x: startX, y: startY },
+        { x: startX + 1, y: startY },
+        { x: startX, y: startY + 1 },
+        { x: startX + 1, y: startY + 1 },
+      ];
+
+      let isValidPlacement = true;
+      for (const coord of potentialCoords) {
+        const coordStr = `${coord.x},${coord.y},${floor}`;
+        const currentFloorMap = this.floors.get(floor)!;
+
+        if (
+          coord.x < 0 || coord.x >= this.MAP_WIDTH ||
+          coord.y < 0 || coord.y >= this.MAP_HEIGHT ||
+          currentFloorMap[coord.y][coord.x] === 'wall' || // Must be open
+          this.isTooCloseToNonTraps(coord.x, coord.y, floor) || // Not too close to other non-trap elements
+          this.trapsLocations.has(coordStr) || // Not overlapping with normal traps
+          this.deathTrapsLocations.has(coordStr) // Not overlapping with other death traps
+        ) {
+          isValidPlacement = false;
+          break;
+        }
+      }
+
+      if (isValidPlacement) {
+        // Ensure it's not too close to player start on floor 0
+        if (floor === 0 && (Math.max(Math.abs(startX - this.playerLocation.x), Math.abs(startY - this.playerLocation.y)) <= 5)) {
+          isValidPlacement = false;
+        }
+      }
+
+      if (isValidPlacement) {
+        for (const coord of potentialCoords) {
+          const coordStr = `${coord.x},${coord.y},${floor}`;
+          this.deathTrapsLocations.set(coordStr, id);
+          this.revealedTraps.add(coordStr); // Permanently visible
+        }
+        placed = true;
+      }
+      attempts++;
+    }
+
+    if (!placed) {
+      console.warn(`Could not place death trap ${id} on floor ${floor} after ${MAX_ATTEMPTS} attempts.`);
+    }
+  }
+
   private isTooClose(newX: number, newY: number, floor: number): boolean {
     const checkMaps = [
       this.enemyLocations,
       this.puzzleLocations,
       this.itemLocations,
       this.staticItemLocations,
-      this.trapsLocations
+      this.trapsLocations,
+      this.deathTrapsLocations // NEW: Include death traps in general proximity check
     ];
 
     for (const map of checkMaps) {
@@ -873,7 +945,7 @@ export class Labyrinth {
       this.puzzleLocations,
       this.itemLocations,
       this.staticItemLocations
-      // Exclude this.trapsLocations from this check
+      // Exclude this.trapsLocations and this.deathTrapsLocations from this check
     ];
 
     for (const map of checkMaps) {
@@ -896,7 +968,7 @@ export class Labyrinth {
     const neighbors = this.getValidNeighbors(x, y);
     for (const neighbor of neighbors) {
       const coordStr = `${neighbor.x},${neighbor.y},${floor}`;
-      if (this.trapsLocations.has(coordStr)) {
+      if (this.trapsLocations.has(coordStr) || this.deathTrapsLocations.has(coordStr)) { // NEW: Count death traps too
         count++;
       }
     }
@@ -923,7 +995,8 @@ export class Labyrinth {
         this.enemyLocations.has(coordStr) || // Already an enemy
         this.puzzleLocations.has(coordStr) || // Already a puzzle
         this.itemLocations.has(coordStr) || // Already a loose item
-        this.staticItemLocations.has(coordStr) // Already a static item
+        this.staticItemLocations.has(coordStr) || // Already a static item
+        this.deathTrapsLocations.has(coordStr) // NEW: Already a death trap
       ) {
         attempts++;
         continue;
@@ -1096,7 +1169,15 @@ export class Labyrinth {
     this.gameOver = false;
     this.gameResult = null;
     this.playerStunnedTurns = 0; // Clear any stun effects
-    this.addMessage("You feel a surge of life as you are revived! Your wounds mend, and you stand ready to face the Labyrinth once more.");
+
+    if (this.lastSafePlayerLocation) { // NEW: Move player to last safe location
+      this.playerLocation = { ...this.lastSafePlayerLocation };
+      this.lastSafePlayerLocation = null; // Clear after use
+      this.addMessage("You are revived and return to your last safe location!");
+    } else {
+      this.addMessage("You feel a surge of life as you are revived! Your wounds mend, and you stand ready to face the Labyrinth once more.");
+    }
+    this.markVisited(this.playerLocation); // Mark the new location as visited
   }
 
   private markVisited(coord: Coordinate) {
@@ -1177,6 +1258,9 @@ export class Labyrinth {
       return;
     }
 
+    // NEW: Store current location as last safe location BEFORE moving
+    this.lastSafePlayerLocation = { ...this.playerLocation };
+
     if (this.playerStunnedTurns > 0) {
         this.playerStunnedTurns--;
         const directions = ["north", "south", "east", "west"];
@@ -1230,6 +1314,14 @@ export class Labyrinth {
       return;
     }
 
+    // NEW: Check for death trap
+    if (this.deathTrapsLocations.has(targetCoordStr)) {
+      this.playerLocation = { x: newX, y: newY }; // Move player onto the trap for visual
+      this.addMessage("A chilling aura engulfs you as you step onto the cursed ground! Your life force drains instantly!");
+      this.setGameOver('defeat', playerName, time, "Instant Death Trap");
+      return;
+    }
+
     if (this.currentFloor === this.NUM_FLOORS - 1 && !this.bossDefeated) {
         const currentCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
         const wasInPassage = this.bossPassageCoords.has(currentCoordStr);
@@ -1278,6 +1370,9 @@ export class Labyrinth {
       return;
     }
 
+    // NEW: Store current location as last safe location BEFORE jumping
+    this.lastSafePlayerLocation = { ...this.playerLocation };
+
     if (this.playerStunnedTurns > 0) {
       this.addMessage("You are too disoriented to make a coordinated leap!");
       return;
@@ -1325,6 +1420,14 @@ export class Labyrinth {
         this.addMessage(`You can't jump onto an enemy! The ${enemy.name} blocks your landing.`);
         return;
       }
+    }
+
+    // NEW: Check for death trap at destination
+    if (this.deathTrapsLocations.has(targetCoordStr)) {
+      this.playerLocation = destination; // Move player onto the trap for visual
+      this.addMessage("A chilling aura engulfs you as you land on the cursed ground! Your life force drains instantly!");
+      this.setGameOver('defeat', playerName, time, "Instant Death Trap");
+      return;
     }
 
     // Boss logic for jumping
@@ -1499,7 +1602,8 @@ export class Labyrinth {
 
         // Traps
         const hasTrap = this.trapsLocations.has(coordStr);
-        if (hasTrap) {
+        const hasDeathTrap = this.deathTrapsLocations.has(coordStr); // NEW: Check for death traps
+        if (hasTrap || hasDeathTrap) {
             const isAlreadyRevealed = this.revealedTraps.has(coordStr);
             this.revealedTraps.add(coordStr); // Reveal it permanently
             if (!isAlreadyRevealed) {

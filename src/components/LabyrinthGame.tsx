@@ -82,6 +82,7 @@ const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Grand Riddle of Eternity": "❓",
   "Triggered Trap": "☠️",
+  "Instant Death Trap": "💀", // NEW: Emoji for death trap
 };
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
@@ -378,6 +379,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <stop offset="100%" stopColor="#ffcc00" stopOpacity="0" />
             </radialGradient>
           </symbol>
+          {/* NEW: Death Trap Pattern */}
+          <pattern id="death-trap-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
+            <rect width="1" height="1" fill="#1a0a0a" /> {/* Dark background */}
+            <path d="M 0.1 0.1 L 0.9 0.9 M 0.9 0.1 L 0.1 0.9" stroke="#ff0000" strokeWidth="0.1" /> {/* Red X */}
+            <circle cx="0.5" cy="0.5" r="0.2" fill="rgba(0,0,0,0.5)" /> {/* Dark center */}
+          </pattern>
         </defs>
         <g mask="url(#fog-mask)">
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
@@ -419,9 +426,28 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const item = labyrinth.getItem(itemId);
             return <text key={`static-${itemId}`} x={x + 0.5} y={y + 0.5} fontSize="0.7" textAnchor="middle" dominantBaseline="central">{getEmojiForElement(item.name)}</text>;
           })}
-          {Array.from(allVisibleTraps).map((coordStr) => {
+          {/* NEW: Render death traps first, as they are always visible and have a distinct look */}
+          {Array.from(labyrinth.deathTrapsLocations.keys()).map((coordStr) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
+            return (
+              <rect
+                key={`death-trap-${coordStr}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                fill="url(#death-trap-pattern)"
+                stroke="rgba(0,0,0,0.8)"
+                strokeWidth={0.05}
+                className="animate-pulse-slow" // Black glow effect
+              />
+            );
+          })}
+          {/* Render normal traps (only if revealed and not a death trap) */}
+          {Array.from(allVisibleTraps).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor || labyrinth.deathTrapsLocations.has(coordStr)) return null; // Skip if it's a death trap
 
             const playerOnTrap = playerLoc.x === x && playerLoc.y === y;
 

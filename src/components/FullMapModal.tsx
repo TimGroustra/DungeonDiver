@@ -4,25 +4,24 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 interface FullMapModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mapImage: string;
+  wallPath: string; // Changed from mapImage
+  floorPath: string; // New prop for floor path
   mapDimensions: { width: number; height: number };
   playerPosition: { x: number; y: number } | null;
   playerRotation: number;
-  obstacles: { x: number; y: number; width: number; height: number }[];
+  // Removed obstacles prop as paths define the map
 }
 
 const FullMapModal: React.FC<FullMapModalProps> = ({
   isOpen,
   onClose,
-  mapImage,
+  wallPath,
+  floorPath,
   mapDimensions,
   playerPosition,
   playerRotation,
-  obstacles,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
-
-  // You might have other useEffects or functions here, they are preserved.
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -32,37 +31,35 @@ const FullMapModal: React.FC<FullMapModalProps> = ({
             ref={svgRef}
             viewBox={`0 0 ${mapDimensions.width} ${mapDimensions.height}`}
             className="absolute inset-0 w-full h-full bg-gray-800"
+            shapeRendering="crispEdges"
           >
             <defs>
               <filter id="playerGlow" x="-50%" y="-50%" width="200%" height="200%">
                 <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#007bff" floodOpacity="0.8"/>
               </filter>
+              {/* Define patterns for floor and wall here, similar to LabyrinthGame */}
+              <pattern id="floor-pattern-modal" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect width="1" height="1" fill="#3a2d3c" />
+                <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
+                <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
+                <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
+              </pattern>
+              <pattern id="wall-pattern-modal" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect width="1" height="1" fill="#5a4d5c" />
+                <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
+              </pattern>
             </defs>
-            <image
-              href={mapImage}
-              x="0"
-              y="0"
-              width={mapDimensions.width}
-              height={mapDimensions.height}
-            />
-            {obstacles.map((obstacle, index) => (
-              <rect
-                key={index}
-                x={obstacle.x}
-                y={obstacle.y}
-                width={obstacle.width}
-                height={obstacle.height}
-                fill="rgba(255, 0, 0, 0.5)"
-              />
-            ))}
+            <path d={floorPath} className="fill-[url(#floor-pattern-modal)]" />
+            <path d={wallPath} className="fill-[url(#wall-pattern-modal)] stroke-[#4a3d4c]" strokeWidth={0.05} />
+            <rect x="0" y="0" width={mapDimensions.width} height={mapDimensions.height} fill="none" stroke="gold" strokeWidth="0.2" />
             {playerPosition && (
               <circle
-                cx={playerPosition.x}
-                cy={playerPosition.y}
-                r={0.6} // Made 3 times bigger (0.2 * 3 = 0.6)
-                fill="#007bff" // Set to blue
-                filter="url(#playerGlow)" // Applied glow effect
-                transform={`rotate(${playerRotation} ${playerPosition.x} ${playerPosition.y})`}
+                cx={playerPosition.x + 0.5} // Center the circle on the tile
+                cy={playerPosition.y + 0.5} // Center the circle on the tile
+                r={0.6}
+                fill="#007bff"
+                filter="url(#playerGlow)"
+                transform={`rotate(${playerRotation} ${playerPosition.x + 0.5} ${playerPosition.y + 0.5})`}
               />
             )}
           </svg>

@@ -10,11 +10,12 @@ import { usePlayerPosition } from '@/hooks/usePlayerPosition';
 import { useGameStore } from '@/stores/gameStore';
 
 interface FullMapModalProps {
-  children?: React.ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-const FullMapModal: React.FC<FullMapModalProps> = ({ children }) => {
-  const { floorPath, wallPath, playerPath, mapBounds, mapScale } = useMapData();
+const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
+  const { floorPath, wallPath, mapBounds } = useMapData();
   const { activeQuestObjectives } = useActiveQuest();
   const { playerPosition } = usePlayerPosition();
   const { currentFloor } = useGameStore();
@@ -24,6 +25,8 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ children }) => {
   const [isCentered, setIsCentered] = useState<boolean>(false);
 
   useEffect(() => {
+    if (!isOpen) return; // Only update viewBox when modal is open
+
     if (mapBounds) {
       const { minX, minY, maxX, maxY } = mapBounds;
       const width = maxX - minX;
@@ -31,9 +34,11 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ children }) => {
       // Initial viewBox to show the entire map
       setViewBox(`${minX} ${minY} ${width} ${height}`);
     }
-  }, [mapBounds]);
+  }, [mapBounds, isOpen]);
 
   useEffect(() => {
+    if (!isOpen) return; // Only update viewBox when modal is open
+
     if (isCentered && playerPosition && mapBounds) {
       const { x, y } = playerPosition;
       const { minX, minY, maxX, maxY } = mapBounds;
@@ -49,31 +54,23 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ children }) => {
       const newMinY = y - viewportHeight / 2;
 
       setViewBox(`${newMinX} ${newMinY} ${viewportWidth} ${viewportHeight}`);
-    } else if (mapBounds) {
+    } else if (mapBounds && isOpen && !isCentered) { // If not centered, show full map when opened
       const { minX, minY, maxX, maxY } = mapBounds;
       const width = maxX - minX;
       const height = maxY - minY;
       setViewBox(`${minX} ${minY} ${width} ${height}`);
     }
-  }, [isCentered, playerPosition, mapBounds]);
+  }, [isCentered, playerPosition, mapBounds, isOpen]);
 
   const handleCenterOnPlayer = () => {
     setIsCentered(prev => !prev);
   };
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        {children || (
-          <Button variant="outline" size="icon" className="relative">
-            <MapIcon className="h-4 w-4" />
-            <span className="sr-only">Full Map</span>
-          </Button>
-        )}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] w-[90vw] max-h-[90vh] flex flex-col p-0 overflow-auto">
         <DialogHeader className="p-6 pb-4">
-          <DialogTitle>Full Map - Floor {currentFloor}</DialogTitle>
+          <DialogTitle>Full Map - Floor {currentFloor + 1}</DialogTitle>
         </DialogHeader>
         <div className="relative flex-grow overflow-hidden">
           <svg

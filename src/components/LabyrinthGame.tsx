@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
 import { emojiMap, enemySpriteMap, staticItemSpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import new staticItemSpriteMap
+import { useGameStore } from '@/stores/gameStore'; // Import the game store
 
 // Import adventurer sprites from the new assets location
 import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
@@ -49,8 +50,7 @@ const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
-  const [labyrinth, setLabyrinth] = useState<Labyrinth | null>(null); // Initialize as null
-  const [gameVersion, setGameVersion] = useState(0);
+  const { labyrinth, setLabyrinth, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
@@ -68,9 +68,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       try {
         const newLabyrinth = new Labyrinth();
         setLabyrinth(newLabyrinth);
+        setCurrentFloor(newLabyrinth.getCurrentFloor());
+        setPlayerPosition(newLabyrinth.getPlayerLocation());
         setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
         lastSettledLogicalPositionRef.current = newLabyrinth.getPlayerLocation(); // Sync ref
-        setGameVersion(0);
+        incrementGameVersion(); // Trigger a game version update
         setHasGameOverBeenDispatched(false);
         console.log("Labyrinth initialized. Map grid:", newLabyrinth.getMapGrid());
       } catch (error) {
@@ -155,7 +157,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           // NEW: Clear jump-defeated enemy after animation
           if (labyrinth.lastJumpDefeatedEnemyId) {
             labyrinth.clearJumpDefeatedEnemy();
-            setGameVersion(prev => prev + 1); // Trigger re-render to remove enemy
+            incrementGameVersion(); // Trigger re-render to remove enemy
           }
         }
       };
@@ -242,7 +244,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
         labyrinth.processBossLogic();
       }
-      setGameVersion(prev => prev + 1);
+      setCurrentFloor(labyrinth.getCurrentFloor()); // Update current floor in store
+      setPlayerPosition(labyrinth.getPlayerLocation()); // Update player position in store
+      incrementGameVersion(); // Trigger a game version update
     }, moveSpeed);
     return () => clearInterval(intervalId);
   }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
@@ -250,44 +254,58 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleAttack = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot attack right now."); return; }
     labyrinth.attack(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleJump = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleSearch = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot search right now."); return; }
     labyrinth.search();
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleInteract = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleShieldBash = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; }
     labyrinth.shieldBash(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleUseItem = (itemId: string) => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
-    setGameVersion(prev => prev + prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
   };
 
   const handleReviveClick = () => {
@@ -295,7 +313,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     labyrinth.revivePlayer();
     onRevive();
     setHasGameOverBeenDispatched(false);
-    setGameVersion(prev => prev + 1);
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
     toast.success("You have been revived! Continue your adventure!");
   };
 
@@ -306,7 +326,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       return;
     }
     labyrinth.nextFloor(playerName, elapsedTime);
-    setGameVersion(prev => prev + 1); // Force re-render
+    setCurrentFloor(labyrinth.getCurrentFloor());
+    setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion(); // Force re-render
     // If it was the last floor and nextFloor triggered victory, onGameOver will be called
     if (labyrinth.isGameOver()) {
       const result = labyrinth.getGameResult();
@@ -788,7 +810,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
         </aside>
       </div>
-      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModalOpen(false)} labyrinth={labyrinth} />
+      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModalOpen(false)} />
     </div>
   );
 };

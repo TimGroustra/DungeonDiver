@@ -90,7 +90,7 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
             </defs>
 
             <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
-            <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.05} />
+            <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.02} />
 
             {/* Render active quest objectives */}
             {activeQuestObjectives.map((obj, index) => (
@@ -98,9 +98,9 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
                 key={`objective-${index}`}
                 cx={obj.x}
                 cy={obj.y}
-                r={0.5}
+                r={0.2}
                 className="fill-yellow-400 stroke-yellow-600"
-                strokeWidth={0.1}
+                strokeWidth={0.02}
               />
             ))}
 
@@ -109,9 +109,9 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               <circle
                 cx={playerPosition.x}
                 cy={playerPosition.y}
-                r={0.5}
+                r={0.2}
                 className="fill-red-500 stroke-red-700"
-                strokeWidth={0.1}
+                strokeWidth={0.02}
               />
             )}
           </svg>

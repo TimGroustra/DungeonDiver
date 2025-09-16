@@ -6,7 +6,8 @@ import skeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
 import shadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import watcherSprite from "@/assets/sprites/enemies/watcher.svg";
 import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repair-bench.svg";
-import ancientMechanismSprite from "@/assets/sprites/static-items/ancient-mechanism.svg"; // New import
+import ancientMechanismSprite from "@/assets/sprites/static-items/ancient-mechanism.svg";
+import hiddenSpringSprite from "@/assets/sprites/static-items/hidden-spring.svg"; // New import
 
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
@@ -27,7 +28,7 @@ export const emojiMap: { [key: string]: string } = {
   "Heart of the Labyrinth": "❤️‍🔥",
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
-  "Hidden Spring": "🌿",
+  "Hidden Spring": "⛲",
   "Ancient Repair Bench": "🛠️", // Changed to a more generic tool emoji
   "Mysterious Box": "📦", // Changed to a more generic box emoji
   "Ancient Altar": "🛐",
@@ -47,7 +48,8 @@ export const enemySpriteMap: { [key: string]: string } = {
 // New map for static item sprites
 export const staticItemSpriteMap: { [key: string]: string } = {
   "Ancient Repair Bench": ancientRepairBenchSprite,
-  "Ancient Mechanism": ancientMechanismSprite, // Add the new sprite here
+  "Ancient Mechanism": ancientMechanismSprite,
+  "Hidden Spring": hiddenSpringSprite, // Add the new sprite here
 };
 
 // Helper function to get emoji for an element, handling prefixes

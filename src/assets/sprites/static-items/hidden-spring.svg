@@ -1,0 +1,39 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- Base Stone -->
+  <rect x="2" y="14" width="12" height="2" fill="#6B7280"/>
+  <rect x="3" y="13" width="10" height="1" fill="#9CA3AF"/>
+  <!-- Lower Basin -->
+  <rect x="1" y="12" width="14" height="1" fill="#4B5563"/>
+  <rect x="2" y="11" width="12" height="1" fill="#6B7280"/>
+  <!-- Lower Basin Water -->
+  <rect x="3" y="11" width="10" height="1" fill="#67E8F9"/>
+  <rect x="4" y="11" width="8" height="1" fill="#A5F3FC"/>
+  <!-- Middle Pedestal -->
+  <rect x="5" y="9" width="6" height="2" fill="#6B7280"/>
+  <rect x="6" y="8" width="4" height="1" fill="#9CA3AF"/>
+  <!-- Upper Basin -->
+  <rect x="4" y="7" width="8" height="1" fill="#4B5563"/>
+  <rect x="5" y="6" width="6" height="1" fill="#6B7280"/>
+  <!-- Upper Basin Water -->
+  <rect x="6" y="6" width="4" height="1" fill="#67E8F9"/>
+  <rect x="7" y="6" width="2" height="1" fill="#A5F3FC"/>
+  <!-- Water Spout -->
+  <rect x="7" y="3" width="2" height="3" fill="#22D3EE"/>
+  <rect x="7" y="2" width="2" height="1" fill="#A5F3FC"/>
+  <!-- Water Droplets/Sparkles -->
+  <rect x="6" y="2" width="1" height="1" fill="#E0F2FE"/>
+  <rect x="9" y="2" width="1" height="1" fill="#E0F2FE"/>
+  <rect x="5" y="4" width="1" height="1" fill="#A5F3FC"/>
+  <rect x="10" y="4" width="1" height="1" fill="#A5F3FC"/>
+  <!-- Water Flowing Down -->
+  <rect x="5" y="8" width="1" height="3" fill="#22D3EE"/>
+  <rect x="10" y="8" width="1" height="3" fill="#22D3EE"/>
+  <rect x="3" y="12" width="1" height="1" fill="#22D3EE"/>
+  <rect x="12" y="12" width="1" height="1" fill="#22D3EE"/>
+  <!-- Moss/Vines -->
+  <rect x="2" y="13" width="1" height="1" fill="#166534"/>
+  <rect x="13" y="13" width="1" height="1" fill="#166534"/>
+  <rect x="1" y="11" width="1" height="1" fill="#15803D"/>
+  <rect x="5" y="10" width="1" height="1" fill="#15803D"/>
+  <rect x="11" y="7" width="1" height="1" fill="#166534"/>
+</svg>

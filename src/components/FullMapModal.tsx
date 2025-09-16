@@ -1,153 +1,132 @@
 "use client";
 
-import React from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Labyrinth } from "@/lib/game";
-import { generateSvgPaths } from "@/lib/map-renderer";
-import { cn } from "@/lib/utils";
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { MapIcon, LocateFixedIcon } from 'lucide-react';
+import { useMapData } from '@/hooks/useMapData';
+import { useActiveQuest } from '@/hooks/useActiveQuest';
+import { usePlayerPosition } from '@/hooks/usePlayerPosition';
+import { useGameStore } from '@/stores/gameStore';
 
 interface FullMapModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  labyrinth: Labyrinth;
+  children?: React.ReactNode;
 }
 
-const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose, labyrinth }) => {
-  const currentFloor = labyrinth.getCurrentFloor();
-  const mapWidth = labyrinth["MAP_WIDTH"];
-  const mapHeight = labyrinth["MAP_HEIGHT"];
-  const playerLoc = labyrinth.getPlayerLocation();
+const FullMapModal: React.FC<FullMapModalProps> = ({ children }) => {
+  const { floorPath, wallPath, playerPath, mapBounds, mapScale } = useMapData();
+  const { activeQuestObjectives } = useActiveQuest();
+  const { playerPosition } = usePlayerPosition();
+  const { currentFloor } = useGameStore();
 
-  const { wallPath, floorPath } = React.useMemo(() => generateSvgPaths(labyrinth.getMapGrid()), [labyrinth, currentFloor]);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [viewBox, setViewBox] = useState<string>("");
+  const [isCentered, setIsCentered] = useState<boolean>(false);
 
-  // Helper function to get active quest objective coordinates
-  const getActiveQuestObjectiveCoords = (): { x: number; y: number; type: string; }[] => {
-    const activeObjectives: { x: number; y: number; type: string; }[] = [];
-    if (!labyrinth) return activeObjectives;
-
-    // Helper to add an objective if it's not completed and exists on the map
-    const addObjective = (id: string, map: Map<string, string | boolean>, type: string) => {
-      for (const [coordStr, elementId] of map.entries()) {
-        const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === currentFloor && elementId === id) {
-          activeObjectives.push({ x, y, type });
-          return; // Found it, no need to search further for this ID
-        }
-      }
-    };
-
-    // Floor 0: The Echoes of the Lost Scholar
-    if (currentFloor === 0 && !labyrinth["scholarAmuletQuestCompleted"]) {
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "journal-f0")) {
-        addObjective("journal-f0", labyrinth.itemLocations, "item");
-      }
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "charged-crystal-f0")) {
-        addObjective("charged-crystal-f0", labyrinth.itemLocations, "item");
-      }
-      addObjective("ancient-mechanism-f0", labyrinth.staticItemLocations, "static");
+  useEffect(() => {
+    if (mapBounds) {
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      // Initial viewBox to show the entire map
+      setViewBox(`${minX} ${minY} ${width} ${height}`);
     }
-    // Floor 1: The Whispering Well's Thirst
-    else if (currentFloor === 1 && !labyrinth["whisperingWellQuestCompleted"]) {
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "enchanted-flask-f1")) {
-        addObjective("enchanted-flask-f1", labyrinth.itemLocations, "item");
-      }
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "living-water-f1")) { // If flask is filled, water is in inventory
-        addObjective("hidden-spring-f1", labyrinth.staticItemLocations, "static");
-      }
-      addObjective("dry-well-f1", labyrinth.staticItemLocations, "static");
-    }
-    // Floor 2: The Broken Compass's Secret
-    else if (currentFloor === 2 && !labyrinth["trueCompassQuestCompleted"]) {
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "broken-compass-f2")) {
-        addObjective("broken-compass-f2", labyrinth.itemLocations, "item");
-      }
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "fine-tools-f2")) {
-        addObjective("fine-tools-f2", labyrinth.itemLocations, "item");
-      }
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "prismatic-lens-f2")) {
-        addObjective("prismatic-lens-f2", labyrinth.itemLocations, "item");
-      }
-      addObjective("repair-bench-f2", labyrinth.staticItemLocations, "static");
-    }
-    // Floor 3 (last floor): The Heart of the Labyrinth
-    else if (currentFloor === labyrinth["NUM_FLOORS"] - 1 && (!labyrinth["bossDefeated"] || !labyrinth["heartSacrificed"])) {
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "labyrinth-key-f3")) {
-        addObjective("labyrinth-key-f3", labyrinth.itemLocations, "item");
-      }
-      if (!labyrinth["mysteriousBoxOpened"]) {
-        addObjective("mysterious-box-f3", labyrinth.staticItemLocations, "static");
-      }
-      if (!labyrinth.getInventoryItems().some(i => i.item.id === "heart-of-labyrinth-f3")) {
-         if (labyrinth["mysteriousBoxOpened"]) {
-            addObjective("heart-of-labyrinth-f3", labyrinth.itemLocations, "item");
-         }
-      }
-      if (!labyrinth["bossDefeated"]) {
-        addObjective("watcher-of-the-core-f3", labyrinth.enemyLocations, "enemy");
-      }
-      if (!labyrinth["heartSacrificed"]) {
-        addObjective("ancient-altar-f3", labyrinth.staticItemLocations, "static");
-      }
-    }
+  }, [mapBounds]);
 
-    return activeObjectives;
+  useEffect(() => {
+    if (isCentered && playerPosition && mapBounds) {
+      const { x, y } = playerPosition;
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const mapWidth = maxX - minX;
+      const mapHeight = maxY - minY;
+
+      // Calculate a viewBox that centers the player
+      // We want to show a certain area around the player, let's say 1/4th of the map's total width/height
+      const viewportWidth = mapWidth / 4;
+      const viewportHeight = mapHeight / 4;
+
+      const newMinX = x - viewportWidth / 2;
+      const newMinY = y - viewportHeight / 2;
+
+      setViewBox(`${newMinX} ${newMinY} ${viewportWidth} ${viewportHeight}`);
+    } else if (mapBounds) {
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      setViewBox(`${minX} ${minY} ${width} ${height}`);
+    }
+  }, [isCentered, playerPosition, mapBounds]);
+
+  const handleCenterOnPlayer = () => {
+    setIsCentered(prev => !prev);
   };
 
-  const activeQuestObjectives = getActiveQuestObjectiveCoords();
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        {children || (
+          <Button variant="outline" size="icon" className="relative">
+            <MapIcon className="h-4 w-4" />
+            <span className="sr-only">Full Map</span>
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[800px] w-[90vw] max-h-[90vh] flex flex-col p-0 overflow-auto">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle>Full Map - Floor {currentFloor}</DialogTitle>
+        </DialogHeader>
+        <div className="relative flex-grow overflow-hidden">
+          <svg
+            ref={svgRef}
+            className="w-full h-full bg-[#2a212b]"
+            viewBox={viewBox}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {/* Define patterns for floor and wall */}
+            <defs>
+              <pattern id="floor-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect x="0" y="0" width="1" height="1" fill="#3a2d3c" />
+              </pattern>
+              <pattern id="wall-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect x="0" y="0" width="1" height="1" fill="#4a3d4c" />
+              </pattern>
+            </defs>
 
-  const renderFullMap = () => {
-    return (
-      <div className="relative w-full h-full overflow-hidden">
-        <svg viewBox={`0 0 ${mapWidth} ${mapHeight}`} className="w-full h-full" shapeRendering="crispEdges">
-          <defs>
-            <pattern id="floor-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
-              <rect width="1" height="1" fill="#3a2d3c" />
-              <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
-              <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
-              <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
-            </pattern>
-            <pattern id="wall-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
-              <rect width="1" height="1" fill="#5a4d5c" />
-              <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
-            </pattern>
-          </defs>
-
-          <g>
-            {/* Render floor and walls */}
             <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
             <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.05} />
 
             {/* Render active quest objectives */}
             {activeQuestObjectives.map((obj, index) => (
-              <circle key={`objective-${obj.x}-${obj.y}-${index}`} cx={obj.x + 0.5} cy={obj.y + 0.5} r="0.3" fill="gold" stroke="orange" strokeWidth="0.1" />
+              <circle
+                key={`objective-${index}`}
+                cx={obj.x}
+                cy={obj.y}
+                r={0.5}
+                className="fill-yellow-400 stroke-yellow-600"
+                strokeWidth={0.1}
+              />
             ))}
 
-            {/* Render player */}
-            <circle cx={playerLoc.x + 0.5} cy={playerLoc.y + 0.5} r="0.4" fill="cyan" stroke="white" strokeWidth="0.1" className="animate-pulse-fast" />
-          </g>
-        </svg>
-      </div>
-    );
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[90vw] max-h-[90vh] sm:max-w-[800px] sm:max-h-[600px] bg-gray-800 text-gray-100 dark:bg-gray-100 dark:text-gray-900 border-gray-700 dark:border-gray-300 flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="text-yellow-400 dark:text-yellow-600">Labyrinth Map - Floor {currentFloor + 1}</DialogTitle>
-        </DialogHeader>
-        <div className="flex-grow overflow-hidden border border-gray-700 dark:border-gray-300 rounded-md bg-gray-900 dark:bg-gray-200">
-          <ScrollArea className="h-full w-full">
-            <div className="p-2">
-              {renderFullMap()}
-            </div>
-          </ScrollArea>
+            {/* Render player position */}
+            {playerPosition && (
+              <circle
+                cx={playerPosition.x}
+                cy={playerPosition.y}
+                r={0.5}
+                className="fill-red-500 stroke-red-700"
+                strokeWidth={0.1}
+              />
+            )}
+          </svg>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute bottom-4 right-4"
+            onClick={handleCenterOnPlayer}
+          >
+            <LocateFixedIcon className="h-4 w-4" />
+            <span className="sr-only">Center on Player</span>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

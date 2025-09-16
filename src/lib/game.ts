@@ -719,12 +719,26 @@ export class Labyrinth {
       this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
       this.watcherLocation = { x: watcherX, y: watcherY };
 
-      // Place Ancient Altar at the end of the passage
-      const altarX = this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
-      const altarY = passageCenterY;
+      // Place Ancient Altar at a random safe tile in the boss passage, not on the Watcher's spot
       const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
       this.items.set(ancientAltar.id, ancientAltar);
-      this.staticItemLocations.set(`${altarX},${altarY},${floor}`, ancientAltar.id);
+
+      const availableAltarTiles: Coordinate[] = [];
+      for (const coordStr of this.bossSafeTiles) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === floor && (x !== watcherX || y !== watcherY)) { // Ensure not on boss location
+          availableAltarTiles.push({ x, y });
+        }
+      }
+
+      if (availableAltarTiles.length > 0) {
+        const randomAltarTile = availableAltarTiles[Math.floor(Math.random() * availableAltarTiles.length)];
+        this.staticItemLocations.set(`${randomAltarTile.x},${randomAltarTile.y},${floor}`, ancientAltar.id);
+      } else {
+        console.warn(`Could not find a suitable safe tile for Ancient Altar on floor ${floor}.`);
+        // Fallback to a fixed position if no safe tiles are found (shouldn't happen with current generation)
+        this.staticItemLocations.set(`${this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2)},${passageCenterY},${floor}`, ancientAltar.id);
+      }
 
       // Place Labyrinth Key and Mysterious Box somewhere within the passage, but not on Watcher/Altar
       const labyrinthKey = new Item("labyrinth-key-f3", "Labyrinth Key", "A heavy, ornate key, pulsating with a faint, dark energy.", false, 'key');

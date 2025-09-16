@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull } from "lucide-react"; // Added Skull icon
-import { useIsMobile } from "@/hooks/use-is-mobile";
+// import { useIsMobile } from "@/hooks/use-is-mobile"; // Removed unused import
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
@@ -62,7 +62,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
-  // Use hooks to get map and player data
+  // Use hooks to get map and player data - MOVED TO TOP LEVEL
   const { floorPath: fullMapFloorPath, wallPath: fullMapWallPath, mapBounds } = useMapData();
   const { playerPosition: logicalPlayerPosition } = usePlayerPosition();
 

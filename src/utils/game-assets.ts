@@ -5,7 +5,8 @@ import goblinSprite from "@/assets/sprites/enemies/goblin.svg";
 import skeletonSprite from "@/assets/sprites/enemies/skeleton.svg";
 import shadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import watcherSprite from "@/assets/sprites/enemies/watcher.svg";
-import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repair-bench.svg"; // New import
+import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repair-bench.svg";
+import ancientMechanismSprite from "@/assets/sprites/static-items/ancient-mechanism.svg"; // New import
 
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
@@ -46,6 +47,7 @@ export const enemySpriteMap: { [key: string]: string } = {
 // New map for static item sprites
 export const staticItemSpriteMap: { [key: string]: string } = {
   "Ancient Repair Bench": ancientRepairBenchSprite,
+  "Ancient Mechanism": ancientMechanismSprite, // Add the new sprite here
 };
 
 // Helper function to get emoji for an element, handling prefixes

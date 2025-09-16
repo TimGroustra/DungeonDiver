@@ -92,6 +92,17 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               <pattern id="wall-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
                 <rect x="0" y="0" width="1" height="1" fill="#4a3d4c" />
               </pattern>
+
+              {/* Filter for player glow */}
+              <filter id="playerGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="0.1" result="blur" />
+                <feFlood floodColor="blue" floodOpacity="1" result="flood" />
+                <feComposite in="flood" in2="blur" operator="in" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
             </defs>
 
             <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
@@ -143,8 +154,9 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
                 cx={playerPosition.x}
                 cy={playerPosition.y}
                 r={0.2}
-                className="fill-red-500 stroke-red-700"
+                className="fill-blue-500 stroke-blue-700" // Changed fill to blue
                 strokeWidth={0.02}
+                filter="url(#playerGlow)" // Apply the glow filter
               />
             )}
           </svg>

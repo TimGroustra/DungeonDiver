@@ -142,8 +142,8 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               <circle
                 cx={playerPosition.x}
                 cy={playerPosition.y}
-                r={0.2}
-                className="fill-red-500 stroke-red-700"
+                r={0.6}
+                className="fill-blue-500 stroke-blue-700"
                 strokeWidth={0.02}
               />
             )}

@@ -1,30 +1,10 @@
-<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="32" height="32" fill="#cccccc"/>
-  <!-- Workbench base -->
-  <rect x="4" y="12" width="24" height="12" fill="#8b5a2b"/>
-  <rect x="4" y="12" width="24" height="12" fill="none" stroke="#5d3a1a" stroke-width="1"/>
-  <!-- Workbench legs -->
-  <rect x="6" y="24" width="4" height="8" fill="#5d3a1a"/>
-  <rect x="22" y="24" width="4" height="8" fill="#5d3a1a"/>
-  <!-- Workbench top details -->
-  <rect x="8" y="14" width="16" height="8" fill="#a0522d"/>
-  <rect x="8" y="14" width="16" height="8" fill="none" stroke="#7c4e1e" stroke-width="1"/>
-  <!-- Tools on the bench -->
-  <!-- Hammer -->
-  <rect x="12" y="18" width="2" height="4" fill="#c0c0c0"/>
-  <rect x="12" y="18" width="2" height="4" fill="none" stroke="#808080" stroke-width="1"/>
-  <rect x="12" y="22" width="2" height="2" fill="#808080"/>
-  <!-- Screwdriver -->
-  <rect x="18" y="18" width="2" height="4" fill="#c0c0c0"/>
-  <rect x="18" y="18" width="2" height="4" fill="none" stroke="#808080" stroke-width="1"/>
-  <rect x="18" y="22" width="2" height="2" fill="#808080"/>
-  <!-- Wrench -->
-  <rect x="15" y="18" width="2" height="4" fill="#c0c0c0"/>
-  <rect x="15" y="18" width="2" height="4" fill="none" stroke="#808080" stroke-width="1"/>
-  <rect x="15" y="22" width="2" height="2" fill="#808080"/>
-  <!-- Light shading -->
-  <rect x="4" y="12" width="24" height="12" fill="none" stroke="#000000" stroke-width="0.5" opacity="0.1"/>
-  <rect x="6" y="24" width="4" height="8" fill="none" stroke="#000000" stroke-width="0.5" opacity="0.1"/>
-  <rect x="22" y="24" width="4" height="8" fill="none" stroke="#000000" stroke-width="0.5" opacity="0.1"/>
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="24" height="24" fill="grey"/>
+  <path d="M2 17H22" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M4 17V10C4 8.89543 4.89543 8 6 8H18C19.1046 8 20 8.89543 20 10V17" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M6 8V6C6 4.89543 6.89543 4 8 4H16C17.1046 4 18 4.89543 18 6V8" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M8 17V20" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M16 17V20" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M10 12H14" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M12 10V14" stroke="#A0A0A0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
 </svg>

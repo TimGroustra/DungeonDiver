@@ -7,7 +7,8 @@ import shadowSprite from "@/assets/sprites/enemies/shadow.svg";
 import watcherSprite from "@/assets/sprites/enemies/watcher.svg";
 import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repair-bench.svg";
 import ancientMechanismSprite from "@/assets/sprites/static-items/ancient-mechanism.svg";
-import hiddenSpringSprite from "@/assets/sprites/static-items/hidden-spring.svg"; // New import
+import hiddenSpringSprite from "@/assets/sprites/static-items/hidden-spring.svg";
+import mysteriousBoxSprite from "@/assets/sprites/static-items/mysterious-box.svg"; // New import
 
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
@@ -29,8 +30,7 @@ export const emojiMap: { [key: string]: string } = {
   "Ancient Mechanism": "⚙️",
   "Whispering Well": "🕳️",
   "Hidden Spring": "⛲",
-  "Ancient Repair Bench": "🛠️", // Changed to a more generic tool emoji
-  "Mysterious Box": "📦", // Changed to a more generic box emoji
+  "Ancient Repair Bench": "🛠️",
   "Ancient Altar": "🛐",
   "Mysterious Staircase": "🪜",
   "Triggered Trap": "☠️",
@@ -49,7 +49,8 @@ export const enemySpriteMap: { [key: string]: string } = {
 export const staticItemSpriteMap: { [key: string]: string } = {
   "Ancient Repair Bench": ancientRepairBenchSprite,
   "Ancient Mechanism": ancientMechanismSprite,
-  "Hidden Spring": hiddenSpringSprite, // Add the new sprite here
+  "Hidden Spring": hiddenSpringSprite,
+  "Mysterious Box": mysteriousBoxSprite, // Add the new sprite here
 };
 
 // Helper function to get emoji for an element, handling prefixes

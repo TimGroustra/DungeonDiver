@@ -19,6 +19,7 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
   const { activeQuestObjectives } = useActiveQuest();
   const { playerPosition } = usePlayerPosition();
   const { labyrinth, currentFloor } = useGameStore(); // Get labyrinth from store
+  const { equippedCompass } = useGameStore(); // Get equippedCompass from store
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState<string>("");
@@ -137,8 +138,8 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               </text>
             ))}
 
-            {/* Render player position */}
-            {playerPosition && (
+            {/* Render player position ONLY if True Compass is equipped */}
+            {playerPosition && equippedCompass?.id === "true-compass-f2" && (
               <circle
                 cx={playerPosition.x}
                 cy={playerPosition.y}

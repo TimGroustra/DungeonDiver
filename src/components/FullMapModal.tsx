@@ -18,7 +18,7 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
   const { floorPath, wallPath, mapBounds } = useMapData();
   const { activeQuestObjectives } = useActiveQuest();
   const { playerPosition } = usePlayerPosition();
-  const { currentFloor } = useGameStore();
+  const { labyrinth, currentFloor } = useGameStore(); // Get labyrinth from store
 
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState<string>("");
@@ -66,6 +66,11 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
     setIsCentered(prev => !prev);
   };
 
+  // Get boss state and passage coordinates for the full map
+  const bossState = labyrinth?.getBossState();
+  const bossPassageCoords = labyrinth?.bossPassageCoords;
+  const isBossDefeated = labyrinth?.isBossDefeated();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] w-[90vw] max-h-[90vh] flex flex-col p-0 overflow-auto">
@@ -92,16 +97,44 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
             <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
             <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.02} />
 
-            {/* Render active quest objectives */}
+            {/* Render Boss Passage Overlay on full map */}
+            {labyrinth && currentFloor === labyrinth.NUM_FLOORS - 1 && !isBossDefeated && Array.from(bossPassageCoords || []).map((coordStr) => {
+              const [x, y, f] = coordStr.split(',').map(Number);
+              if (f !== currentFloor) return null;
+
+              const isRedLight = bossState === 'red_light';
+              const isSafeTile = labyrinth.bossSafeTiles.has(coordStr);
+
+              const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent';
+              const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : '';
+
+              return (
+                <rect
+                  key={`boss-passage-full-${coordStr}`}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  fill={fill}
+                  className={className}
+                />
+              );
+            })}
+
+            {/* Render active quest objectives with emojis */}
             {activeQuestObjectives.map((obj, index) => (
-              <circle
+              <text
                 key={`objective-${index}`}
-                cx={obj.x}
-                cy={obj.y}
-                r={0.2}
-                className="fill-yellow-400 stroke-yellow-600"
-                strokeWidth={0.02}
-              />
+                x={obj.x + 0.5}
+                y={obj.y + 0.5}
+                fontSize="0.7" // Adjust size for visibility on full map
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-yellow-300 stroke-yellow-600" // Use text color for emoji
+                title={obj.description} // Show description on hover
+              >
+                {obj.emoji}
+              </text>
             ))}
 
             {/* Render player position */}

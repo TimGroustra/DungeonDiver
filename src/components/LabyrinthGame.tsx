@@ -8,16 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull } from "lucide-react"; // Added Skull icon
-// import { useIsMobile } from "@/hooks/use-is-mobile"; // Removed unused import
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
 import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
 import { emojiMap, enemySpriteMap, staticItemSpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import new staticItemSpriteMap
 import { useGameStore } from '@/stores/gameStore'; // Import the game store
-import { useMapData } from '@/hooks/useMapData'; // Import useMapData
-import { usePlayerPosition } from '@/hooks/usePlayerPosition'; // Import usePlayerPosition
-
 
 // Import adventurer sprites from the new assets location
 import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
@@ -62,10 +59,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
-  // Use hooks to get map and player data - MOVED TO TOP LEVEL
-  const { floorPath: fullMapFloorPath, wallPath: fullMapWallPath, mapBounds } = useMapData();
-  const { playerPosition: logicalPlayerPosition } = usePlayerPosition();
-
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef({ x: 0, y: 0 }); // Initialize with default values
 
@@ -92,9 +85,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
-    if (!labyrinth || !logicalPlayerPosition) return; // Ensure labyrinth and player position are initialized
+    if (!labyrinth) return; // Ensure labyrinth is initialized
 
-    const newLogicalPos = logicalPlayerPosition;
+    const newLogicalPos = labyrinth.getPlayerLocation();
     const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
 
     // Only animate if the logical position has actually changed from the last settled position
@@ -170,7 +163,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       };
       requestAnimationFrame(animate);
     }
-  }, [logicalPlayerPosition?.x, logicalPlayerPosition?.y, labyrinth?.getCurrentFloor()]); // Depend on actual game state player location and floor
+  }, [labyrinth?.getPlayerLocation().x, labyrinth?.getPlayerLocation().y, labyrinth?.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null || !labyrinth) return; // Do not process game logic if game is over or labyrinth not initialized
@@ -778,17 +771,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     );
   }
 
-  // Determine player rotation for the map modal
-  const playerRotationDegrees = useMemo(() => {
-    switch (labyrinth.lastMoveDirection) {
-      case 'north': return 0;
-      case 'east': return 90;
-      case 'south': return 180;
-      case 'west': return 270;
-      default: return 0;
-    }
-  }, [labyrinth.lastMoveDirection]);
-
   return (
     <div 
       ref={gameContainerRef}
@@ -828,15 +810,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
         </aside>
       </div>
-      <FullMapModal 
-        isOpen={isMapModalOpen} 
-        onClose={() => setIsMapModalOpen(false)} 
-        wallPath={fullMapWallPath}
-        floorPath={fullMapFloorPath}
-        mapDimensions={mapBounds || { width: 0, height: 0 }} // Provide default if mapBounds is null
-        playerPosition={logicalPlayerPosition}
-        playerRotation={playerRotationDegrees}
-      />
+      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModalOpen(false)} />
     </div>
   );
 };

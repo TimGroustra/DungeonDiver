@@ -1,68 +1,162 @@
-import React, { useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+"use client";
+
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { MapIcon, LocateFixedIcon } from 'lucide-react';
+import { useMapData } from '@/hooks/useMapData';
+import { useActiveQuest } from '@/hooks/useActiveQuest';
+import { usePlayerPosition } from '@/hooks/usePlayerPosition';
+import { useGameStore } from '@/stores/gameStore';
 
 interface FullMapModalProps {
   isOpen: boolean;
   onClose: () => void;
-  wallPath: string; // Changed from mapImage
-  floorPath: string; // New prop for floor path
-  mapDimensions: { width: number; height: number };
-  playerPosition: { x: number; y: number } | null;
-  playerRotation: number;
-  // Removed obstacles prop as paths define the map
 }
 
-const FullMapModal: React.FC<FullMapModalProps> = ({
-  isOpen,
-  onClose,
-  wallPath,
-  floorPath,
-  mapDimensions,
-  playerPosition,
-  playerRotation,
-}) => {
+const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
+  const { floorPath, wallPath, mapBounds } = useMapData();
+  const { activeQuestObjectives } = useActiveQuest();
+  const { playerPosition } = usePlayerPosition();
+  const { labyrinth, currentFloor } = useGameStore(); // Get labyrinth from store
+
   const svgRef = useRef<SVGSVGElement>(null);
+  const [viewBox, setViewBox] = useState<string>("");
+  const [isCentered, setIsCentered] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isOpen) return; // Only update viewBox when modal is open
+
+    if (mapBounds) {
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      // Initial viewBox to show the entire map
+      setViewBox(`${minX} ${minY} ${width} ${height}`);
+    }
+  }, [mapBounds, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return; // Only update viewBox when modal is open
+
+    if (isCentered && playerPosition && mapBounds) {
+      const { x, y } = playerPosition;
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const mapWidth = maxX - minX;
+      const mapHeight = maxY - minY;
+
+      // Calculate a viewBox that centers the player
+      // We want to show a certain area around the player, let's say 1/4th of the map's total width/height
+      const viewportWidth = mapWidth / 4;
+      const viewportHeight = mapHeight / 4;
+
+      const newMinX = x - viewportWidth / 2;
+      const newMinY = y - viewportHeight / 2;
+
+      setViewBox(`${newMinX} ${newMinY} ${viewportWidth} ${viewportHeight}`);
+    } else if (mapBounds && isOpen && !isCentered) { // If not centered, show full map when opened
+      const { minX, minY, maxX, maxY } = mapBounds;
+      const width = maxX - minX;
+      const height = maxY - minY;
+      setViewBox(`${minX} ${minY} ${width} ${height}`);
+    }
+  }, [isCentered, playerPosition, mapBounds, isOpen]);
+
+  const handleCenterOnPlayer = () => {
+    setIsCentered(prev => !prev);
+  };
+
+  // Get boss state and passage coordinates for the full map
+  const bossState = labyrinth?.getBossState();
+  const bossPassageCoords = labyrinth?.bossPassageCoords;
+  const isBossDefeated = labyrinth?.isBossDefeated();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 border-none bg-transparent">
-        <div className="relative w-full h-[80vh] overflow-hidden rounded-lg">
+      <DialogContent className="sm:max-w-[800px] w-[90vw] max-h-[90vh] flex flex-col p-0 overflow-auto">
+        <DialogHeader className="p-6 pb-4">
+          <DialogTitle>Full Map - Floor {currentFloor + 1}</DialogTitle>
+        </DialogHeader>
+        <div className="relative flex-grow overflow-hidden">
           <svg
             ref={svgRef}
-            viewBox={`0 0 ${mapDimensions.width} ${mapDimensions.height}`}
-            className="absolute inset-0 w-full h-full bg-gray-800"
-            shapeRendering="crispEdges"
+            className="w-full h-full bg-[#2a212b]"
+            viewBox={viewBox}
+            preserveAspectRatio="xMidYMid meet"
           >
+            {/* Define patterns for floor and wall */}
             <defs>
-              <filter id="playerGlow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#007bff" floodOpacity="0.8"/>
-              </filter>
-              {/* Define patterns for floor and wall here, similar to LabyrinthGame */}
-              <pattern id="floor-pattern-modal" patternUnits="userSpaceOnUse" width="1" height="1">
-                <rect width="1" height="1" fill="#3a2d3c" />
-                <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
-                <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
-                <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
+              <pattern id="floor-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect x="0" y="0" width="1" height="1" fill="#3a2d3c" />
               </pattern>
-              <pattern id="wall-pattern-modal" patternUnits="userSpaceOnUse" width="1" height="1">
-                <rect width="1" height="1" fill="#5a4d5c" />
-                <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
+              <pattern id="wall-pattern-full" patternUnits="userSpaceOnUse" width="1" height="1">
+                <rect x="0" y="0" width="1" height="1" fill="#4a3d4c" />
               </pattern>
             </defs>
-            <path d={floorPath} className="fill-[url(#floor-pattern-modal)]" />
-            <path d={wallPath} className="fill-[url(#wall-pattern-modal)] stroke-[#4a3d4c]" strokeWidth={0.05} />
-            <rect x="0" y="0" width={mapDimensions.width} height={mapDimensions.height} fill="none" stroke="gold" strokeWidth="0.2" />
+
+            <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
+            <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.02} />
+
+            {/* Render Boss Passage Overlay on full map */}
+            {labyrinth && currentFloor === labyrinth.NUM_FLOORS - 1 && !isBossDefeated && Array.from(bossPassageCoords || []).map((coordStr) => {
+              const [x, y, f] = coordStr.split(',').map(Number);
+              if (f !== currentFloor) return null;
+
+              const isRedLight = bossState === 'red_light';
+              const isSafeTile = labyrinth.bossSafeTiles.has(coordStr);
+
+              const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent';
+              const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : '';
+
+              return (
+                <rect
+                  key={`boss-passage-full-${coordStr}`}
+                  x={x}
+                  y={y}
+                  width="1"
+                  height="1"
+                  fill={fill}
+                  className={className}
+                />
+              );
+            })}
+
+            {/* Render active quest objectives with emojis */}
+            {activeQuestObjectives.map((obj, index) => (
+              <text
+                key={`objective-${index}`}
+                x={obj.x + 0.5}
+                y={obj.y + 0.5}
+                fontSize="0.7" // Adjust size for visibility on full map
+                textAnchor="middle"
+                dominantBaseline="central"
+                className="fill-yellow-300 stroke-yellow-600" // Use text color for emoji
+                title={obj.description} // Show description on hover
+              >
+                {obj.emoji}
+              </text>
+            ))}
+
+            {/* Render player position */}
             {playerPosition && (
               <circle
-                cx={playerPosition.x + 0.5} // Center the circle on the tile
-                cy={playerPosition.y + 0.5} // Center the circle on the tile
-                r={0.6}
-                fill="#007bff"
-                filter="url(#playerGlow)"
-                transform={`rotate(${playerRotation} ${playerPosition.x + 0.5} ${playerPosition.y + 0.5})`}
+                cx={playerPosition.x}
+                cy={playerPosition.y}
+                r={0.2}
+                className="fill-red-500 stroke-red-700"
+                strokeWidth={0.02}
               />
             )}
           </svg>
+          <Button
+            variant="secondary"
+            size="icon"
+            className="absolute bottom-4 right-4"
+            onClick={handleCenterOnPlayer}
+          >
+            <LocateFixedIcon className="h-4 w-4" />
+            <span className="sr-only">Center on Player</span>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

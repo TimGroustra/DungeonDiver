@@ -527,7 +527,7 @@ export class Labyrinth {
       }
     }
 
-    // NEW: Add wall tiles every second tile in the central row of the boss passage
+    // Add wall tiles every second tile in the central row of the boss passage for the mechanic
     for (let x = passageStartX; x <= passageEndX; x++) {
       const coordStr = `${x},${passageCenterY},${floor}`;
       // Ensure it's an open tile before converting to wall
@@ -559,51 +559,6 @@ export class Labyrinth {
           }
         }
       }
-    }
-
-    // Add some pillars to break up the vastness of the boss passage
-    const numPillars = 20;
-    for (let i = 0; i < numPillars; i++) {
-        let placed = false;
-        let attempts = 0;
-        const MAX_PILLAR_ATTEMPTS = 100; // Limit attempts for a single pillar
-
-        while (!placed && attempts < MAX_PILLAR_ATTEMPTS) {
-            const pX = passageStartX + 1 + Math.floor(Math.random() * (passageEndX - passageStartX - 2));
-            const pY = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
-            const coordStr = `${pX},${pY},${floor}`;
-
-            // Check if the spot is currently open
-            if (floorMap[pY][pX] !== 'wall') {
-                // Temporarily mark as wall to check for blockage
-                const originalCell = floorMap[pY][pX]; // Store original state
-                floorMap[pY][pX] = 'wall';
-
-                // Check if this placement would block the entire vertical slice of the passage
-                let isBlocked = true;
-                for (let checkY = passageCenterY - halfCorridor; checkY <= passageCenterY + halfCorridor; checkY++) {
-                    // Ensure checkY is within map bounds
-                    if (checkY >= 0 && checkY < this.MAP_HEIGHT && floorMap[checkY][pX] !== 'wall') {
-                        isBlocked = false;
-                        break;
-                    }
-                }
-
-                if (!isBlocked) {
-                    // If not blocked, confirm placement
-                    this.bossPassageCoords.delete(coordStr);
-                    this.bossSafeTiles.delete(coordStr);
-                    placed = true;
-                } else {
-                    // If blocked, revert and try again
-                    floorMap[pY][pX] = originalCell; // Revert to original state
-                }
-            }
-            attempts++;
-        }
-        if (!placed) {
-            console.warn(`Could not place a random pillar without blocking the boss passage at floor ${floor}.`);
-        }
     }
 
     // Connect a random room to the boss passage entrance

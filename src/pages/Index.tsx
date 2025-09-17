@@ -77,7 +77,12 @@ const Index: React.FC = () => {
       toast.success("Score submitted to leaderboard!");
     },
     onError: (error) => {
-      toast.error(`Failed to submit score: ${error.message}`);
+      // Check for unique constraint violation error
+      if (error.message.includes("duplicate key value violates unique constraint")) {
+        toast.info("This exact score has already been recorded on the leaderboard.");
+      } else {
+        toast.error(`Failed to submit score: ${error.message}`);
+      }
     },
   });
 

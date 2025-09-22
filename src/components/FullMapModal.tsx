@@ -54,8 +54,6 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
               <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.02} />
 
-              {/* Removed boss passage overlay rendering */}
-
               {activeQuestObjectives.map((obj, index) => (
                 <text
                   key={`objective-${index}`}

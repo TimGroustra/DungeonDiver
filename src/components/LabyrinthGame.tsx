@@ -241,7 +241,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const intervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
       labyrinth.processEnemyMovement(playerName, currentElapsedTime);
-      // Removed boss logic call
       setCurrentFloor(labyrinth.getCurrentFloor()); // Update current floor in store
       setPlayerPosition(labyrinth.getPlayerLocation()); // Update player position in store
       incrementGameVersion(); // Trigger a game version update
@@ -490,7 +489,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
-          {/* Removed Boss Passage Overlay */}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;

@@ -199,7 +199,7 @@ export class Labyrinth {
   public watcherOfTheCore: Enemy | undefined;
   public watcherLocation: Coordinate | undefined;
   private bossDefeated: boolean;
-  public bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
+  // Removed bossPassageCoords as it's no longer relevant for a roaming boss
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
@@ -265,7 +265,7 @@ export class Labyrinth {
     this.watcherOfTheCore = undefined;
     this.watcherLocation = undefined;
     this.bossDefeated = false;
-    this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
+    // Removed bossPassageCoords initialization
 
     this.initializeLabyrinth();
 
@@ -301,9 +301,9 @@ export class Labyrinth {
       // Place player start and floor exit
       this._placeStartAndExit(floorMap, floor, rooms);
 
-      // Handle boss passage for the last floor
+      // Handle boss elements for the last floor
       if (floor === this.NUM_FLOORS - 1) {
-        this._placeBossArea(floorMap, floor, rooms);
+        // No dedicated boss area generation, boss will be placed randomly
       }
 
       this.floors.set(floor, floorMap);
@@ -500,52 +500,7 @@ export class Labyrinth {
     }
   }
 
-  private _placeBossArea(floorMap: (LogicalRoom | 'wall')[][], floor: number, rooms: Room[]) {
-    const passageStartX = this.MAP_WIDTH - 40;
-    const passageEndX = this.MAP_WIDTH - 1;
-    const passageCenterY = Math.floor(this.MAP_HEIGHT / 2); // Center the passage vertically
-
-    const halfCorridor = Math.floor(this.CORRIDOR_WIDTH / 2);
-
-    // Carve the main boss passage
-    for (let x = passageStartX; x <= passageEndX; x++) {
-      for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfCorridor; y++) {
-        if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
-          floorMap[y][x] = new LogicalRoom(`boss-passage-${x}-${y}-f${floor}`, `Watcher's Domain ${x},${y}`, "The air here is thick with an oppressive presence. You feel watched.");
-          this.bossPassageCoords.add(`${x},${y},${floor}`);
-        }
-      }
-    }
-
-    // Add some "alcoves" or wider sections to make it less linear
-    const numAlcoves = 3;
-    for (let i = 0; i < numAlcoves; i++) {
-      const alcoveX = passageStartX + Math.floor(Math.random() * (passageEndX - passageStartX - 5)); // Ensure space for alcove
-      const alcoveY = passageCenterY + (Math.random() > 0.5 ? halfCorridor + 1 : -(halfCorridor + 1)); // Above or below main path
-      const alcoveWidth = Math.floor(Math.random() * 3) + 3; // 3-5 cells wide
-      const alcoveHeight = Math.floor(Math.random() * 2) + 2; // 2-3 cells high
-
-      for (let y = alcoveY; y < alcoveY + alcoveHeight; y++) {
-        for (let x = alcoveX; x < alcoveX + alcoveWidth; x++) {
-          if (x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT) {
-            floorMap[y][x] = new LogicalRoom(`boss-alcove-${x}-${y}-f${floor}`, `Watcher's Alcove ${x},${y}`, "A small, dark alcove, filled with an unsettling silence.");
-            this.bossPassageCoords.add(`${x},${y},${floor}`);
-          }
-        }
-      }
-    }
-
-    // Connect a random room to the boss passage entrance
-    if (rooms.length > 0) {
-      const entranceX = passageStartX - 1; // Cell just before the passage
-      const entranceY = passageCenterY;
-      if (entranceX >= 0 && floorMap[entranceY][entranceX] === 'wall') {
-        floorMap[entranceY][entranceX] = 'open'; // Make sure it's open
-      }
-      const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
-      this._carveCorridor(floorMap, randomRoom.center, { x: entranceX, y: entranceY });
-    }
-  }
+  // Removed _placeBossArea method
 
   private getValidNeighbors(x: number, y: number): Coordinate[] {
     const neighbors: Coordinate[] = [];
@@ -681,57 +636,40 @@ export class Labyrinth {
       });
 
     } else if (floor === this.NUM_FLOORS - 1) { // Last Floor (Floor 4: The Heart of the Labyrinth
-      const passageStartX = this.MAP_WIDTH - 40;
-      const passageEndX = this.MAP_WIDTH - 1;
-      const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
-
       // Define Labyrinth Key as an item
       const labyrinthKey = new Item("labyrinth-key-f3", "Labyrinth Key", "A heavy, ornate key, pulsating with a faint, dark energy.", false, 'key');
       this.items.set(labyrinthKey.id, labyrinthKey);
 
-      // Place The Watcher of the Core (Boss) at the start of the passage, with the Labyrinth Key as a reward
-      const watcherX = passageStartX + Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
-      const watcherY = passageCenterY;
-      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100, 25, labyrinthKey); // Assign labyrinthKey as reward
+      // Place The Watcher of the Core (Boss) randomly, with the Labyrinth Key as a reward
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that roams the final labyrinth floor, its gaze distorting reality. Defeat it to clear the path to the altar.", 100, 25, labyrinthKey); // Assign labyrinthKey as reward
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
-      this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
-      this.watcherLocation = { x: watcherX, y: watcherY };
-
-      // Place Ancient Altar at a random safe tile in the boss passage, not on the Watcher's spot
-      const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
-      this.items.set(ancientAltar.id, ancientAltar);
-
-      const availableAltarTiles: Coordinate[] = [];
-      for (let x = passageStartX; x <= passageEndX; x++) {
-        for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfCorridor; y++) {
-          const coordStr = `${x},${y},${floor}`;
-          if (this.floors.get(floor)![y][x] !== 'wall' && (x !== watcherX || y !== watcherY)) {
-            availableAltarTiles.push({ x, y });
-          }
+      this.placeElementRandomly(this.watcherOfTheCore.id, this.enemyLocations, floor, true);
+      // Find the actual placed location for the watcher
+      for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
+        if (enemyId === this.watcherOfTheCore.id) {
+          const [x, y] = coordStr.split(',').map(Number);
+          this.watcherLocation = { x, y };
+          break;
         }
       }
 
-      if (availableAltarTiles.length > 0) {
-        const randomAltarTile = availableAltarTiles[Math.floor(Math.random() * availableAltarTiles.length)];
-        this.staticItemLocations.set(`${randomAltarTile.x},${randomAltarTile.y},${floor}`, ancientAltar.id);
-      } else {
-        console.warn(`Could not find a suitable tile for Ancient Altar on floor ${floor}.`);
-        // Fallback to a fixed position if no safe tiles are found (shouldn't happen with current generation)
-        this.staticItemLocations.set(`${this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2)},${passageCenterY},${floor}`, ancientAltar.id);
-      }
+      // Place Ancient Altar randomly
+      const ancientAltar = new Item("ancient-altar-f3", "Ancient Altar", "A blood-stained stone altar, radiating an oppressive aura. It feels like a place of sacrifice.", true, 'static');
+      this.items.set(ancientAltar.id, ancientAltar);
+      this.placeElementRandomly(ancientAltar.id, this.staticItemLocations, floor);
 
-      // Place Mysterious Box somewhere within the passage, but not on Watcher/Altar
+      // Place Mysterious Box randomly
       const mysteriousBox = new Item("mysterious-box-f3", "Mysterious Box", "A sturdy, iron-bound box, locked tight. It seems to hum with a hidden power.", true, 'static');
       this.items.set(mysteriousBox.id, mysteriousBox);
-      this.placeElementInBossPassage(mysteriousBox.id, this.staticItemLocations, floor);
+      this.placeElementRandomly(mysteriousBox.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
         title: "The Heart of the Labyrinth",
         steps: [
+          { description: "Defeat 'The Watcher of the Core' in combat.", isCompleted: () => this.bossDefeated },
           { description: "Find the 'Labyrinth Key'.", isCompleted: () => this.inventory.has("labyrinth-key-f3") || this.mysteriousBoxOpened },
           { description: "Use the 'Labyrinth Key' to open the 'Mysterious Box'.", isCompleted: () => this.mysteriousBoxOpened },
           { description: "Obtain the 'Heart of the Labyrinth'.", isCompleted: () => this.heartOfLabyrinthObtained },
-          { description: "Defeat 'The Watcher of the Core'.", isCompleted: () => this.bossDefeated },
           { description: "Sacrifice the 'Heart of the Labyrinth' at the 'Ancient Altar' to destroy the Labyrinth.", isCompleted: () => this.heartSacrificed },
         ],
         isCompleted: () => this.bossDefeated && this.heartSacrificed
@@ -819,55 +757,7 @@ export class Labyrinth {
     return undefined;
   }
 
-  private placeElementInBossPassage(id: string, locationMap: Map<string, string | boolean>, floor: number) {
-    if (floor !== this.NUM_FLOORS - 1) {
-      this.placeElementRandomly(id, locationMap, floor); // Fallback for other floors
-      return;
-    }
-
-    let placed = false;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 1000;
-
-    const passageStartX = this.MAP_WIDTH - 40;
-    const passageEndX = this.MAP_WIDTH - 1;
-    const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
-    const halfCorridor = Math.floor(this.CORRIDOR_WIDTH / 2);
-
-    while (!placed && attempts < MAX_ATTEMPTS) {
-      // Place within the main corridor area of the boss passage
-      const x = passageStartX + Math.floor(Math.random() * (passageEndX - passageStartX + 1));
-      const y = passageCenterY - halfCorridor + Math.floor(Math.random() * (this.CORRIDOR_WIDTH));
-      const coordStr = `${x},${y},${floor}`;
-
-      // Ensure not placed on Watcher or Altar
-      const isWatcher = (this.watcherLocation?.x === x && this.watcherLocation?.y === y);
-      const isAltar = (this.staticItemLocations.get(coordStr) === "ancient-altar-f3");
-
-      if (
-        (x !== 0 || y !== 0) && // Not at floor entrance
-        !isWatcher &&
-        !isAltar &&
-        !locationMap.has(coordStr) &&
-        !this.enemyLocations.has(coordStr) && // Check other element maps
-        !this.puzzleLocations.has(coordStr) &&
-        !this.itemLocations.has(coordStr) &&
-        !this.staticItemLocations.has(coordStr) &&
-        !this.trapsLocations.has(coordStr) &&
-        !this.deathTrapsLocations.has(coordStr) && // NEW: Check against death traps
-        !this.isTooClose(x, y, floor) && // Still respect minimum distance
-        this.floors.get(floor)![y][x] !== 'wall' // Must be an open room
-      ) {
-        locationMap.set(coordStr, id);
-        placed = true;
-      }
-      attempts++;
-    }
-
-    if (!placed) {
-      console.warn(`Could not place element ${id} in boss passage on floor ${floor} after ${MAX_ATTEMPTS} attempts.`);
-    }
-  }
+  // Removed placeElementInBossPassage method
 
   // NEW: Method to place a 2x2 death trap
   private placeDeathTrap(id: string, floor: number) {
@@ -1004,7 +894,6 @@ export class Labyrinth {
       if (
         (x === 0 && y === 0 && floor === 0) || // Not at game start (only for floor 0)
         (isHostile && Math.max(x, y) <= 5 && floor === 0) || // Hostile elements not in safe zone on floor 0
-        (floor === this.NUM_FLOORS - 1 && this.bossPassageCoords.has(coordStr)) || // Not on boss passage or altar
         currentFloorMap[y][x] === 'wall' || // Must be an open room
         this.enemyLocations.has(coordStr) || // Already an enemy
         this.puzzleLocations.has(coordStr) || // Already a puzzle
@@ -1404,6 +1293,9 @@ export class Labyrinth {
           if (enemy.reward) {
             this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
           }
+          if (enemy.id === this.watcherOfTheCore?.id) {
+            this.bossDefeated = true;
+          }
         }
       } else {
         this.addMessage("You swing your weapon, but there's no living enemy there.");
@@ -1487,6 +1379,9 @@ export class Labyrinth {
         // NEW: Check for enemy reward
         if (enemy.reward) {
           this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
+        }
+        if (enemy.id === this.watcherOfTheCore?.id) {
+          this.bossDefeated = true;
         }
       }
     }
@@ -1628,6 +1523,9 @@ export class Labyrinth {
         if (enemy.reward) {
           this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
         }
+        if (enemy.id === this.watcherOfTheCore?.id) {
+          this.bossDefeated = true;
+        }
       } else if (this.trapsLocations.has(pushCoordStr) && !this.triggeredTraps.has(pushCoordStr)) {
         const trapDamage = 10;
         enemy.takeDamage(trapDamage);
@@ -1640,6 +1538,9 @@ export class Labyrinth {
           // NEW: Check for enemy reward
           if (enemy.reward) {
             this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
+          }
+          if (enemy.id === this.watcherOfTheCore?.id) {
+            this.bossDefeated = true;
           }
         }
       }
@@ -1654,6 +1555,9 @@ export class Labyrinth {
         // NEW: Check for enemy reward
         if (enemy.reward) {
           this._handleFoundItem(enemy.reward, frontCoordStr); // Add reward to inventory
+        }
+        if (enemy.id === this.watcherOfTheCore?.id) {
+          this.bossDefeated = true;
         }
       }
     }
@@ -1948,30 +1852,8 @@ export class Labyrinth {
             // This is handled by the specific staircase check above, but good to have a fallback message
             this.addMessage(`You stand before the ${staticItem.name}. It seems to be the way to the next floor.`);
             interacted = true;
-        } else if (staticItem.id.startsWith("watcher-of-the-core-")) { // NEW: Direct interaction to defeat Watcher
-            if (this.watcherOfTheCore && !this.bossDefeated) {
-                this.watcherOfTheCore.health = 0; // Set health to 0 to mark as defeated
-                this.watcherOfTheCore.defeated = true;
-                this.bossDefeated = true;
-                this.addMessage("You confront The Watcher of the Core directly! Its gaze falters as you stand your ground, and with a final, desperate shriek, it dissipates into nothingness! The path is clear!");
-                // Remove boss from enemy locations
-                const bossCoordStr = `${this.watcherLocation?.x},${this.watcherLocation?.y},${this.currentFloor}`;
-                if (bossCoordStr) {
-                    this.enemyLocations.delete(bossCoordStr);
-                }
-                // NEW: Check for boss reward on interaction defeat
-                if (this.watcherOfTheCore.reward) {
-                  this._handleFoundItem(this.watcherOfTheCore.reward, currentCoord);
-                }
-                interacted = true;
-            } else if (this.bossDefeated) {
-                this.addMessage("The Watcher of the Core is already defeated. Its lingering presence is harmless.");
-                interacted = true;
-            } else {
-                this.addMessage("You stand before The Watcher of the Core. It watches you intently.");
-                interacted = true;
-            }
         }
+        // Removed specific interaction for "watcher-of-the-core-" as it's now a roaming enemy defeated in combat
         else {
           if (!this.revealedStaticItems.has(currentCoord)) {
             this.addMessage(`You attempt to interact with the ${staticItem.name}. It seems to be ${staticItem.description}`);
@@ -2193,7 +2075,7 @@ export class Labyrinth {
 
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
-        if (coordStr.endsWith(`,${this.currentFloor}`) && enemyId !== this.watcherOfTheCore?.id) {
+        if (coordStr.endsWith(`,${this.currentFloor}`)) { // Removed condition to exclude watcher
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated && enemy.isAggro) {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
@@ -2262,6 +2144,9 @@ export class Labyrinth {
                 if (enemy.reward) {
                   this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
                 }
+                if (enemy.id === this.watcherOfTheCore?.id) {
+                  this.bossDefeated = true;
+                }
             } else if (this.trapsLocations.has(newCoordStr) && !this.triggeredTraps.has(newCoordStr)) {
                 const trapDamage = 10;
                 enemy.takeDamage(trapDamage);
@@ -2274,6 +2159,9 @@ export class Labyrinth {
                     // NEW: Check for enemy reward
                     if (enemy.reward) {
                       this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
+                    }
+                    if (enemy.id === this.watcherOfTheCore?.id) {
+                      this.bossDefeated = true;
                     }
                 }
             }

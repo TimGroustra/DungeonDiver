@@ -408,6 +408,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     // Get boss state and passage coordinates
     const isBossDefeated = labyrinth.isBossDefeated();
 
+    // NEW: Get Watcher stun effect tiles
+    const watcherStunEffectTiles = labyrinth.getWatcherStunEffectTiles();
+    const isWatcherStunEffectActive = labyrinth.isWatcherStunEffectActive();
+
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
         <defs>
@@ -575,6 +579,22 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               />
             );
           })}
+          {/* NEW: Render Watcher stun effect tiles */}
+          {isWatcherStunEffectActive && Array.from(watcherStunEffectTiles).map((coordStr) => {
+            const [x, y, f] = coordStr.split(',').map(Number);
+            if (f !== currentFloor) return null;
+            return (
+              <rect
+                key={`watcher-stun-effect-${coordStr}`}
+                x={x}
+                y={y}
+                width="1"
+                height="1"
+                fill="rgba(0, 191, 255, 0.3)" // Semi-transparent blue
+                className="animate-pulse-fast"
+              />
+            );
+          })}
         </g>
         <image
           href={adventurerSprite}
@@ -699,34 +719,42 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (!labyrinth) return null; // Ensure labyrinth is initialized
 
     return (
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
-        <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
-          <div className="flex items-center gap-1" title="Health">
-            <Heart className="text-red-500" size={10} />
-            <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
-          </div>
-          <Separator orientation="vertical" className="h-3 bg-amber-800" />
-          <div className="flex items-center gap-1" title="Attack">
-            <Sword className="text-orange-400" size={10} />
-            <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
-          </div>
-          <Separator orientation="vertical" className="h-3 bg-amber-800" />
-          <div className="flex items-center gap-1" title="Defense">
-            <Shield className="text-blue-400" size={10} />
-            <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
-          </div>
-          <Separator orientation="vertical" className="h-3 bg-amber-800" />
-          <div className="flex items-center gap-1" title="Search Radius">
-            <Target className="text-purple-400" size={10} />
-            <span className="font-bold">{labyrinth.getSearchRadius()}</span>
-          </div>
-          <Separator orientation="vertical" className="h-3 bg-amber-800" />
-          <div className="flex items-center gap-1" title="Deaths">
-            <Skull className="text-gray-400" size={10} />
-            <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+      <>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
+          <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
+            <div className="flex items-center gap-1" title="Health">
+              <Heart className="text-red-500" size={10} />
+              <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+            </div>
+            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+            <div className="flex items-center gap-1" title="Attack">
+              <Sword className="text-orange-400" size={10} />
+              <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
+            </div>
+            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+            <div className="flex items-center gap-1" title="Defense">
+              <Shield className="text-blue-400" size={10} />
+              <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
+            </div>
+            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+            <div className="flex items-center gap-1" title="Search Radius">
+              <Target className="text-purple-400" size={10} />
+              <span className="font-bold">{labyrinth.getSearchRadius()}</span>
+            </div>
+            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+            <div className="flex items-center gap-1" title="Deaths">
+              <Skull className="text-gray-400" size={10} />
+              <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
+            </div>
           </div>
         </div>
-      </div>
+        {/* NEW: Player Stunned Status */}
+        {labyrinth.getPlayerStunnedTurns() > 0 && (
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-blue-800/80 text-white text-sm px-3 py-1 rounded-md animate-pulse-fast">
+            Stunned! ({labyrinth.getPlayerStunnedTurns()} turns left)
+          </div>
+        )}
+      </>
     );
   };
 

@@ -201,6 +201,12 @@ export class Labyrinth {
   private bossDefeated: boolean;
   // Removed bossPassageCoords as it's no longer relevant for a roaming boss
 
+  // NEW: Watcher special attack properties
+  private watcherCooldown: number; // In game turns (enemy turns)
+  private playerStunnedTurns: number; // In player action attempts
+  public watcherStunEffectTiles: Set<string>; // "x,y,floor" strings for visual effect
+  private watcherStunEffectActive: boolean; // To signal the UI to show the effect
+
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
   public readonly NUM_FLOORS = 4; // Increased to 4 floors
@@ -266,6 +272,12 @@ export class Labyrinth {
     this.watcherLocation = undefined;
     this.bossDefeated = false;
     // Removed bossPassageCoords initialization
+
+    // NEW: Watcher special attack initializations
+    this.watcherCooldown = 0;
+    this.playerStunnedTurns = 0;
+    this.watcherStunEffectTiles = new Set<string>();
+    this.watcherStunEffectActive = false;
 
     this.initializeLabyrinth();
 
@@ -641,7 +653,7 @@ export class Labyrinth {
       this.items.set(labyrinthKey.id, labyrinthKey);
 
       // Place The Watcher of the Core (Boss) randomly, with the Labyrinth Key as a reward
-      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that roams the final labyrinth floor, its gaze distorting reality. Defeat it to clear the path to the altar.", 100, 25, labyrinthKey); // Assign labyrinthKey as reward
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that roams the final labyrinth floor, its gaze distorts reality. Defeat it to clear the path to the altar.", 100, 25, labyrinthKey); // Assign labyrinthKey as reward
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
       this.placeElementRandomly(this.watcherOfTheCore.id, this.enemyLocations, floor, true);
       // Find the actual placed location for the watcher
@@ -1178,6 +1190,11 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot move!");
+        return;
+    }
     this.lastActionType = 'move'; // Set action type
 
     // NEW: Store current location as last safe location BEFORE moving
@@ -1258,6 +1275,11 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot attack!");
+        return;
+    }
     this.lastActionType = 'attack'; // Set action type
 
     const currentMap = this.floors.get(this.currentFloor)!;
@@ -1309,6 +1331,11 @@ export class Labyrinth {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
+    }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot jump!");
+        return;
     }
     this.lastActionType = 'jump'; // Set action type
 
@@ -1439,6 +1466,11 @@ export class Labyrinth {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
+    }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot perform a Shield Bash!");
+        return;
     }
     this.lastActionType = 'shieldBash';
 
@@ -1626,6 +1658,11 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot search!");
+        return;
+    }
 
     const playerX = this.playerLocation.x;
     const playerY = this.playerLocation.y;
@@ -1712,6 +1749,11 @@ export class Labyrinth {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
+    }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot interact!");
+        return;
     }
 
     const currentCoord = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
@@ -1918,6 +1960,11 @@ export class Labyrinth {
       this.addMessage("The game is over. Please restart.");
       return;
     }
+    if (this.playerStunnedTurns > 0) {
+        this.playerStunnedTurns--; // Decrement stun duration on player action attempt
+        this.addMessage("You are paralyzed by the Watcher's gaze and cannot use items!");
+        return;
+    }
 
     const inventoryEntry = this.inventory.get(itemId);
     if (!inventoryEntry) {
@@ -2053,6 +2100,13 @@ export class Labyrinth {
         return;
     }
 
+    // NEW: Decrement Watcher cooldown and reset stun effect status
+    if (this.watcherCooldown > 0) {
+        this.watcherCooldown--;
+    }
+    this.watcherStunEffectActive = false; // Reset for this turn
+    this.watcherStunEffectTiles.clear(); // Clear previous effect tiles
+
     const playerX = this.playerLocation.x;
     const playerY = this.playerLocation.y;
     const currentFloorMap = this.floors.get(this.currentFloor)!;
@@ -2075,7 +2129,7 @@ export class Labyrinth {
 
     const enemiesToMove: { id: string; coordStr: string; enemy: Enemy }[] = [];
     for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
-        if (coordStr.endsWith(`,${this.currentFloor}`)) { // Removed condition to exclude watcher
+        if (coordStr.endsWith(`,${this.currentFloor}`)) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated && enemy.isAggro) {
                 enemiesToMove.push({ id: enemyId, coordStr, enemy });
@@ -2090,6 +2144,31 @@ export class Labyrinth {
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
         const [oldX, oldY] = coordStr.split(',').map(Number);
         
+        // NEW: Watcher special attack logic
+        if (enemy.id === this.watcherOfTheCore?.id && !enemy.defeated) {
+            const distanceToPlayer = Math.max(Math.abs(playerX - oldX), Math.abs(playerY - oldY));
+            if (distanceToPlayer <= 2 && this.watcherCooldown === 0) {
+                // Activate special attack
+                this.playerStunnedTurns = 2; // Stun for 2 player actions
+                this.watcherCooldown = 20; // 10 seconds cooldown (assuming 500ms enemy move speed on floor 4)
+                this.addMessage("The Watcher of the Core fixes its gaze upon you! A paralyzing wave washes over you!");
+
+                // Populate stun effect tiles (5x5 square around Watcher)
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dx = -2; dx <= 2; dx++) {
+                        const effectX = oldX + dx;
+                        const effectY = oldY + dy;
+                        const effectCoordStr = `${effectX},${effectY},${this.currentFloor}`;
+                        if (this._isValidEnemyMove(effectX, effectY, currentFloorMap)) {
+                            this.watcherStunEffectTiles.add(effectCoordStr);
+                        }
+                    }
+                }
+                this.watcherStunEffectActive = true; // Signal UI to show effect
+                continue; // Watcher does not move or attack this turn if it uses its special ability
+            }
+        }
+
         const dx = playerX - oldX;
         const dy = playerY - oldY;
 
@@ -2176,6 +2255,19 @@ export class Labyrinth {
     return this.bossDefeated;
   }
   
+  // NEW: Getters for Watcher special attack state
+  public getPlayerStunnedTurns(): number {
+    return this.playerStunnedTurns;
+  }
+
+  public getWatcherStunEffectTiles(): Set<string> {
+    return this.watcherStunEffectTiles;
+  }
+
+  public isWatcherStunEffectActive(): boolean {
+    return this.watcherStunEffectActive;
+  }
+
   private getContiguousArea(startX: number, startY: number, type: 'wall' | 'open', floorMap: (LogicalRoom | 'wall')[][], globalVisited: Set<string>): { size: number, cells: Coordinate[] } {
     const areaCells: Coordinate[] = [];
     const queue: Coordinate[] = [{ x: startX, y: startY }];

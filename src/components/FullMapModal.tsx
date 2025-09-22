@@ -28,11 +28,6 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
     ? `${mapBounds.minX} ${mapBounds.minY} ${mapBounds.width} ${mapBounds.height}`
     : "0 0 100 100";
 
-  // Get boss state and passage coordinates for the full map
-  const bossState = labyrinth?.getBossState();
-  const bossPassageCoords = labyrinth?.bossPassageCoords;
-  const isBossDefeated = labyrinth?.isBossDefeated();
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-4xl w-[95vw] h-[90vh] flex flex-col p-4 bg-stone-900/90 border-amber-700 text-amber-50">
@@ -59,28 +54,7 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
               <path d={floorPath} className="fill-[url(#floor-pattern-full)]" />
               <path d={wallPath} className="fill-[url(#wall-pattern-full)] stroke-[#4a3d4c]" strokeWidth={0.02} />
 
-              {labyrinth && currentFloor === labyrinth.NUM_FLOORS - 1 && !isBossDefeated && Array.from(bossPassageCoords || []).map((coordStr) => {
-                const [x, y, f] = coordStr.split(',').map(Number);
-                if (f !== currentFloor) return null;
-
-                const isRedLight = bossState === 'red_light';
-                const isSafeTile = labyrinth.bossSafeTiles.has(coordStr);
-
-                const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent';
-                const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : '';
-
-                return (
-                  <rect
-                    key={`boss-passage-full-${coordStr}`}
-                    x={x}
-                    y={y}
-                    width="1"
-                    height="1"
-                    fill={fill}
-                    className={className}
-                  />
-                );
-              })}
+              {/* Removed boss passage overlay rendering */}
 
               {activeQuestObjectives.map((obj, index) => (
                 <text

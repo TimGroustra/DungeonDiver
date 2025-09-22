@@ -241,9 +241,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const intervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
       labyrinth.processEnemyMovement(playerName, currentElapsedTime);
-      if (labyrinth.getCurrentFloor() === labyrinth["NUM_FLOORS"] - 1 && !labyrinth.isBossDefeated()) {
-        labyrinth.processBossLogic();
-      }
+      // Removed boss logic call
       setCurrentFloor(labyrinth.getCurrentFloor()); // Update current floor in store
       setPlayerPosition(labyrinth.getPlayerLocation()); // Update player position in store
       incrementGameVersion(); // Trigger a game version update
@@ -409,8 +407,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const allVisibleTraps = new Set([...revealedTraps]);
 
     // Get boss state and passage coordinates
-    const bossState = labyrinth.getBossState();
-    const bossPassageCoords = labyrinth.bossPassageCoords;
     const isBossDefeated = labyrinth.isBossDefeated();
 
     return (
@@ -494,31 +490,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
           })}
-          {/* Render Boss Passage Overlay */}
-          {currentFloor === labyrinth["NUM_FLOORS"] - 1 && !isBossDefeated && Array.from(bossPassageCoords).map((coordStr) => {
-            const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
-
-            const isRedLight = bossState === 'red_light';
-            const isSafeTile = labyrinth.bossSafeTiles.has(coordStr); // Check if it's a safe tile
-
-            // Changed fill: only show red light, otherwise transparent
-            const fill = isRedLight ? 'rgba(255, 0, 0, 0.3)' : 'transparent'; 
-            // Apply pulse animation only if it's red light AND NOT a safe tile
-            const className = isRedLight && !isSafeTile ? 'animate-pulse-fast' : ''; 
-
-            return (
-              <rect
-                key={`boss-passage-${coordStr}`}
-                x={x}
-                y={y}
-                width="1"
-                height="1"
-                fill={fill}
-                className={className}
-              />
-            );
-          })}
+          {/* Removed Boss Passage Overlay */}
           {Array.from(labyrinth.enemyLocations.entries()).map(([coordStr, enemyId]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;

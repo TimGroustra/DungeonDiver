@@ -196,14 +196,8 @@ export class Labyrinth {
   // Watcher of the Core Boss specific states
   public watcherOfTheCore: Enemy | undefined;
   public watcherLocation: Coordinate | undefined;
-  private bossState: 'red_light' | 'not_watching'; // Changed from 'green_light' to 'not_watching'
-  private lastBossStateChange: number;
-  private isRedLightPulseActive: boolean; // Flag for current pulse
-  private playerStunnedTurns: number; // How many turns player is stunned/misdirected
   private bossDefeated: boolean;
   public bossPassageCoords: Set<string>; // Coordinates of the boss's "passage"
-  public bossSafeTiles: Set<string>; // NEW: Coordinates of tiles safe from Watcher's Gaze
-  private lastGazeDamageTimestamp: number; // NEW: Timestamp for last gaze damage
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
@@ -268,14 +262,8 @@ export class Labyrinth {
     // Watcher of the Core Boss specific initializations
     this.watcherOfTheCore = undefined;
     this.watcherLocation = undefined;
-    this.bossState = 'not_watching'; // Starts not watching
-    this.lastBossStateChange = Date.now();
-    this.isRedLightPulseActive = false;
-    this.playerStunnedTurns = 0;
     this.bossDefeated = false;
     this.bossPassageCoords = new Set<string>(); // Initialize here, will be populated in initializeLabyrinth
-    this.bossSafeTiles = new Set<string>(); // NEW: Initialize bossSafeTiles
-    this.lastGazeDamageTimestamp = 0; // NEW: Initialize last gaze damage timestamp
 
     this.initializeLabyrinth();
 
@@ -527,22 +515,6 @@ export class Labyrinth {
       }
     }
 
-    // Add wall tiles every second tile in the central row of the boss passage for the mechanic
-    for (let x = passageStartX; x <= passageEndX; x++) {
-      const coordStr = `${x},${passageCenterY},${floor}`;
-      // Ensure it's an open tile before converting to wall
-      if (floorMap[passageCenterY][x] !== 'wall') {
-        // Place a wall every second tile, starting from passageStartX
-        if ((x - passageStartX) % 2 === 0) { // Check if it's an even offset from the start
-          floorMap[passageCenterY][x] = 'wall';
-          this.bossPassageCoords.delete(coordStr); // Remove from boss passage coords
-        } else {
-          // If it's an odd offset, it remains open and is a safe tile
-          this.bossSafeTiles.add(coordStr); // Add to safe tiles
-        }
-      }
-    }
-
     // Add some "alcoves" or wider sections to make it less linear
     const numAlcoves = 3;
     for (let i = 0; i < numAlcoves; i++) {
@@ -724,10 +696,12 @@ export class Labyrinth {
       this.items.set(ancientAltar.id, ancientAltar);
 
       const availableAltarTiles: Coordinate[] = [];
-      for (const coordStr of this.bossSafeTiles) {
-        const [x, y, f] = coordStr.split(',').map(Number);
-        if (f === floor && (x !== watcherX || y !== watcherY)) { // Ensure not on boss location
-          availableAltarTiles.push({ x, y });
+      for (let x = passageStartX; x <= passageEndX; x++) {
+        for (let y = passageCenterY - halfCorridor; y <= passageCenterY + halfCorridor; y++) {
+          const coordStr = `${x},${y},${floor}`;
+          if (this.floors.get(floor)![y][x] !== 'wall' && (x !== watcherX || y !== watcherY)) {
+            availableAltarTiles.push({ x, y });
+          }
         }
       }
 
@@ -735,7 +709,7 @@ export class Labyrinth {
         const randomAltarTile = availableAltarTiles[Math.floor(Math.random() * availableAltarTiles.length)];
         this.staticItemLocations.set(`${randomAltarTile.x},${randomAltarTile.y},${floor}`, ancientAltar.id);
       } else {
-        console.warn(`Could not find a suitable safe tile for Ancient Altar on floor ${floor}.`);
+        console.warn(`Could not find a suitable tile for Ancient Altar on floor ${floor}.`);
         // Fallback to a fixed position if no safe tiles are found (shouldn't happen with current generation)
         this.staticItemLocations.set(`${this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2)},${passageCenterY},${floor}`, ancientAltar.id);
       }
@@ -1206,8 +1180,6 @@ export class Labyrinth {
     this.playerHealth = this.playerMaxHealth;
     this.gameOver = false;
     this.gameResult = null;
-    this.playerStunnedTurns = 0; // Clear any stun effects
-    this.lastGazeDamageTimestamp = 0; // Reset gaze damage timer
 
     if (this.lastSafePlayerLocation) { // NEW: Move player to last safe location
       this.playerLocation = { ...this.lastSafePlayerLocation };
@@ -1285,9 +1257,6 @@ export class Labyrinth {
       // Reset boss state if skipping to the last floor
       if (this.currentFloor === this.NUM_FLOORS - 1) {
         this.bossDefeated = false;
-        this.bossState = 'not_watching';
-        this.playerStunnedTurns = 0;
-        this.lastGazeDamageTimestamp = 0;
       }
     } else {
       // If on the last floor, trigger victory
@@ -1322,14 +1291,6 @@ export class Labyrinth {
 
     // NEW: Store current location as last safe location BEFORE moving
     this.lastSafePlayerLocation = { ...this.playerLocation };
-
-    if (this.playerStunnedTurns > 0) {
-        this.playerStunnedTurns--;
-        const directions = ["north", "south", "east", "west"];
-        const randomDirection = directions[Math.floor(Math.random() * directions.length)] as "north" | "south" | "east" | "west";
-        this.addMessage(`You attempt to move ${direction}, but stumble ${randomDirection} instead!`);
-        direction = randomDirection;
-    }
 
     // New logic: If direction is different from lastMoveDirection, just change facing
     if (direction !== this.lastMoveDirection) {
@@ -1378,8 +1339,6 @@ export class Labyrinth {
       this.setGameOver('defeat', playerName, time, "Instant Death Trap");
       return;
     }
-
-    // Removed boss gaze damage from here, now handled by processBossLogic
     
     this.playerLocation = { x: newX, y: newY };
     this.lastMoveDirection = direction; // Update last move direction (already same, but good for consistency)
@@ -1409,11 +1368,6 @@ export class Labyrinth {
       return;
     }
     this.lastActionType = 'attack'; // Set action type
-
-    if (this.playerStunnedTurns > 0) {
-      this.addMessage("You are too disoriented to attack effectively!");
-      return;
-    }
 
     const currentMap = this.floors.get(this.currentFloor)!;
     let targetX = this.playerLocation.x;
@@ -1462,11 +1416,6 @@ export class Labyrinth {
 
     // NEW: Store current location as last safe location BEFORE jumping
     this.lastSafePlayerLocation = { ...this.playerLocation };
-
-    if (this.playerStunnedTurns > 0) {
-      this.addMessage("You are too disoriented to make a coordinated leap!");
-      return;
-    }
 
     const currentMap = this.floors.get(this.currentFloor)!;
     let dx = 0;
@@ -1539,9 +1488,7 @@ export class Labyrinth {
       this.setGameOver('defeat', playerName, time, "Instant Death Trap");
       return;
     }
-
-    // Removed boss logic for jumping, now handled by processBossLogic
-
+    
     // If path is clear, move the player
     this.playerLocation = destination;
     this.markVisited(this.playerLocation);
@@ -1596,11 +1543,6 @@ export class Labyrinth {
     }
 
     this.lastSafePlayerLocation = { ...this.playerLocation };
-
-    if (this.playerStunnedTurns > 0) {
-      this.addMessage("You are too disoriented to perform a Shield Bash!");
-      return;
-    }
 
     const currentMap = this.floors.get(this.currentFloor)!;
     let dx = 0;
@@ -2306,81 +2248,7 @@ export class Labyrinth {
     }
   }
 
-  public processBossLogic() {
-    if (this.gameOver || this.currentFloor !== this.NUM_FLOORS - 1 || this.bossDefeated) {
-        return; // Only run on the last floor if boss is not defeated
-    }
-
-    const now = Date.now();
-    const stateChangeInterval = 4000; // 4 seconds for state change
-    const gazeDamageInterval = 1000; // 1 second for gaze damage
-
-    const playerCoordStr = `${this.playerLocation.x},${this.playerLocation.y},${this.currentFloor}`;
-    const isInBossPassage = this.bossPassageCoords.has(playerCoordStr);
-
-    // Handle boss state changes (red light / not watching)
-    if (now - this.lastBossStateChange > stateChangeInterval) {
-        this.lastBossStateChange = now;
-        
-        if (this.bossState === 'not_watching') {
-            this.bossState = 'red_light';
-            this.isRedLightPulseActive = true;
-            this.lastGazeDamageTimestamp = now; // Reset damage timer when red light starts
-            if (isInBossPassage) {
-                this.addMessage("The Labyrinth's Gaze turns towards you! The passage pulses with a blinding light! DO NOT MOVE!");
-            }
-        } else { // If bossState is 'red_light'
-            this.bossState = 'not_watching';
-            this.isRedLightPulseActive = false;
-            this.lastGazeDamageTimestamp = 0; // Reset damage timer when red light ends
-            if (isInBossPassage) {
-                this.addMessage("The Labyrinth's Gaze shifts away. The passage dims. You may move.");
-            }
-
-            // If player was in the passage and didn't take damage/stun during Red Light, boss takes stress damage
-            // This means player successfully evaded by staying on safe tiles or outside the passage.
-            if (isInBossPassage && this.playerStunnedTurns === 0) { 
-                if (this.watcherOfTheCore) {
-                    const stressDamage = 10;
-                    this.watcherOfTheCore.takeDamage(stressDamage);
-                    this.addMessage(`You successfully evaded The Watcher's gaze! It shudders, taking ${stressDamage} stress damage. Its remaining will: ${this.watcherOfTheCore.health}`);
-                    if (this.watcherOfTheCore.defeated) {
-                        this.addMessage("The Watcher of the Core's will is broken! It stands defeated, its gaze no longer a threat. You can now interact with it to clear the path.");
-                        this.bossDefeated = true;
-                    }
-                }
-            }
-        }
-    }
-
-    // Apply continuous gaze damage if in red light and not on a safe tile
-    if (this.bossState === 'red_light' && isInBossPassage && !this.bossSafeTiles.has(playerCoordStr)) {
-        if (now - this.lastGazeDamageTimestamp > gazeDamageInterval) {
-            const damageTaken = 25;
-            this.playerHealth -= damageTaken;
-            this.lastHitEntityId = 'player';
-            this.playerStunnedTurns = 1; // Stun for 1 turn per second in gaze
-            this.addMessage(`The Labyrinth's Gaze burns into your mind! You take ${damageTaken} damage and feel disoriented!`);
-            this.lastGazeDamageTimestamp = now; // Update timestamp for next damage tick
-
-            if (this.playerHealth <= 0) {
-                if (!this._tryActivateWellBlessing(playerName, time, "The Watcher's Gaze")) {
-                    this.addMessage("The Labyrinth's Gaze consumes you. Darkness... Game Over.");
-                    this.setGameOver('defeat', playerName, time, "The Watcher's Gaze");
-                    return;
-                }
-            }
-        }
-    }
-  }
-
-  public getBossState(): 'red_light' | 'not_watching' { // Updated return type
-    return this.bossState;
-  }
-
-  public isBossPassage(x: number, y: number, floor: number): boolean {
-    return this.bossPassageCoords.has(`${x},${y},${floor}`);
-  }
+  // Removed processBossLogic method
 
   public isBossDefeated(): boolean {
     return this.bossDefeated;

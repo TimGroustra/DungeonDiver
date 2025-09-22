@@ -76,8 +76,9 @@ export class Enemy {
   defeated: boolean;
   isAggro: boolean;
   attackDamage: number;
+  reward?: Item; // NEW: Optional item reward
 
-  constructor(id: string, name: string, description: string, health: number = 1, attackDamage: number = 5) {
+  constructor(id: string, name: string, description: string, health: number = 1, attackDamage: number = 5, reward?: Item) {
     this.id = id;
     this.name = name;
     this.description = description;
@@ -85,6 +86,7 @@ export class Enemy {
     this.defeated = false;
     this.isAggro = false;
     this.attackDamage = attackDamage;
+    this.reward = reward; // Assign reward
   }
 
   takeDamage(amount: number) {
@@ -683,10 +685,14 @@ export class Labyrinth {
       const passageEndX = this.MAP_WIDTH - 1;
       const passageCenterY = Math.floor(this.MAP_HEIGHT / 2);
 
-      // Place The Watcher of the Core (Boss) at the start of the passage
+      // Define Labyrinth Key as an item
+      const labyrinthKey = new Item("labyrinth-key-f3", "Labyrinth Key", "A heavy, ornate key, pulsating with a faint, dark energy.", false, 'key');
+      this.items.set(labyrinthKey.id, labyrinthKey);
+
+      // Place The Watcher of the Core (Boss) at the start of the passage, with the Labyrinth Key as a reward
       const watcherX = passageStartX + Math.floor(this.CORRIDOR_WIDTH / 2); // Place within the wider passage
       const watcherY = passageCenterY;
-      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100, 25); // Health for stress, and attack damage
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that guards the final passage. Its gaze distorts reality.", 100, 25, labyrinthKey); // Assign labyrinthKey as reward
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
       this.enemyLocations.set(`${watcherX},${watcherY},${floor}`, this.watcherOfTheCore.id);
       this.watcherLocation = { x: watcherX, y: watcherY };
@@ -714,11 +720,7 @@ export class Labyrinth {
         this.staticItemLocations.set(`${this.MAP_WIDTH - 1 - Math.floor(this.CORRIDOR_WIDTH / 2)},${passageCenterY},${floor}`, ancientAltar.id);
       }
 
-      // Place Labyrinth Key and Mysterious Box somewhere within the passage, but not on Watcher/Altar
-      const labyrinthKey = new Item("labyrinth-key-f3", "Labyrinth Key", "A heavy, ornate key, pulsating with a faint, dark energy.", false, 'key');
-      this.items.set(labyrinthKey.id, labyrinthKey);
-      this.placeElementInBossPassage(labyrinthKey.id, this.itemLocations, floor);
-
+      // Place Mysterious Box somewhere within the passage, but not on Watcher/Altar
       const mysteriousBox = new Item("mysterious-box-f3", "Mysterious Box", "A sturdy, iron-bound box, locked tight. It seems to hum with a hidden power.", true, 'static');
       this.items.set(mysteriousBox.id, mysteriousBox);
       this.placeElementInBossPassage(mysteriousBox.id, this.staticItemLocations, floor);
@@ -1398,6 +1400,10 @@ export class Labyrinth {
         if (enemy.defeated) {
           this.addMessage(`You have defeated the ${enemy.name}!`);
           this.enemyLocations.delete(targetCoordStr);
+          // NEW: Check for enemy reward
+          if (enemy.reward) {
+            this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
+          }
         }
       } else {
         this.addMessage("You swing your weapon, but there's no living enemy there.");
@@ -1478,6 +1484,10 @@ export class Labyrinth {
         enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
+        // NEW: Check for enemy reward
+        if (enemy.reward) {
+          this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
+        }
       }
     }
 
@@ -1614,6 +1624,10 @@ export class Labyrinth {
         enemy.defeated = true;
         this.addMessage(`The ${enemy.name} was pushed into an Instant Death Trap and was instantly obliterated!`);
         this.enemyLocations.delete(pushCoordStr);
+        // NEW: Check for enemy reward
+        if (enemy.reward) {
+          this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
+        }
       } else if (this.trapsLocations.has(pushCoordStr) && !this.triggeredTraps.has(pushCoordStr)) {
         const trapDamage = 10;
         enemy.takeDamage(trapDamage);
@@ -1623,6 +1637,10 @@ export class Labyrinth {
         if (enemy.defeated) {
           this.addMessage(`The ${enemy.name} was defeated by a trap!`);
           this.enemyLocations.delete(pushCoordStr);
+          // NEW: Check for enemy reward
+          if (enemy.reward) {
+            this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
+          }
         }
       }
     } else {
@@ -1633,6 +1651,10 @@ export class Labyrinth {
       if (enemy.defeated) {
         this.addMessage(`You have defeated the ${enemy.name}!`);
         this.enemyLocations.delete(frontCoordStr);
+        // NEW: Check for enemy reward
+        if (enemy.reward) {
+          this._handleFoundItem(enemy.reward, frontCoordStr); // Add reward to inventory
+        }
       }
     }
   }
@@ -1937,6 +1959,10 @@ export class Labyrinth {
                 if (bossCoordStr) {
                     this.enemyLocations.delete(bossCoordStr);
                 }
+                // NEW: Check for boss reward on interaction defeat
+                if (this.watcherOfTheCore.reward) {
+                  this._handleFoundItem(this.watcherOfTheCore.reward, currentCoord);
+                }
                 interacted = true;
             } else if (this.bossDefeated) {
                 this.addMessage("The Watcher of the Core is already defeated. Its lingering presence is harmless.");
@@ -2232,6 +2258,10 @@ export class Labyrinth {
                 enemy.defeated = true;
                 this.addMessage(`The ${enemy.name} stumbled into an Instant Death Trap and was instantly obliterated!`);
                 this.enemyLocations.delete(newCoordStr); // Remove enemy from map
+                // NEW: Check for enemy reward
+                if (enemy.reward) {
+                  this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
+                }
             } else if (this.trapsLocations.has(newCoordStr) && !this.triggeredTraps.has(newCoordStr)) {
                 const trapDamage = 10;
                 enemy.takeDamage(trapDamage);
@@ -2241,6 +2271,10 @@ export class Labyrinth {
                 if (enemy.defeated) {
                     this.addMessage(`The ${enemy.name} was defeated by a trap!`);
                     this.enemyLocations.delete(newCoordStr); // Remove enemy from map
+                    // NEW: Check for enemy reward
+                    if (enemy.reward) {
+                      this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
+                    }
                 }
             }
             break; // Enemy moved, stop trying other moves
@@ -2294,7 +2328,7 @@ export class Labyrinth {
     
     areaCells.sort((a, b) => {
         const aNeighbors = this.getValidNeighbors(a.x, a.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
-        const bNeighbors = this.getValidNeighbors(b.x, b.y).filter(n => floorMap[n.y][n.x] !== 'wall').length;
+        const bNeighbors = this.getValidNeighbors(b.x, b.y).filter(n => floorMap[b.y][b.x] !== 'wall').length;
         return bNeighbors - aNeighbors;
     });
 

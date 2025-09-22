@@ -2149,7 +2149,7 @@ export class Labyrinth {
             const distanceToPlayer = Math.max(Math.abs(playerX - oldX), Math.abs(playerY - oldY));
             if (distanceToPlayer <= 2 && this.watcherCooldown === 0) {
                 // Activate special attack
-                this.playerStunnedTurns = 2; // Stun for 2 player actions
+                this.playerStunnedTurns = 3; // Stun for 3 player actions
                 this.watcherCooldown = 20; // 10 seconds cooldown (assuming 500ms enemy move speed on floor 4)
                 this.addMessage("The Watcher of the Core fixes its gaze upon you! A paralyzing wave washes over you!");
 

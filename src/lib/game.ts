@@ -45,7 +45,7 @@ export class Item {
   name: string;
   description: string;
   isStatic: boolean; // If true, item is part of the room's fixed features, not picked up
-  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory'; // Added 'accessory' type
+  type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' | 'spellbook'; // Added 'spellbook' type
   effectValue?: number; // e.g., health restore amount, attack bonus, defense bonus
   stackable: boolean; // New: Can this item stack in inventory?
 
@@ -54,7 +54,7 @@ export class Item {
     name: string,
     description: string,
     isStatic: boolean = false,
-    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' = 'generic',
+    type: 'consumable' | 'weapon' | 'shield' | 'key' | 'artifact' | 'static' | 'generic' | 'quest' | 'accessory' | 'spellbook' = 'generic',
     effectValue?: number,
     stackable: boolean = false
   ) {
@@ -77,6 +77,7 @@ export class Enemy {
   isAggro: boolean;
   attackDamage: number;
   reward?: Item; // NEW: Optional item reward
+  stunnedTurns: number;
 
   constructor(id: string, name: string, description: string, health: number = 1, attackDamage: number = 5, reward?: Item) {
     this.id = id;
@@ -87,6 +88,7 @@ export class Enemy {
     this.isAggro = false;
     this.attackDamage = attackDamage;
     this.reward = reward; // Assign reward
+    this.stunnedTurns = 0;
   }
 
   takeDamage(amount: number) {
@@ -153,6 +155,7 @@ export class Labyrinth {
   private equippedShield: Item | undefined;
   private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
   private equippedCompass: Item | undefined; // New: For True Compass
+  private equippedSpellbook: Item | undefined;
   private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
@@ -182,6 +185,8 @@ export class Labyrinth {
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
+  private learnedSpells: Set<string>;
+  private spellCooldown: number;
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -241,6 +246,7 @@ export class Labyrinth {
     this.equippedShield = undefined;
     this.equippedAmulet = undefined; // Initialize new equipped slot
     this.equippedCompass = undefined; // Initialize new equipped slot
+    this.equippedSpellbook = undefined;
     this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
@@ -263,6 +269,8 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
+    this.learnedSpells = new Set<string>();
+    this.spellCooldown = 0;
 
     // Initialize new objective states
     this.journalFound = false;
@@ -1031,6 +1039,14 @@ export class Labyrinth {
     return this.equippedCompass;
   }
 
+  public getEquippedSpellbook(): Item | undefined {
+    return this.equippedSpellbook;
+  }
+
+  public getSpellCooldown(): number {
+    return this.spellCooldown;
+  }
+
   public getInventoryItems(): { item: Item, quantity: number }[] {
     return Array.from(this.inventory.values());
   }
@@ -1288,6 +1304,24 @@ export class Labyrinth {
     }
   }
 
+  private _handleEnemyDefeat(enemy: Enemy, coordStr: string) {
+    this.addMessage(`You have defeated the ${enemy.name}!`);
+    this.enemyLocations.delete(coordStr);
+    if (enemy.reward) {
+      this._handleFoundItem(enemy.reward, coordStr);
+    }
+    if (enemy.id === this.watcherOfTheCore?.id) {
+      this.bossDefeated = true;
+      if (!this.learnedSpells.has("spellbook-paralyzing-gaze")) {
+        const spellbook = new Item("spellbook-paralyzing-gaze", "Tome of Paralyzing Gaze", "Allows you to cast the Watcher's stunning gaze. Has a cooldown.", false, 'spellbook');
+        this.items.set(spellbook.id, spellbook);
+        this.learnedSpells.add(spellbook.id);
+        this._handleFoundItem(spellbook, coordStr);
+        this.addMessage("You have absorbed the Watcher's power and learned Paralyzing Gaze!");
+      }
+    }
+  }
+
   public attack(playerName: string, time: number) {
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
@@ -1327,15 +1361,7 @@ export class Labyrinth {
         this.lastHitEntityId = enemy.id;
         this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
         if (enemy.defeated) {
-          this.addMessage(`You have defeated the ${enemy.name}!`);
-          this.enemyLocations.delete(targetCoordStr);
-          // NEW: Check for enemy reward
-          if (enemy.reward) {
-            this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
-          }
-          if (enemy.id === this.watcherOfTheCore?.id) {
-            this.bossDefeated = true;
-          }
+          this._handleEnemyDefeat(enemy, targetCoordStr);
         }
       } else {
         this.addMessage("You swing your weapon, but there's no living enemy there.");
@@ -1421,13 +1447,7 @@ export class Labyrinth {
         enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
         this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
-        // NEW: Check for enemy reward
-        if (enemy.reward) {
-          this._handleFoundItem(enemy.reward, targetCoordStr); // Add reward to inventory
-        }
-        if (enemy.id === this.watcherOfTheCore?.id) {
-          this.bossDefeated = true;
-        }
+        this._handleEnemyDefeat(enemy, targetCoordStr);
       }
     }
 
@@ -1568,14 +1588,7 @@ export class Labyrinth {
         enemy.health = 0; // Instant death
         enemy.defeated = true;
         this.addMessage(`The ${enemy.name} was pushed into an Instant Death Trap and was instantly obliterated!`);
-        this.enemyLocations.delete(pushCoordStr);
-        // NEW: Check for enemy reward
-        if (enemy.reward) {
-          this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
-        }
-        if (enemy.id === this.watcherOfTheCore?.id) {
-          this.bossDefeated = true;
-        }
+        this._handleEnemyDefeat(enemy, pushCoordStr);
       } else if (this.trapsLocations.has(pushCoordStr) && !this.triggeredTraps.has(pushCoordStr)) {
         const trapDamage = 10;
         enemy.takeDamage(trapDamage);
@@ -1584,14 +1597,7 @@ export class Labyrinth {
         this.addMessage(`The ${enemy.name} was pushed into a hidden trap and took ${trapDamage} damage! Its health is now ${enemy.health}.`);
         if (enemy.defeated) {
           this.addMessage(`The ${enemy.name} was defeated by a trap!`);
-          this.enemyLocations.delete(pushCoordStr);
-          // NEW: Check for enemy reward
-          if (enemy.reward) {
-            this._handleFoundItem(enemy.reward, pushCoordStr); // Add reward to inventory
-          }
-          if (enemy.id === this.watcherOfTheCore?.id) {
-            this.bossDefeated = true;
-          }
+          this._handleEnemyDefeat(enemy, pushCoordStr);
         }
       }
     } else {
@@ -1600,15 +1606,7 @@ export class Labyrinth {
       this.lastHitEntityId = enemy.id;
       this.addMessage(`You bash the ${enemy.name} into an obstacle! It takes ${bashDamage} damage! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
-        this.addMessage(`You have defeated the ${enemy.name}!`);
-        this.enemyLocations.delete(frontCoordStr);
-        // NEW: Check for enemy reward
-        if (enemy.reward) {
-          this._handleFoundItem(enemy.reward, frontCoordStr); // Add reward to inventory
-        }
-        if (enemy.id === this.watcherOfTheCore?.id) {
-          this.bossDefeated = true;
-        }
+        this._handleEnemyDefeat(enemy, frontCoordStr);
       }
     }
   }
@@ -1660,6 +1658,17 @@ export class Labyrinth {
         this.itemLocations.delete(coordStr);
       } else {
         this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
+      }
+    } else if (foundItem.type === 'spellbook') {
+      if (!this.inventory.has(foundItem.id)) {
+        if (!this.equippedSpellbook) {
+          this.equippedSpellbook = foundItem;
+          this.addMessage(`You found and equipped the ${foundItem.name}!`);
+        } else {
+          this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
+          this.addMessage(`You found a ${foundItem.name}! It has been added to your backpack.`);
+        }
+        this.itemLocations.delete(coordStr);
       }
     } else if (foundItem.type === 'accessory') { // Handle accessories like amulet/compass
       if (!this.inventory.has(foundItem.id)) {
@@ -2078,6 +2087,23 @@ export class Labyrinth {
           }
         }
         break;
+      case 'spellbook':
+        if (this.equippedSpellbook?.id === item.id) {
+          this.equippedSpellbook = undefined;
+          this.addMessage(`You unequip the ${item.name}.`);
+          this.inventory.set(item.id, { item: item, quantity: 1 });
+        } else {
+          if (this.equippedSpellbook) {
+            const oldEquipped = this.equippedSpellbook;
+            this.inventory.set(oldEquipped.id, { item: oldEquipped, quantity: 1 });
+            this.addMessage(`You unequip the ${oldEquipped.name} and equip the ${item.name}.`);
+          } else {
+            this.addMessage(`You equip the ${item.name}.`);
+          }
+          this.equippedSpellbook = item;
+          this.inventory.delete(itemId);
+        }
+        break;
       case 'accessory': // Handle accessory usage (equip/unequip)
         if (item.id === "scholar-amulet-f0") {
             if (this.equippedAmulet?.id === item.id) {
@@ -2121,6 +2147,60 @@ export class Labyrinth {
     }
   }
 
+  public castSpell(playerName: string, time: number) {
+    if (this.gameOver) {
+      this.addMessage("The game is over.");
+      return;
+    }
+    if (this.playerStunnedTurns > 0) {
+      this.playerStunnedTurns--;
+      this.addMessage("You are paralyzed and cannot cast spells!");
+      return;
+    }
+    if (this.spellCooldown > 0) {
+      this.addMessage(`Your spell is on cooldown for ${this.spellCooldown} more turns.`);
+      return;
+    }
+    if (!this.equippedSpellbook) {
+      this.addMessage("You don't have a spellbook equipped.");
+      return;
+    }
+
+    if (this.equippedSpellbook.id === "spellbook-paralyzing-gaze") {
+      this.addMessage("You channel the Watcher's power and cast Paralyzing Gaze!");
+      let hitEnemy = false;
+      let dx = 0;
+      let dy = 0;
+      switch (this.lastMoveDirection) {
+        case "north": dy = -1; break;
+        case "south": dy = 1; break;
+        case "east": dx = 1; break;
+        case "west": dx = -1; break;
+      }
+
+      for (let i = 1; i <= 3; i++) {
+        const targetX = this.playerLocation.x + dx * i;
+        const targetY = this.playerLocation.y + dy * i;
+        const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
+        const enemyId = this.enemyLocations.get(targetCoordStr);
+        if (enemyId) {
+          const enemy = this.enemies.get(enemyId);
+          if (enemy && !enemy.defeated) {
+            enemy.stunnedTurns = 3;
+            this.addMessage(`The ${enemy.name} is caught in your gaze and is paralyzed!`);
+            hitEnemy = true;
+          }
+        }
+      }
+
+      if (!hitEnemy) {
+        this.addMessage("Your gaze meets only empty air.");
+      }
+
+      this.spellCooldown = 10;
+    }
+  }
+
   private _isValidEnemyMove(x: number, y: number, currentFloorMap: (LogicalRoom | 'wall')[][]): boolean {
     return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
   }
@@ -2128,6 +2208,10 @@ export class Labyrinth {
   public processEnemyMovement(playerName: string, time: number) {
     if (this.gameOver) {
         return;
+    }
+
+    if (this.spellCooldown > 0) {
+      this.spellCooldown--;
     }
 
     // NEW: Decrement Watcher cooldown and reset stun effect status
@@ -2172,6 +2256,11 @@ export class Labyrinth {
     }
 
     for (const { id: enemyId, coordStr, enemy } of enemiesToMove) {
+        if (enemy.stunnedTurns > 0) {
+          enemy.stunnedTurns--;
+          this.addMessage(`The ${enemy.name} is stunned and cannot move.`);
+          continue;
+        }
         const [oldX, oldY] = coordStr.split(',').map(Number);
         
         // NEW: Watcher special attack logic
@@ -2248,14 +2337,7 @@ export class Labyrinth {
                 enemy.health = 0; // Instant death
                 enemy.defeated = true;
                 this.addMessage(`The ${enemy.name} stumbled into an Instant Death Trap and was instantly obliterated!`);
-                this.enemyLocations.delete(newCoordStr); // Remove enemy from map
-                // NEW: Check for enemy reward
-                if (enemy.reward) {
-                  this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
-                }
-                if (enemy.id === this.watcherOfTheCore?.id) {
-                  this.bossDefeated = true;
-                }
+                this._handleEnemyDefeat(enemy, newCoordStr);
             } else if (this.trapsLocations.has(newCoordStr) && !this.triggeredTraps.has(newCoordStr)) {
                 const trapDamage = 10;
                 enemy.takeDamage(trapDamage);
@@ -2264,14 +2346,7 @@ export class Labyrinth {
                 this.addMessage(`The ${enemy.name} triggered a hidden trap and took ${trapDamage} damage! Its health is now ${enemy.health}.`);
                 if (enemy.defeated) {
                     this.addMessage(`The ${enemy.name} was defeated by a trap!`);
-                    this.enemyLocations.delete(newCoordStr); // Remove enemy from map
-                    // NEW: Check for enemy reward
-                    if (enemy.reward) {
-                      this._handleFoundItem(enemy.reward, newCoordStr); // Add reward to inventory
-                    }
-                    if (enemy.id === this.watcherOfTheCore?.id) {
-                      this.bossDefeated = true;
-                    }
+                    this._handleEnemyDefeat(enemy, newCoordStr);
                 }
             }
             break; // Enemy moved, stop trying other moves

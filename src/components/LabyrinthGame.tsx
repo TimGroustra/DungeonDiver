@@ -220,6 +220,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "shift": event.preventDefault(); handleSearch(); break;
         case "control": event.preventDefault(); handleInteract(); break;
         case "e": event.preventDefault(); handleShieldBash(); break; // 'e' for Shield Bash
+        case "f": event.preventDefault(); handleCastSpell(); break;
       }
     };
 
@@ -295,6 +296,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     labyrinth.shieldBash(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
+    incrementGameVersion();
+  };
+
+  const handleCastSpell = () => {
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
+    labyrinth.castSpell(playerName, elapsedTime);
     incrementGameVersion();
   };
 
@@ -618,6 +625,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const equippedShield = labyrinth.getEquippedShield();
     const equippedAmulet = labyrinth.getEquippedAmulet();
     const equippedCompass = labyrinth.getEquippedCompass();
+    const equippedSpellbook = labyrinth.getEquippedSpellbook();
     const inventoryItems = labyrinth.getInventoryItems();
     const currentObjective = labyrinth.getCurrentFloorObjective();
 
@@ -648,7 +656,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         (equippedWeapon?.id === item.id) ||
         (equippedShield?.id === item.id) ||
         (equippedAmulet?.id === item.id) ||
-        (equippedCompass?.id === item.id)
+        (equippedCompass?.id === item.id) ||
+        (equippedSpellbook?.id === item.id)
       );
     });
 
@@ -661,6 +670,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {renderEquippedItemSlot(equippedShield, <Shield className="w-6 h-6 text-stone-600" />, "Shield Slot")}
             {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
             {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
+            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot")}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
@@ -671,7 +681,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           ) : (
             <div className="grid grid-cols-5 gap-2">
               {unequippedInventory.map(({ item, quantity }) => {
-                const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
+                const isEquippable = ['weapon', 'shield', 'accessory', 'spellbook'].includes(item.type);
                 const isUsable = item.type === 'consumable' || isEquippable;
 
                 return (
@@ -725,6 +735,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const renderHud = () => {
     if (!labyrinth) return null; // Ensure labyrinth is initialized
+    const spellCooldown = labyrinth.getSpellCooldown();
 
     return (
       <>
@@ -754,6 +765,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <Skull className="text-gray-400" size={10} />
               <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
             </div>
+            {spellCooldown > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-3 bg-amber-800" />
+                <div className="flex items-center gap-1" title="Spell Cooldown">
+                  <BookOpen className="text-cyan-400" size={10} />
+                  <span className="font-bold">{spellCooldown}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         {/* NEW: Player Stunned Status */}
@@ -787,7 +807,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           {renderMap()}
           <div className="absolute bottom-2 left-2 right-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Map: <span className="font-bold text-amber-200">M</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Spell: <span className="font-bold text-amber-200">F</span> | Map: <span className="font-bold text-amber-200">M</span></p>
           </div>
           {renderHud()}
 

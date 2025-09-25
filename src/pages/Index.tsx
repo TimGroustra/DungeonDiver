@@ -12,7 +12,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Skull } from "lucide-react";
 import { GameResult } from "@/lib/game";
-import { useIsMobile } from "@/hooks/use-mobile"; // Import the hook
+import { useIsMobile } from "@/hooks/use-mobile";
+import { WalletConnect } from "@/components/WalletConnect";
 
 interface LeaderboardEntry {
   id: number;
@@ -35,9 +36,9 @@ const Index: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
-  const [gameKey, setGameKey] = useState<number>(0); // New state for forcing LabyrinthGame re-initialization
+  const [gameKey, setGameKey] = useState<number>(0);
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile(); // Use the hook
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -77,7 +78,6 @@ const Index: React.FC = () => {
       toast.success("Score submitted to leaderboard!");
     },
     onError: (error) => {
-      // Check for unique constraint violation error
       if (error.message.includes("duplicate key value violates unique constraint")) {
         toast.info("This exact score has already been recorded on the leaderboard.");
       } else {
@@ -91,18 +91,17 @@ const Index: React.FC = () => {
       setGameStarted(true);
       setStartTime(Date.now());
       setShowLeaderboard(false);
-      setGameResult(null); // Clear any previous game result
-      setElapsedTime(0); // Reset timer for new game
-      setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
+      setGameResult(null);
+      setElapsedTime(0);
+      setGameKey(prev => prev + 1);
     } else {
       toast.error("Please enter your player name.");
     }
   };
 
   const handleGameOver = useCallback((result: GameResult) => {
-    // Keep gameStarted true so LabyrinthGame remains mounted for overlay
-    setStartTime(null); // Stop timer
-    setGameResult(result); // Set game result to display overlay
+    setStartTime(null);
+    setGameResult(result);
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
       addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time, deaths: result.deaths || 0 });
@@ -113,25 +112,22 @@ const Index: React.FC = () => {
   }, [addLeaderboardEntryMutation]);
 
   const handleGameRestart = () => {
-    setGameStarted(true); // Restart game
+    setGameStarted(true);
     setStartTime(Date.now());
     setElapsedTime(0);
     setShowLeaderboard(false);
-    setGameResult(null); // Clear game result to hide overlay
-    setGameKey(prev => prev + 1); // Increment key to force LabyrinthGame re-initialization
+    setGameResult(null);
+    setGameKey(prev => prev + 1);
   };
 
   const handleRevive = () => {
-    // Clear the game result to hide the overlay
     setGameResult(null); 
-    // Resume the timer from the elapsed time at the point of defeat
     setStartTime(Date.now() - (elapsedTime * 1000));
-    // Do NOT change gameStarted or gameKey here, as we are continuing the current session
   };
 
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
-      {!gameStarted && !showLeaderboard && !gameResult && ( // Only show main menu if game not started, no leaderboard, and no game result
+      {!gameStarted && !showLeaderboard && !gameResult && (
         <div className="flex flex-col items-center text-center">
           <h1
             className="font-cinzel text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-6"
@@ -159,6 +155,7 @@ const Index: React.FC = () => {
                       className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
                     />
                   </div>
+                  <WalletConnect />
                   <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
                     Start New Game
                   </Button>
@@ -172,7 +169,7 @@ const Index: React.FC = () => {
         </div>
       )}
 
-      {showLeaderboard && !gameStarted && !gameResult && ( // Only show leaderboard if game not started, no game result
+      {showLeaderboard && !gameStarted && !gameResult && (
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
@@ -210,17 +207,17 @@ const Index: React.FC = () => {
         </Card>
       )}
 
-      {gameStarted && ( // LabyrinthGame is always mounted if gameStarted is true
+      {gameStarted && (
         <LabyrinthGame
-          key={gameKey} // Use key to force re-initialization only when starting a new game
+          key={gameKey}
           playerName={playerName}
           gameStarted={gameStarted}
           startTime={startTime}
           elapsedTime={elapsedTime}
           onGameOver={handleGameOver}
           onGameRestart={handleGameRestart}
-          gameResult={gameResult} // Pass gameResult to LabyrinthGame
-          onRevive={handleRevive} // Pass handleRevive to LabyrinthGame
+          gameResult={gameResult}
+          onRevive={handleRevive}
         />
       )}
     </div>

@@ -663,7 +663,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             >
               {item ? <span className="text-2xl">{itemIcon}</span> : placeholderIcon}
-              {cooldown && cooldown > 0 && (
+              {cooldown > 0 && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded">
                   <span className="text-white font-bold text-lg select-none">{cooldown}</span>
                 </div>

@@ -15,6 +15,7 @@ import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScre
 import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
 import { emojiMap, enemySpriteMap, staticItemSpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import new staticItemSpriteMap
 import { useGameStore } from '@/stores/gameStore'; // Import the game store
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Import adventurer sprites from the new assets location
 import AdventurerNorth from "@/assets/sprites/adventurer/adventurer-north.svg";
@@ -620,79 +621,86 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const inventoryItems = labyrinth.getInventoryItems();
     const currentObjective = labyrinth.getCurrentFloorObjective();
 
+    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string) => (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            onDoubleClick={item ? () => handleUseItem(item.id) : undefined}
+            className={cn(
+              "relative flex items-center justify-center w-12 h-12 bg-black/20 rounded border border-amber-700 aspect-square",
+              item && "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600"
+            )}
+          >
+            {item ? <span className="text-2xl">{getEmojiForElement(item.name)}</span> : placeholderIcon}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="font-bold">{item ? item.name : slotName}</p>
+          {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
+          {item && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
+        </TooltipContent>
+      </Tooltip>
+    );
+
+    const unequippedInventory = inventoryItems.filter(invItem => {
+      const { item } = invItem;
+      return !(
+        (equippedWeapon?.id === item.id) ||
+        (equippedShield?.id === item.id) ||
+        (equippedAmulet?.id === item.id) ||
+        (equippedCompass?.id === item.id)
+      );
+    });
+
     return (
       <ScrollArea className="h-full w-full">
         <div className="p-4 text-amber-50">
           <h4 className="text-md font-bold text-amber-300 mb-2">Equipped Gear</h4>
-          <div className="space-y-2 mb-4 text-sm">
-            {equippedWeapon ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
-                <p className="font-bold text-amber-200 flex items-center"><Sword className="w-4 h-4 mr-2 text-orange-400"/> {equippedWeapon.name}</p>
-                {/* Removed Attack button */}
-              </div>
-            ) : (
-              <p className="italic text-stone-400">No weapon equipped.</p>
-            )}
-            {equippedShield ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
-                <p className="font-bold text-amber-200 flex items-center"><Shield className="w-4 h-4 mr-2 text-blue-400"/> {equippedShield.name}</p>
-                {/* Removed Bash button */}
-              </div>
-            ) : (
-              <p className="italic text-stone-400">No shield equipped.</p>
-            )}
-            {equippedAmulet ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
-                <p className="font-bold text-amber-200 flex items-center"><Gem className="w-4 h-4 mr-2 text-purple-400"/> {equippedAmulet.name}</p>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedAmulet.id)}>
-                  Unequip
-                </Button>
-              </div>
-            ) : (
-              <p className="italic text-stone-400">No amulet equipped.</p>
-            )}
-            {equippedCompass ? (
-              <div className="p-2 bg-black/20 rounded border border-amber-700 flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-amber-200 flex items-center"><Compass className="w-4 h-4 mr-2 text-green-400"/> {equippedCompass.name}</p>
-                </div>
-                <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(equippedCompass.id)}>
-                  Unequip
-                </Button>
-              </div>
-            ) : (
-              <p className="italic text-stone-400">No compass equipped.</p>
-            )}
+          <div className="grid grid-cols-5 gap-2 mb-4">
+            {renderEquippedItemSlot(equippedWeapon, <Sword className="w-6 h-6 text-stone-600" />, "Weapon Slot")}
+            {renderEquippedItemSlot(equippedShield, <Shield className="w-6 h-6 text-stone-600" />, "Shield Slot")}
+            {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
+            {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
 
           <h4 className="text-md font-bold text-amber-300 mb-2">Backpack</h4>
-          {inventoryItems.length === 0 ? (
+          {unequippedInventory.length === 0 ? (
             <p className="italic text-stone-400 text-center">Your backpack is empty.</p>
           ) : (
-            <ul className="space-y-2 text-sm">
-              {inventoryItems.map(({ item, quantity }) => {
+            <div className="grid grid-cols-5 gap-2">
+              {unequippedInventory.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory'].includes(item.type);
-                const isCurrentlyEquipped = (equippedWeapon?.id === item.id) || (equippedShield?.id === item.id) || (equippedAmulet?.id === item.id) || (equippedCompass?.id === item.id);
-                if (isCurrentlyEquipped) return null;
+                const isUsable = item.type === 'consumable' || isEquippable;
+
                 return (
-                  <li key={item.id} className="p-2 bg-black/20 rounded border border-amber-900/50">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-bold text-amber-200">{item.name} {item.stackable && `(x${quantity})`}</p>
-                        <p className="text-xs text-stone-300 italic mt-1">{item.description}</p>
+                  <Tooltip key={item.id}>
+                    <TooltipTrigger asChild>
+                      <div
+                        onDoubleClick={isUsable ? () => handleUseItem(item.id) : undefined}
+                        className={cn(
+                          "relative flex items-center justify-center w-12 h-12 bg-black/20 rounded border border-amber-900/50 aspect-square",
+                          isUsable ? "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600" : "cursor-default"
+                        )}
+                      >
+                        <span className="text-2xl">{getEmojiForElement(item.name)}</span>
+                        {item.stackable && quantity > 1 && (
+                          <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                            {quantity}
+                          </span>
+                        )}
                       </div>
-                      {(item.type === 'consumable' || isEquippable) && (
-                        <Button size="sm" className="ml-2 px-2 py-1 text-xs flex-shrink-0 bg-amber-800 hover:bg-amber-700 border-amber-600" onClick={() => handleUseItem(item.id)}>
-                          {isEquippable ? 'Equip' : 'Use'}
-                        </Button>
-                      )}
-                    </div>
-                  </li>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="font-bold">{item.name}</p>
+                      <p className="text-xs text-stone-400 mt-1">{item.description}</p>
+                      {isUsable && <p className="text-xs text-amber-300 italic mt-1">Double-click to {isEquippable ? 'equip' : 'use'}.</p>}
+                    </TooltipContent>
+                  </Tooltip>
                 );
               })}
-            </ul>
+            </div>
           )}
 
           <Separator className="my-4 bg-amber-800/60" />

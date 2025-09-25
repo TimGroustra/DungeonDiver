@@ -183,6 +183,15 @@ export class Labyrinth {
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
 
+  // New state for objective tracking
+  private journalFound: boolean;
+  private crystalFound: boolean;
+  private flaskFound: boolean;
+  private livingWaterObtained: boolean;
+  private brokenCompassFound: boolean;
+  private fineToolsFound: boolean;
+  private prismaticLensFound: boolean;
+
   // New quest-related states
   private scholarAmuletQuestCompleted: boolean;
   private whisperingWellQuestCompleted: boolean;
@@ -254,6 +263,15 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
+
+    // Initialize new objective states
+    this.journalFound = false;
+    this.crystalFound = false;
+    this.flaskFound = false;
+    this.livingWaterObtained = false;
+    this.brokenCompassFound = false;
+    this.fineToolsFound = false;
+    this.prismaticLensFound = false;
 
     // Initialize new quest states
     this.scholarAmuletQuestCompleted = false;
@@ -587,8 +605,8 @@ export class Labyrinth {
       this.floorObjectives.set(floor, {
         title: "The Echoes of the Lost Scholar",
         steps: [
-          { description: "Find the 'Tattered Journal'.", isCompleted: () => this.inventory.has("journal-f0") },
-          { description: "Locate a 'Pulsating Crystal'.", isCompleted: () => this.inventory.has("charged-crystal-f0") },
+          { description: "Find the 'Tattered Journal'.", isCompleted: () => this.journalFound || this.scholarAmuletQuestCompleted },
+          { description: "Locate a 'Pulsating Crystal'.", isCompleted: () => this.crystalFound || this.scholarAmuletQuestCompleted },
           { description: "Use the 'Tattered Journal' and 'Pulsating Crystal' to activate the 'Ancient Mechanism'.", isCompleted: () => this.scholarAmuletQuestCompleted },
           { description: "Obtain the Scholar's Amulet.", isCompleted: () => this.inventory.has("scholar-amulet-f0") || this.equippedAmulet?.id === "scholar-amulet-f0" },
         ],
@@ -611,9 +629,9 @@ export class Labyrinth {
       this.floorObjectives.set(floor, {
         title: "The Whispering Well's Thirst",
         steps: [
-          { description: "Find the 'Enchanted Flask'.", isCompleted: () => this.inventory.has("enchanted-flask-f1") || this.inventory.has("living-water-f1") },
-          { description: "Locate the 'Hidden Spring'.", isCompleted: () => this.inventory.has("living-water-f1") },
-          { description: "Fill the 'Enchanted Flask' with 'Living Water' from the 'Hidden Spring'.", isCompleted: () => this.inventory.has("living-water-f1") },
+          { description: "Find the 'Enchanted Flask'.", isCompleted: () => this.flaskFound || this.whisperingWellQuestCompleted },
+          { description: "Locate the 'Hidden Spring'.", isCompleted: () => this.livingWaterObtained || this.whisperingWellQuestCompleted },
+          { description: "Fill the 'Enchanted Flask' with 'Living Water' from the 'Hidden Spring'.", isCompleted: () => this.livingWaterObtained || this.whisperingWellQuestCompleted },
           { description: "Use the 'Living Water' to quench the 'Whispering Well'.", isCompleted: () => this.whisperingWellQuestCompleted },
         ],
         isCompleted: () => this.whisperingWellQuestCompleted
@@ -639,9 +657,9 @@ export class Labyrinth {
       this.floorObjectives.set(floor, {
         title: "The Broken Compass's Secret",
         steps: [
-          { description: "Gather the 'Broken Compass'.", isCompleted: () => this.inventory.has("broken-compass-f2") || this.trueCompassQuestCompleted },
-          { description: "Find 'Artisan's Fine Tools'.", isCompleted: () => this.inventory.has("fine-tools-f2") || this.trueCompassQuestCompleted },
-          { description: "Locate a 'Prismatic Lens'.", isCompleted: () => this.inventory.has("prismatic-lens-f2") || this.trueCompassQuestCompleted },
+          { description: "Gather the 'Broken Compass'.", isCompleted: () => this.brokenCompassFound || this.trueCompassQuestCompleted },
+          { description: "Find 'Artisan's Fine Tools'.", isCompleted: () => this.fineToolsFound || this.trueCompassQuestCompleted },
+          { description: "Locate a 'Prismatic Lens'.", isCompleted: () => this.prismaticLensFound || this.trueCompassQuestCompleted },
           { description: "Use these items at the 'Ancient Repair Bench' to repair the compass.", isCompleted: () => this.trueCompassQuestCompleted },
         ],
         isCompleted: () => this.trueCompassQuestCompleted
@@ -679,7 +697,7 @@ export class Labyrinth {
         title: "The Heart of the Labyrinth",
         steps: [
           { description: "Defeat 'The Watcher of the Core' in combat.", isCompleted: () => this.bossDefeated },
-          { description: "Find the 'Labyrinth Key'.", isCompleted: () => this.inventory.has("labyrinth-key-f3") || this.mysteriousBoxOpened },
+          { description: "Find the 'Labyrinth Key'.", isCompleted: () => this.labyrinthKeyFound || this.mysteriousBoxOpened },
           { description: "Use the 'Labyrinth Key' to open the 'Mysterious Box'.", isCompleted: () => this.mysteriousBoxOpened },
           { description: "Obtain the 'Heart of the Labyrinth'.", isCompleted: () => this.heartOfLabyrinthObtained },
           { description: "Sacrifice the 'Heart of the Labyrinth' at the 'Ancient Altar' to destroy the Labyrinth.", isCompleted: () => this.heartSacrificed },
@@ -1596,6 +1614,18 @@ export class Labyrinth {
   }
 
   private _handleFoundItem(foundItem: Item, coordStr: string) {
+    // New logic to set objective flags
+    switch (foundItem.id) {
+      case "journal-f0": this.journalFound = true; break;
+      case "charged-crystal-f0": this.crystalFound = true; break;
+      case "enchanted-flask-f1": this.flaskFound = true; break;
+      case "living-water-f1": this.livingWaterObtained = true; break;
+      case "broken-compass-f2": this.brokenCompassFound = true; break;
+      case "fine-tools-f2": this.fineToolsFound = true; break;
+      case "prismatic-lens-f2": this.prismaticLensFound = true; break;
+      case "labyrinth-key-f3": this.labyrinthKeyFound = true; break;
+    }
+
     if (foundItem.type === 'consumable' && foundItem.stackable) {
       const existing = this.inventory.get(foundItem.id);
       if (existing) {

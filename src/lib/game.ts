@@ -187,6 +187,8 @@ export class Labyrinth {
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
   private learnedSpells: Set<string>;
   private spellCooldown: number;
+  public playerSpellEffectTiles: Set<string>;
+  private isPlayerSpellEffectActive: boolean;
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -271,6 +273,8 @@ export class Labyrinth {
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
     this.learnedSpells = new Set<string>();
     this.spellCooldown = 0;
+    this.playerSpellEffectTiles = new Set<string>();
+    this.isPlayerSpellEffectActive = false;
 
     // Initialize new objective states
     this.journalFound = false;
@@ -1219,7 +1223,15 @@ export class Labyrinth {
     return false;
   }
 
+  private resetPlayerSpellEffect() {
+    if (this.isPlayerSpellEffectActive) {
+      this.isPlayerSpellEffectActive = false;
+      this.playerSpellEffectTiles.clear();
+    }
+  }
+
   public move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1323,6 +1335,7 @@ export class Labyrinth {
   }
 
   public attack(playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1372,6 +1385,7 @@ export class Labyrinth {
   }
 
   public jump(playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1501,6 +1515,7 @@ export class Labyrinth {
   }
 
   public shieldBash(playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1693,6 +1708,7 @@ export class Labyrinth {
   }
 
   public search() {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1785,6 +1801,7 @@ export class Labyrinth {
   }
 
   public interact(playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1995,6 +2012,7 @@ export class Labyrinth {
   }
 
   public useItem(itemId: string, playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -2148,6 +2166,7 @@ export class Labyrinth {
   }
 
   public castSpell(playerName: string, time: number) {
+    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over.");
       return;
@@ -2168,6 +2187,7 @@ export class Labyrinth {
 
     if (this.equippedSpellbook.id === "spellbook-paralyzing-gaze") {
       this.addMessage("You channel the Watcher's power and cast Paralyzing Gaze!");
+      this.isPlayerSpellEffectActive = true;
       let hitEnemy = false;
       let dx = 0;
       let dy = 0;
@@ -2182,6 +2202,14 @@ export class Labyrinth {
         const targetX = this.playerLocation.x + dx * i;
         const targetY = this.playerLocation.y + dy * i;
         const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
+
+        const currentMap = this.floors.get(this.currentFloor)!;
+        if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT || currentMap[targetY][targetX] === 'wall') {
+          break; // Stop beam at walls
+        }
+
+        this.playerSpellEffectTiles.add(targetCoordStr);
+
         const enemyId = this.enemyLocations.get(targetCoordStr);
         if (enemyId) {
           const enemy = this.enemies.get(enemyId);
@@ -2197,7 +2225,7 @@ export class Labyrinth {
         this.addMessage("Your gaze meets only empty air.");
       }
 
-      this.spellCooldown = 10;
+      this.spellCooldown = 20; // Match watcher's cooldown
     }
   }
 
@@ -2371,6 +2399,14 @@ export class Labyrinth {
 
   public isWatcherStunEffectActive(): boolean {
     return this.watcherStunEffectActive;
+  }
+
+  public getPlayerSpellEffectTiles(): Set<string> {
+    return this.playerSpellEffectTiles;
+  }
+
+  public isPlayerSpellEffectActive(): boolean {
+    return this.isPlayerSpellEffectActive;
   }
 
   private getContiguousArea(startX: number, startY: number, type: 'wall' | 'open', floorMap: (LogicalRoom | 'wall')[][], globalVisited: Set<string>): { size: number, cells: Coordinate[] } {

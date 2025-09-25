@@ -2186,43 +2186,45 @@ export class Labyrinth {
     }
 
     if (this.equippedSpellbook.id === "spellbook-freeze") {
-      this.addMessage("You channel the Watcher's power and cast Freeze!");
+      this.addMessage("You unleash a freezing blast in all directions!");
       this.isPlayerSpellEffectActive = true;
       let hitEnemy = false;
-      let dx = 0;
-      let dy = 0;
-      switch (this.lastMoveDirection) {
-        case "north": dy = -1; break;
-        case "south": dy = 1; break;
-        case "east": dx = 1; break;
-        case "west": dx = -1; break;
-      }
+      const radius = 4;
 
-      for (let i = 1; i <= 3; i++) {
-        const targetX = this.playerLocation.x + dx * i;
-        const targetY = this.playerLocation.y + dy * i;
-        const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
+      // Iterate over a square area around the player
+      for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+          // Skip the player's own tile
+          if (dx === 0 && dy === 0) continue;
 
-        const currentMap = this.floors.get(this.currentFloor)!;
-        if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT || currentMap[targetY][targetX] === 'wall') {
-          break; // Stop beam at walls
-        }
+          const targetX = this.playerLocation.x + dx;
+          const targetY = this.playerLocation.y + dy;
+          const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
 
-        this.playerSpellEffectTiles.add(targetCoordStr);
+          const currentMap = this.floors.get(this.currentFloor)!;
+          // Check boundaries and walls
+          if (targetX < 0 || targetX >= this.MAP_WIDTH || targetY < 0 || targetY >= this.MAP_HEIGHT || currentMap[targetY][targetX] === 'wall') {
+            continue;
+          }
 
-        const enemyId = this.enemyLocations.get(targetCoordStr);
-        if (enemyId) {
-          const enemy = this.enemies.get(enemyId);
-          if (enemy && !enemy.defeated) {
-            enemy.stunnedTurns = 3;
-            this.addMessage(`The ${enemy.name} is frozen solid!`);
-            hitEnemy = true;
+          // Add to visual effect tiles
+          this.playerSpellEffectTiles.add(targetCoordStr);
+
+          // Check for an enemy and apply stun
+          const enemyId = this.enemyLocations.get(targetCoordStr);
+          if (enemyId) {
+            const enemy = this.enemies.get(enemyId);
+            if (enemy && !enemy.defeated) {
+              enemy.stunnedTurns = 3; // Stun for 3 turns
+              this.addMessage(`The ${enemy.name} is frozen solid!`);
+              hitEnemy = true;
+            }
           }
         }
       }
 
       if (!hitEnemy) {
-        this.addMessage("Your icy gaze meets only empty air.");
+        this.addMessage("The wave of cold dissipates, hitting nothing.");
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown

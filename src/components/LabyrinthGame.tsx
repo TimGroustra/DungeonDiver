@@ -647,27 +647,37 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const equippedSpellbook = labyrinth.getEquippedSpellbook();
     const inventoryItems = labyrinth.getInventoryItems();
     const currentObjective = labyrinth.getCurrentFloorObjective();
+    const spellCooldown = labyrinth.getSpellCooldown();
 
-    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string) => (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            onDoubleClick={item ? () => handleUseItem(item.id) : undefined}
-            className={cn(
-              "relative flex items-center justify-center w-12 h-12 bg-black/20 rounded border border-amber-700 aspect-square",
-              item && "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600"
-            )}
-          >
-            {item ? <span className="text-2xl">{getEmojiForElement(item.name)}</span> : placeholderIcon}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="font-bold">{item ? item.name : slotName}</p>
-          {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
-          {item && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
-        </TooltipContent>
-      </Tooltip>
-    );
+    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number) => {
+      const itemIcon = item?.name === 'Freeze' ? '🧊' : getEmojiForElement(item?.name || '');
+
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              onDoubleClick={item ? () => handleUseItem(item.id) : undefined}
+              className={cn(
+                "relative flex items-center justify-center w-12 h-12 bg-black/20 rounded border border-amber-700 aspect-square",
+                item && "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600"
+              )}
+            >
+              {item ? <span className="text-2xl">{itemIcon}</span> : placeholderIcon}
+              {cooldown && cooldown > 0 && (
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded">
+                  <span className="text-white font-bold text-lg select-none">{cooldown}</span>
+                </div>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-bold">{item ? item.name : slotName}</p>
+            {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
+            {item && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
+          </TooltipContent>
+        </Tooltip>
+      );
+    };
 
     const unequippedInventory = inventoryItems.filter(invItem => {
       const { item } = invItem;
@@ -689,7 +699,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {renderEquippedItemSlot(equippedShield, <Shield className="w-6 h-6 text-stone-600" />, "Shield Slot")}
             {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
             {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
-            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot")}
+            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown)}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
@@ -702,6 +712,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               {unequippedInventory.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory', 'spellbook'].includes(item.type);
                 const isUsable = item.type === 'consumable' || isEquippable;
+                const itemIcon = item.name === 'Freeze' ? '🧊' : getEmojiForElement(item.name);
 
                 return (
                   <Tooltip key={item.id}>
@@ -713,7 +724,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                           isUsable ? "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600" : "cursor-default"
                         )}
                       >
-                        <span className="text-2xl">{getEmojiForElement(item.name)}</span>
+                        <span className="text-2xl">{itemIcon}</span>
                         {item.stackable && quantity > 1 && (
                           <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold rounded-full h-4 w-4 flex items-center justify-center">
                             {quantity}

@@ -1324,12 +1324,12 @@ export class Labyrinth {
     }
     if (enemy.id === this.watcherOfTheCore?.id) {
       this.bossDefeated = true;
-      if (!this.learnedSpells.has("spellbook-paralyzing-gaze")) {
-        const spellbook = new Item("spellbook-paralyzing-gaze", "Tome of Paralyzing Gaze", "Allows you to cast the Watcher's stunning gaze. Has a cooldown.", false, 'spellbook');
+      if (!this.learnedSpells.has("spellbook-freeze")) {
+        const spellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
         this.items.set(spellbook.id, spellbook);
         this.learnedSpells.add(spellbook.id);
         this._handleFoundItem(spellbook, coordStr);
-        this.addMessage("You have absorbed the Watcher's power and learned Paralyzing Gaze!");
+        this.addMessage("You have absorbed the Watcher's power and learned Freeze!");
       }
     }
   }
@@ -2185,8 +2185,8 @@ export class Labyrinth {
       return;
     }
 
-    if (this.equippedSpellbook.id === "spellbook-paralyzing-gaze") {
-      this.addMessage("You channel the Watcher's power and cast Paralyzing Gaze!");
+    if (this.equippedSpellbook.id === "spellbook-freeze") {
+      this.addMessage("You channel the Watcher's power and cast Freeze!");
       this.isPlayerSpellEffectActive = true;
       let hitEnemy = false;
       let dx = 0;
@@ -2215,14 +2215,14 @@ export class Labyrinth {
           const enemy = this.enemies.get(enemyId);
           if (enemy && !enemy.defeated) {
             enemy.stunnedTurns = 3;
-            this.addMessage(`The ${enemy.name} is caught in your gaze and is paralyzed!`);
+            this.addMessage(`The ${enemy.name} is frozen solid!`);
             hitEnemy = true;
           }
         }
       }
 
       if (!hitEnemy) {
-        this.addMessage("Your gaze meets only empty air.");
+        this.addMessage("Your icy gaze meets only empty air.");
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown

@@ -2405,7 +2405,7 @@ export class Labyrinth {
     return this.playerSpellEffectTiles;
   }
 
-  public isPlayerSpellEffectActive(): boolean {
+  public getIsPlayerSpellEffectActive(): boolean {
     return this.isPlayerSpellEffectActive;
   }
 

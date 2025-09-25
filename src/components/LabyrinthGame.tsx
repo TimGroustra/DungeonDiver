@@ -421,7 +421,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const isWatcherStunEffectActive = labyrinth.isWatcherStunEffectActive();
     // NEW: Get Player spell effect tiles
     const playerSpellEffectTiles = labyrinth.getPlayerSpellEffectTiles();
-    const isPlayerSpellEffectActive = labyrinth.isPlayerSpellEffectActive();
+    const isPlayerSpellEffectActive = labyrinth.getIsPlayerSpellEffectActive();
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">

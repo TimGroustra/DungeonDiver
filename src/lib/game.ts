@@ -2247,10 +2247,16 @@ export class Labyrinth {
         if (f === this.currentFloor) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated && !enemy.isAggro) {
-                const distance = Math.max(Math.abs(playerX - x), Math.abs(playerY - y));
-                if (distance <= AGGRO_RADIUS) {
+                // Special full-map aggro for The Watcher
+                if (enemy.id === this.watcherOfTheCore?.id) {
                     enemy.isAggro = true;
-                    this.addMessage(`A ${enemy.name} has spotted you and is now hunting you down!`);
+                    this.addMessage(`The ${enemy.name} has sensed your presence on this floor and is now hunting you down!`);
+                } else {
+                    const distance = Math.max(Math.abs(playerX - x), Math.abs(playerY - y));
+                    if (distance <= AGGRO_RADIUS) {
+                        enemy.isAggro = true;
+                        this.addMessage(`A ${enemy.name} has spotted you and is now hunting you down!`);
+                    }
                 }
             }
         }

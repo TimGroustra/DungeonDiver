@@ -1256,12 +1256,6 @@ export class Labyrinth {
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
 
-    // NEW: Check if target tile is frozen
-    if (this.frozenTiles.has(targetCoordStr)) {
-        this.addMessage("The ground is frozen solid! You cannot move there.");
-        return;
-    }
-
     // Check for enemy at target location
     const enemyId = this.enemyLocations.get(targetCoordStr);
     if (enemyId) {
@@ -1435,12 +1429,6 @@ export class Labyrinth {
     }
 
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
-
-    // NEW: Check if destination is frozen
-    if (this.frozenTiles.has(targetCoordStr)) {
-        this.addMessage("You cannot land on the frozen ground!");
-        return;
-    }
 
     // NEW LOGIC: If there is an enemy at the destination, the player lands on it and defeats it instantly.
     const enemyId = this.enemyLocations.get(targetCoordStr);
@@ -2351,8 +2339,8 @@ export class Labyrinth {
 
             const newCoordStr = `${move.x},${move.y},${this.currentFloor}`;
 
-            // NEW: Check if target tile is frozen
-            if (this.frozenTiles.has(newCoordStr)) {
+            // NEW: Check if target tile is frozen, unless the enemy is the Watcher
+            if (this.frozenTiles.has(newCoordStr) && enemy.id !== this.watcherOfTheCore?.id) {
                 enemy.stunnedTurns = 1; // Stunned for this turn
                 this.addMessage(`The ${enemy.name} is stuck in the ice and cannot move!`);
                 moved = true; // Treat as a "move" to prevent trying other directions

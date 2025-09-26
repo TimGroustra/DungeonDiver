@@ -187,7 +187,7 @@ export class Labyrinth {
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
   private learnedSpells: Set<string>;
   private spellCooldown: number;
-  public frozenTiles: Map<string, number>; // "x,y,floor" -> remaining turns of freeze effect
+  public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -2186,7 +2186,7 @@ export class Labyrinth {
           }
 
           // Apply freeze effect to the tile
-          this.frozenTiles.set(targetCoordStr, freezeDuration);
+          this.frozenTiles.set(targetCoordStr, { duration: freezeDuration, source: 'player' });
 
           // Check for an enemy and apply stun
           const enemyId = this.enemyLocations.get(targetCoordStr);
@@ -2223,10 +2223,10 @@ export class Labyrinth {
     }
 
     // NEW: Update frozen tiles duration
-    const newFrozenTiles = new Map<string, number>();
-    for (const [coordStr, duration] of this.frozenTiles.entries()) {
-        if (duration - 1 > 0) {
-            newFrozenTiles.set(coordStr, duration - 1);
+    const newFrozenTiles = new Map<string, { duration: number; source: 'player' | 'watcher' }>();
+    for (const [coordStr, tile] of this.frozenTiles.entries()) {
+        if (tile.duration - 1 > 0) {
+            newFrozenTiles.set(coordStr, { duration: tile.duration - 1, source: tile.source });
         }
     }
     this.frozenTiles = newFrozenTiles;
@@ -2295,7 +2295,7 @@ export class Labyrinth {
                         const effectY = oldY + dy;
                         const effectCoordStr = `${effectX},${effectY},${this.currentFloor}`;
                         if (this._isValidEnemyMove(effectX, effectY, currentFloorMap)) {
-                            this.frozenTiles.set(effectCoordStr, freezeDuration);
+                            this.frozenTiles.set(effectCoordStr, { duration: freezeDuration, source: 'watcher' });
                         }
                     }
                 }
@@ -2339,8 +2339,9 @@ export class Labyrinth {
 
             const newCoordStr = `${move.x},${move.y},${this.currentFloor}`;
 
-            // NEW: Check if target tile is frozen, unless the enemy is the Watcher
-            if (this.frozenTiles.has(newCoordStr) && enemy.id !== this.watcherOfTheCore?.id) {
+            const frozenTile = this.frozenTiles.get(newCoordStr);
+            // Enemies are only affected by ice created by the player
+            if (frozenTile && frozenTile.source === 'player' && enemy.id !== this.watcherOfTheCore?.id) {
                 enemy.stunnedTurns = 1; // Stunned for this turn
                 this.addMessage(`The ${enemy.name} is stuck in the ice and cannot move!`);
                 moved = true; // Treat as a "move" to prevent trying other directions

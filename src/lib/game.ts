@@ -1450,8 +1450,8 @@ export class Labyrinth {
         enemy.health = 0; // Instant death
         enemy.defeated = true;
         this.lastJumpDefeatedEnemyId = enemy.id; // Store ID for delayed removal
-        this.addMessage(`You land with crushing force on the ${enemy.name}, instantly obliterating it!`);
-        this._handleEnemyDefeat(enemy, targetCoordStr);
+        this.addMessage(`You land with crushing force on the ${enemy.name}!`);
+        // The rest of the defeat logic is handled in clearJumpDefeatedEnemy after the animation.
       }
     }
 
@@ -1489,17 +1489,25 @@ export class Labyrinth {
 
   public clearJumpDefeatedEnemy() {
     if (this.lastJumpDefeatedEnemyId) {
+      const enemyIdToClear = this.lastJumpDefeatedEnemyId;
+      
       // Find the coordinate of the defeated enemy
       let enemyCoordStr: string | undefined;
       for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
-        if (enemyId === this.lastJumpDefeatedEnemyId) {
+        if (enemyId === enemyIdToClear) {
           enemyCoordStr = coordStr;
           break;
         }
       }
+
       if (enemyCoordStr) {
-        this.enemyLocations.delete(enemyCoordStr);
+        const enemy = this.enemies.get(enemyIdToClear);
+        if (enemy) {
+          // Now that animation is done, handle the full defeat logic.
+          this._handleEnemyDefeat(enemy, enemyCoordStr);
+        }
       }
+      
       this.lastJumpDefeatedEnemyId = null;
     }
   }

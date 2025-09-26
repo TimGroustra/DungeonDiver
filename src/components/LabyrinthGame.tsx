@@ -11,8 +11,8 @@ import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Co
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
-import GameOverScreen from "@/components/GameOverScreen"; // Import GameOverScreen
-import FullMapModal from "@/components/FullMapModal"; // Import the new FullMapModal
+import GameOverScreen from "./GameOverScreen"; // Import GameOverScreen
+import FullMapModal from "./FullMapModal"; // Import the new FullMapModal
 import { emojiMap, enemySpriteMap, staticItemSpriteMap, getEmojiForElement } from "@/utils/game-assets"; // Import new staticItemSpriteMap
 import { useGameStore } from '@/stores/gameStore'; // Import the game store
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -641,7 +641,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             >
               {item ? <span className="text-2xl">{itemIcon}</span> : placeholderIcon}
-              {cooldown && cooldown > 0 && (
+              {cooldown > 0 && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded">
                   <span className="text-white font-bold text-lg select-none">{cooldown}</span>
                 </div>

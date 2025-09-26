@@ -29,7 +29,7 @@ export const WalletConnect: React.FC = () => {
             <p className="font-bold text-green-300">Wallet Connected</p>
             <p className="font-mono text-stone-300">{truncateAddress(address)}</p>
             <p className="text-amber-200">
-              Eldoria NFTs: <span className="font-bold">{balance ?? '...'}</span>
+              ElectroGems: <span className="font-bold">{balance ?? '...'}</span>
             </p>
           </div>
           <Button onClick={disconnectWallet} variant="destructive" className="w-full font-bold">

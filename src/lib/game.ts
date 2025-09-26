@@ -187,8 +187,7 @@ export class Labyrinth {
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
   private learnedSpells: Set<string>;
   private spellCooldown: number;
-  public playerSpellEffectTiles: Set<string>;
-  private isPlayerSpellEffectActive: boolean;
+  public frozenTiles: Map<string, number>; // "x,y,floor" -> remaining turns of freeze effect
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -215,13 +214,10 @@ export class Labyrinth {
   public watcherOfTheCore: Enemy | undefined;
   public watcherLocation: Coordinate | undefined;
   private bossDefeated: boolean;
-  // Removed bossPassageCoords as it's no longer relevant for a roaming boss
 
   // NEW: Watcher special attack properties
   private watcherCooldown: number; // In game turns (enemy turns)
   private playerStunnedTurns: number; // In player action attempts
-  public watcherStunEffectTiles: Set<string>; // "x,y,floor" strings for visual effect
-  private watcherStunEffectActive: boolean; // To signal the UI to show the effect
 
   private readonly MAP_WIDTH = 100; // Increased map width
   private readonly MAP_HEIGHT = 100; // Increased map height
@@ -273,8 +269,7 @@ export class Labyrinth {
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
     this.learnedSpells = new Set<string>();
     this.spellCooldown = 0;
-    this.playerSpellEffectTiles = new Set<string>();
-    this.isPlayerSpellEffectActive = false;
+    this.frozenTiles = new Map();
 
     // Initialize new objective states
     this.journalFound = false;
@@ -301,13 +296,10 @@ export class Labyrinth {
     this.watcherOfTheCore = undefined;
     this.watcherLocation = undefined;
     this.bossDefeated = false;
-    // Removed bossPassageCoords initialization
 
     // NEW: Watcher special attack initializations
     this.watcherCooldown = 0;
     this.playerStunnedTurns = 0;
-    this.watcherStunEffectTiles = new Set<string>();
-    this.watcherStunEffectActive = false;
 
     this.initializeLabyrinth();
 
@@ -541,8 +533,6 @@ export class Labyrinth {
       }
     }
   }
-
-  // Removed _placeBossArea method
 
   private getValidNeighbors(x: number, y: number): Coordinate[] {
     const neighbors: Coordinate[] = [];
@@ -798,8 +788,6 @@ export class Labyrinth {
     }
     return undefined;
   }
-
-  // Removed placeElementInBossPassage method
 
   // NEW: Method to place a 2x2 death trap
   private placeDeathTrap(id: string, floor: number) {
@@ -1223,15 +1211,7 @@ export class Labyrinth {
     return false;
   }
 
-  private resetPlayerSpellEffect() {
-    if (this.isPlayerSpellEffectActive) {
-      this.isPlayerSpellEffectActive = false;
-      this.playerSpellEffectTiles.clear();
-    }
-  }
-
   public move(direction: "north" | "south" | "east" | "west", playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1275,6 +1255,12 @@ export class Labyrinth {
     }
 
     const targetCoordStr = `${newX},${newY},${this.currentFloor}`;
+
+    // NEW: Check if target tile is frozen
+    if (this.frozenTiles.has(targetCoordStr)) {
+        this.addMessage("The ground is frozen solid! You cannot move there.");
+        return;
+    }
 
     // Check for enemy at target location
     const enemyId = this.enemyLocations.get(targetCoordStr);
@@ -1335,7 +1321,6 @@ export class Labyrinth {
   }
 
   public attack(playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1385,7 +1370,6 @@ export class Labyrinth {
   }
 
   public jump(playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1452,6 +1436,12 @@ export class Labyrinth {
 
     const targetCoordStr = `${destination.x},${destination.y},${this.currentFloor}`;
 
+    // NEW: Check if destination is frozen
+    if (this.frozenTiles.has(targetCoordStr)) {
+        this.addMessage("You cannot land on the frozen ground!");
+        return;
+    }
+
     // NEW LOGIC: If there is an enemy at the destination, the player lands on it and defeats it instantly.
     const enemyId = this.enemyLocations.get(targetCoordStr);
     if (enemyId) {
@@ -1515,7 +1505,6 @@ export class Labyrinth {
   }
 
   public shieldBash(playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1708,7 +1697,6 @@ export class Labyrinth {
   }
 
   public search() {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -1801,7 +1789,6 @@ export class Labyrinth {
   }
 
   public interact(playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -2012,7 +1999,6 @@ export class Labyrinth {
   }
 
   public useItem(itemId: string, playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over. Please restart.");
       return;
@@ -2166,7 +2152,6 @@ export class Labyrinth {
   }
 
   public castSpell(playerName: string, time: number) {
-    this.resetPlayerSpellEffect();
     if (this.gameOver) {
       this.addMessage("The game is over.");
       return;
@@ -2187,16 +2172,13 @@ export class Labyrinth {
 
     if (this.equippedSpellbook.id === "spellbook-freeze") {
       this.addMessage("You unleash a freezing blast in all directions!");
-      this.isPlayerSpellEffectActive = true;
       let hitEnemy = false;
       const radius = 4;
+      const freezeDuration = 5; // 5 game turns
 
       // Iterate over a square area around the player
       for (let dy = -radius; dy <= radius; dy++) {
         for (let dx = -radius; dx <= radius; dx++) {
-          // Skip the player's own tile
-          if (dx === 0 && dy === 0) continue;
-
           const targetX = this.playerLocation.x + dx;
           const targetY = this.playerLocation.y + dy;
           const targetCoordStr = `${targetX},${targetY},${this.currentFloor}`;
@@ -2207,8 +2189,8 @@ export class Labyrinth {
             continue;
           }
 
-          // Add to visual effect tiles
-          this.playerSpellEffectTiles.add(targetCoordStr);
+          // Apply freeze effect to the tile
+          this.frozenTiles.set(targetCoordStr, freezeDuration);
 
           // Check for an enemy and apply stun
           const enemyId = this.enemyLocations.get(targetCoordStr);
@@ -2244,12 +2226,19 @@ export class Labyrinth {
       this.spellCooldown--;
     }
 
-    // NEW: Decrement Watcher cooldown and reset stun effect status
+    // NEW: Update frozen tiles duration
+    const newFrozenTiles = new Map<string, number>();
+    for (const [coordStr, duration] of this.frozenTiles.entries()) {
+        if (duration - 1 > 0) {
+            newFrozenTiles.set(coordStr, duration - 1);
+        }
+    }
+    this.frozenTiles = newFrozenTiles;
+
+    // NEW: Decrement Watcher cooldown
     if (this.watcherCooldown > 0) {
         this.watcherCooldown--;
     }
-    this.watcherStunEffectActive = false; // Reset for this turn
-    this.watcherStunEffectTiles.clear(); // Clear previous effect tiles
 
     const playerX = this.playerLocation.x;
     const playerY = this.playerLocation.y;
@@ -2301,19 +2290,19 @@ export class Labyrinth {
                 this.playerStunnedTurns = 3; // Stun for 3 player actions
                 this.watcherCooldown = 20; // 10 seconds cooldown (assuming 500ms enemy move speed on floor 4)
                 this.addMessage("The Watcher of the Core fixes its gaze upon you! A paralyzing wave washes over you!");
+                const freezeDuration = 5; // 5 game turns
 
-                // Populate stun effect tiles (5x5 square around Watcher)
+                // Populate frozen tiles (5x5 square around Watcher)
                 for (let dy = -2; dy <= 2; dy++) {
                     for (let dx = -2; dx <= 2; dx++) {
                         const effectX = oldX + dx;
                         const effectY = oldY + dy;
                         const effectCoordStr = `${effectX},${effectY},${this.currentFloor}`;
                         if (this._isValidEnemyMove(effectX, effectY, currentFloorMap)) {
-                            this.watcherStunEffectTiles.add(effectCoordStr);
+                            this.frozenTiles.set(effectCoordStr, freezeDuration);
                         }
                     }
                 }
-                this.watcherStunEffectActive = true; // Signal UI to show effect
                 continue; // Watcher does not move or attack this turn if it uses its special ability
             }
         }
@@ -2353,6 +2342,15 @@ export class Labyrinth {
             }
 
             const newCoordStr = `${move.x},${move.y},${this.currentFloor}`;
+
+            // NEW: Check if target tile is frozen
+            if (this.frozenTiles.has(newCoordStr)) {
+                enemy.stunnedTurns = 1; // Stunned for this turn
+                this.addMessage(`The ${enemy.name} is stuck in the ice and cannot move!`);
+                moved = true; // Treat as a "move" to prevent trying other directions
+                break;
+            }
+
             if (this.enemyLocations.has(newCoordStr)) {
                 continue; // Path is blocked by another enemy, try next move
             }
@@ -2384,8 +2382,6 @@ export class Labyrinth {
     }
   }
 
-  // Removed processBossLogic method
-
   public isBossDefeated(): boolean {
     return this.bossDefeated;
   }
@@ -2393,22 +2389,6 @@ export class Labyrinth {
   // NEW: Getters for Watcher special attack state
   public getPlayerStunnedTurns(): number {
     return this.playerStunnedTurns;
-  }
-
-  public getWatcherStunEffectTiles(): Set<string> {
-    return this.watcherStunEffectTiles;
-  }
-
-  public isWatcherStunEffectActive(): boolean {
-    return this.watcherStunEffectActive;
-  }
-
-  public getPlayerSpellEffectTiles(): Set<string> {
-    return this.playerSpellEffectTiles;
-  }
-
-  public getIsPlayerSpellEffectActive(): boolean {
-    return this.isPlayerSpellEffectActive;
   }
 
   private getContiguousArea(startX: number, startY: number, type: 'wall' | 'open', floorMap: (LogicalRoom | 'wall')[][], globalVisited: Set<string>): { size: number, cells: Coordinate[] } {
@@ -2477,10 +2457,5 @@ export class Labyrinth {
         }
         areaCells.splice(randIndex, 1);
     }
-  }
-
-  private postProcessMap(floorMap: (LogicalRoom | 'wall')[][], floor: number) {
-    // This method is no longer needed with the new generation algorithm,
-    // but keeping it as a placeholder if future post-processing is desired.
   }
 }

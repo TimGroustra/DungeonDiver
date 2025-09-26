@@ -416,12 +416,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     // Get boss state and passage coordinates
     const isBossDefeated = labyrinth.isBossDefeated();
 
-    // NEW: Get Watcher stun effect tiles
-    const watcherStunEffectTiles = labyrinth.getWatcherStunEffectTiles();
-    const isWatcherStunEffectActive = labyrinth.isWatcherStunEffectActive();
-    // NEW: Get Player spell effect tiles
-    const playerSpellEffectTiles = labyrinth.getPlayerSpellEffectTiles();
-    const isPlayerSpellEffectActive = labyrinth.getIsPlayerSpellEffectActive();
+    const frozenTiles = labyrinth.frozenTiles;
 
     return (
       <svg viewBox={viewBox} className="w-full h-full" shapeRendering="crispEdges">
@@ -565,7 +560,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 fill="url(#death-trap-pattern)"
                 stroke="rgba(0,0,0,0.8)"
                 strokeWidth={0.05}
-                // Removed className="animate-pulse-slow"
               />
             );
           })}
@@ -590,35 +584,19 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               />
             );
           })}
-          {/* NEW: Render Watcher stun effect tiles */}
-          {isWatcherStunEffectActive && Array.from(watcherStunEffectTiles).map((coordStr) => {
+          {/* NEW: Render persistent frozen tiles */}
+          {Array.from(frozenTiles.keys()).map((coordStr) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             if (f !== currentFloor) return null;
             return (
               <rect
-                key={`watcher-stun-effect-${coordStr}`}
+                key={`frozen-tile-${coordStr}`}
                 x={x}
                 y={y}
                 width="1"
                 height="1"
-                fill="rgba(0, 191, 255, 0.3)" // Semi-transparent blue
-                className="animate-pulse-fast"
-              />
-            );
-          })}
-          {/* NEW: Render Player spell effect tiles */}
-          {isPlayerSpellEffectActive && Array.from(playerSpellEffectTiles).map((coordStr) => {
-            const [x, y, f] = coordStr.split(',').map(Number);
-            if (f !== currentFloor) return null;
-            return (
-              <rect
-                key={`player-spell-effect-${coordStr}`}
-                x={x}
-                y={y}
-                width="1"
-                height="1"
-                fill="rgba(0, 191, 255, 0.3)" // Semi-transparent blue
-                className="animate-pulse-fast"
+                fill="rgba(0, 191, 255, 0.3)"
+                className="animate-pulse-slow"
               />
             );
           })}
@@ -663,7 +641,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             >
               {item ? <span className="text-2xl">{itemIcon}</span> : placeholderIcon}
-              {cooldown > 0 && (
+              {cooldown && cooldown > 0 && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center rounded">
                   <span className="text-white font-bold text-lg select-none">{cooldown}</span>
                 </div>

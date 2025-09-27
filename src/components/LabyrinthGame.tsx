@@ -61,6 +61,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const [lightningStrikes, setLightningStrikes] = useState<{ position: Coordinate; key: number }[]>([]); // New state for lightning effect
+  const [spellInput, setSpellInput] = useState("");
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -195,15 +196,38 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return; // Do not allow input if game is over, animating, or key is held down
-      
+      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
+
+      // Spell casting logic with Shift key
+      if (event.shiftKey) {
+        event.preventDefault(); // Prevent default browser actions for shift+key
+
+        if (event.key.length === 1 && event.key.match(/[a-z]/i)) {
+          const newSpellInput = (spellInput + event.key).toUpperCase();
+          setSpellInput(newSpellInput);
+
+          if (newSpellInput.endsWith('BOLT')) {
+            handleCastGemSpell();
+            setSpellInput(''); // Reset after successful cast
+          } else if (newSpellInput.endsWith('ICE')) {
+            handleCastSpell();
+            setSpellInput(''); // Reset after successful cast
+          }
+        }
+        // Do not process any other actions while shift is held down.
+        return;
+      }
+
+      // If shift is not held, other actions can be performed.
+      // The spellInput will be cleared on Shift keyup.
+
       if (event.key.toLowerCase() === 'm') {
         event.preventDefault();
         setIsMapModalOpen(prev => !prev);
         return;
       }
 
-      if (isMapModalOpen) return; // Block other inputs if map modal is open
+      if (isMapModalOpen) return;
 
       switch (event.key.toLowerCase()) {
         case "arrowup":
@@ -218,26 +242,32 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "arrowright":
         case "d":
           event.preventDefault(); handleMove("east"); break;
-        case "q": event.preventDefault(); handleAttack(); break; // 'Q' for attack
-        case " ": event.preventDefault(); handleJump(); break; // Space bar for jump
+        case "q": event.preventDefault(); handleAttack(); break;
+        case " ": event.preventDefault(); handleJump(); break;
         case "control": event.preventDefault(); handleInteract(); break;
-        case "e": event.preventDefault(); handleShieldBash(); break; // 'e' for Shield Bash
-        case "1": event.preventDefault(); handleCastGemSpell(); break;
-        case "2": event.preventDefault(); handleCastSpell(); break;
+        case "e": event.preventDefault(); handleShieldBash(); break;
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'Shift') {
+        setSpellInput(''); // Reset spell input when shift is released
       }
     };
 
     const gameElement = gameContainerRef.current;
     if (gameElement) {
       gameElement.addEventListener("keydown", handleKeyDown);
-      gameElement.focus(); // Automatically focus the game container when it mounts
+      gameElement.addEventListener("keyup", handleKeyUp);
+      gameElement.focus();
     }
     return () => {
       if (gameElement) {
         gameElement.removeEventListener("keydown", handleKeyDown);
+        gameElement.removeEventListener("keyup", handleKeyUp);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen]); // Add gameResult and isAnimatingMovement to dependencies
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null || !labyrinth) return; // Do not process enemy movement if game is over
@@ -708,7 +738,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <TooltipContent>
             <p className="font-bold">{item ? item.name : slotName}</p>
             {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
-            {keybind && item && <p className="text-xs text-amber-300 italic mt-1">Press '{keybind}' to cast.</p>}
+            {keybind && item && <p className="text-xs text-amber-300 italic mt-1">Hold Shift and type '{keybind}' to cast.</p>}
             {item && !isUnequippable && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
           </TooltipContent>
         </Tooltip>
@@ -735,8 +765,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {renderEquippedItemSlot(equippedShield, <Shield className="w-6 h-6 text-stone-600" />, "Shield Slot")}
             {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
             {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
-            {renderEquippedItemSlot(equippedGemSpell, <Zap className="w-6 h-6 text-stone-600" />, "Gem Spell Slot", gemSpellCooldown, true, '1')}
-            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown, false, '2')}
+            {renderEquippedItemSlot(equippedGemSpell, <Zap className="w-6 h-6 text-stone-600" />, "Gem Spell Slot", gemSpellCooldown, true, 'BOLT')}
+            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown, false, 'ICE')}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
@@ -848,6 +878,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             Stunned! ({labyrinth.getPlayerStunnedTurns()} turns left)
           </div>
         )}
+        {spellInput && (
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-purple-800/80 text-white text-lg px-4 py-2 rounded-md font-mono tracking-widest border-2 border-purple-400 shadow-lg">
+            {spellInput}
+          </div>
+        )}
       </>
     );
   };
@@ -873,7 +908,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           {renderMap()}
           <div className="absolute bottom-2 left-2 right-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Interact/Search: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Gem Spell: <span className="font-bold text-amber-200">1</span> | Spell: <span className="font-bold text-amber-200">2</span> | Map: <span className="font-bold text-amber-200">M</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Interact/Search: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Spells: <span className="font-bold text-amber-200">Hold Shift + Type</span> | Map: <span className="font-bold text-amber-200">M</span></p>
           </div>
           {renderHud()}
 

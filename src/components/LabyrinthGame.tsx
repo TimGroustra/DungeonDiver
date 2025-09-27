@@ -223,8 +223,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "shift": event.preventDefault(); handleSearch(); break;
         case "control": event.preventDefault(); handleInteract(); break;
         case "e": event.preventDefault(); handleShieldBash(); break; // 'e' for Shield Bash
-        case "f": event.preventDefault(); handleCastSpell(); break;
-        case "r": event.preventDefault(); handleCastGemSpell(); break;
+        case "1": event.preventDefault(); handleCastGemSpell(); break;
+        case "2": event.preventDefault(); handleCastSpell(); break;
       }
     };
 
@@ -693,7 +693,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const spellCooldown = labyrinth.getSpellCooldown();
     const gemSpellCooldown = labyrinth.getGemSpellCooldown();
 
-    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number, isUnequippable: boolean = false) => {
+    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number, isUnequippable: boolean = false, keybind?: string) => {
       const itemIcon = item?.name === 'Freeze' ? '🧊' : getEmojiForElement(item?.name || '');
 
       return (
@@ -717,6 +717,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <TooltipContent>
             <p className="font-bold">{item ? item.name : slotName}</p>
             {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
+            {keybind && item && <p className="text-xs text-amber-300 italic mt-1">Press '{keybind}' to cast.</p>}
             {item && !isUnequippable && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
           </TooltipContent>
         </Tooltip>
@@ -743,8 +744,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {renderEquippedItemSlot(equippedShield, <Shield className="w-6 h-6 text-stone-600" />, "Shield Slot")}
             {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
             {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
-            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown)}
-            {renderEquippedItemSlot(equippedGemSpell, <Zap className="w-6 h-6 text-stone-600" />, "Gem Spell Slot", gemSpellCooldown, true)}
+            {renderEquippedItemSlot(equippedGemSpell, <Zap className="w-6 h-6 text-stone-600" />, "Gem Spell Slot", gemSpellCooldown, true, '1')}
+            {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown, false, '2')}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
@@ -881,7 +882,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           {renderMap()}
           <div className="absolute bottom-2 left-2 right-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Spell: <span className="font-bold text-amber-200">F</span> | Gem Spell: <span className="font-bold text-amber-200">R</span> | Map: <span className="font-bold text-amber-200">M</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Gem Spell: <span className="font-bold text-amber-200">1</span> | Spell: <span className="font-bold text-amber-200">2</span> | Map: <span className="font-bold text-amber-200">M</span></p>
           </div>
           {renderHud()}
 

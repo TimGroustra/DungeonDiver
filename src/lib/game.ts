@@ -2262,7 +2262,8 @@ export class Labyrinth {
     }
 
     if (this.equippedGemSpell.id === "spellbook-lightning") {
-      const radius = 4; // User requested 4 block radius
+      const radius = 4;
+      const totalDamage = 500; // Total damage to be split
       const hitEnemies: { enemy: Enemy; coord: Coordinate; id: string; coordStr: string }[] = [];
 
       // Find ALL enemies within the radius
@@ -2280,17 +2281,17 @@ export class Labyrinth {
       }
 
       if (hitEnemies.length > 0) {
-        const damage = 100; // Doubled damage from 50 to 100
+        const damagePerEnemy = totalDamage / hitEnemies.length;
         const hitEnemyIds: string[] = [];
         const hitPositions: Coordinate[] = [];
 
-        this.addMessage(`A storm of lightning erupts around you, striking ${hitEnemies.length} enemies!`);
+        this.addMessage(`A storm of lightning erupts around you, striking ${hitEnemies.length} enemies for ${damagePerEnemy.toFixed(1)} damage each!`);
 
         for (const hit of hitEnemies) {
-            hit.enemy.takeDamage(damage);
+            hit.enemy.takeDamage(damagePerEnemy);
             hitEnemyIds.push(hit.id);
             hitPositions.push(hit.coord);
-            this.addMessage(`The ${hit.enemy.name} is struck for ${damage} damage! Its health is now ${hit.enemy.health}.`);
+            this.addMessage(`The ${hit.enemy.name} is struck for ${damagePerEnemy.toFixed(1)} damage! Its health is now ${hit.enemy.health.toFixed(1)}.`);
             if (hit.enemy.defeated) {
                 this._handleEnemyDefeat(hit.enemy, hit.coordStr);
             }

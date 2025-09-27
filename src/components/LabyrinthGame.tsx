@@ -49,7 +49,7 @@ interface LabyrinthGameProps {
   hasElectrogem: boolean; // New prop for NFT ownership
 }
 
-const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
+const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 167]; // Watcher's floor speed tripled
 
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {

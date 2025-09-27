@@ -273,7 +273,7 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
-    this.learnedSpells = new Set<string>(initialLearnedSpells); // Initialize with provided spells
+    this.learnedSpells = new Set<string>(); // Initialize empty, will populate below
     this.spellCooldown = 0;
     this.gemSpellCooldown = 0;
     this.frozenTiles = new Map();
@@ -316,10 +316,50 @@ export class Labyrinth {
       this.revealedStaticItems.add(coordStr);
     }
 
-    // Grant starting spell if player has an Electrogem
+    // Define spellbook items here to ensure they are available in the items map
+    const lightningSpellbook = new Item("spellbook-lightning", "Lightning Strike", "A tome crackling with electrical energy. Allows you to call down a bolt of lightning on a nearby foe.", false, 'spellbook');
+    const freezeSpellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
+
+    // Add these base spell items to the items map
+    this.items.set(lightningSpellbook.id, lightningSpellbook);
+    this.items.set(freezeSpellbook.id, freezeSpellbook);
+
+    // Process initial learned spells from the database
+    for (const spellId of initialLearnedSpells) {
+      this.learnedSpells.add(spellId); // Add to learned spells set
+
+      const spellItem = this.items.get(spellId);
+      if (spellItem && spellItem.type === 'spellbook') {
+        if (spellItem.id === "spellbook-lightning") {
+          // Lightning Strike is handled by hasElectrogem, don't add to inventory/equip here
+          // It will be equipped as equippedGemSpell if hasElectrogem is true
+          continue;
+        }
+
+        // For other spellbooks (like Freeze), add to inventory or equip
+        if (!this.equippedSpellbook) {
+          this.equippedSpellbook = spellItem;
+          this.addMessage(`You recall the ${spellItem.name} and equip it.`);
+        } else {
+          // If already equipped, add to inventory
+          const existing = this.inventory.get(spellItem.id);
+          if (existing) {
+            existing.quantity++;
+            this.inventory.set(spellItem.id, existing);
+          } else {
+            this.inventory.set(spellItem.id, { item: spellItem, quantity: 1 });
+          }
+          this.addMessage(`You recall the ${spellItem.name} and place it in your backpack.`);
+        }
+      }
+    }
+
+    // Grant starting spell if player has an Electrogem (this logic remains)
     if (hasElectrogem) {
-      const lightningSpellbook = new Item("spellbook-lightning", "Lightning Strike", "A tome crackling with electrical energy. Allows you to call down a bolt of lightning on a nearby foe.", false, 'spellbook');
-      this.items.set(lightningSpellbook.id, lightningSpellbook);
+      // Ensure lightningSpellbook is always available in items map
+      if (!this.items.has(lightningSpellbook.id)) {
+        this.items.set(lightningSpellbook.id, lightningSpellbook);
+      }
       this.equippedGemSpell = lightningSpellbook;
       this.learnedSpells.add(lightningSpellbook.id);
       this.addMessage("Your Electrogem resonates with the Labyrinth's energy, granting you the 'Lightning Strike' spell!");
@@ -1335,10 +1375,9 @@ export class Labyrinth {
       this.bossDefeated = true;
       if (!this.learnedSpells.has("spellbook-freeze")) {
         const spellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
-        this.items.set(spellbook.id, spellbook);
+        this.items.set(spellbook.id, spellbook); // Ensure it's in this.items
         this.learnedSpells.add(spellbook.id);
-        console.log(`[Labyrinth] 'spellbook-freeze' added to learnedSpells. Current learnedSpells:`, Array.from(this.learnedSpells)); // LOG
-        this._handleFoundItem(spellbook, coordStr);
+        this._handleFoundItem(spellbook, coordStr); // This will add it to inventory or equip it
         this.addMessage("You have absorbed the Watcher's power and learned Freeze!");
       }
     }

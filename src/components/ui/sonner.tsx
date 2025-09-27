@@ -1,14 +1,13 @@
-import { useTheme } from "next-themes";
-import { Toaster as Sonner } from "sonner";
+"use client"
 
-type ToasterProps = React.ComponentProps<typeof Sonner>;
+import { Toaster as SonnerToaster } from "sonner"
 
-const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
-
+const Toaster = ({ ...props }) => {
   return (
-    <Sonner
-      theme={theme as ToasterProps["theme"]}
+    <SonnerToaster
+      position="bottom-right" // Position toasts in the bottom-right corner
+      richColors // Use rich colors for different toast types (success, error, info)
+      duration={5000} // Set default duration to 5 seconds
       className="toaster group"
       toastOptions={{
         classNames: {
@@ -23,7 +22,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       {...props}
     />
-  );
-};
+  )
+}
 
-export { Toaster };
+export { Toaster }

@@ -493,13 +493,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <defs>
           <pattern id="floor-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#3a2d3c" />
-            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" />
+            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth={0.1} />
             <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
             <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
           </pattern>
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#5a4d5c" />
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth={0.1} />
           </pattern>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">
@@ -541,7 +541,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           {/* NEW: Revealed Trap Pattern (Floor background + spikes) */}
           <pattern id="revealed-trap-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#3a2d3c" /> {/* Floor background color */}
-            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth="0.1" /> {/* Floor grid lines */}
+            <path d="M 0 0.5 L 1 0.5 M 0.5 0 L 0.5 1" stroke="#4a3d4c" strokeWidth={0.1} /> {/* Floor grid lines */}
             <circle cx="0.25" cy="0.25" r="0.05" fill="#4a3d4c" />
             <circle cx="0.75" cy="0.75" r="0.05" fill="#4a3d4c" />
             {/* Spikes from death-trap-pattern */}
@@ -564,7 +564,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <g>
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
           <path d={wallPath} className="fill-[url(#wall-pattern)] stroke-[#4a3d4c]" strokeWidth={0.05} />
-          <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="none" stroke="gold" strokeWidth="0.2" />
+          <rect x="0" y="0" width={mapWidth} height={mapHeight} fill="none" stroke="gold" strokeWidth={0.2} />
           {visibleDecorativeElements.map(([coordStr, type]) => {
             const [x, y, f] = coordStr.split(',').map(Number);
             return <use key={`deco-${coordStr}`} href={`#${type}`} x={x} y={y} width="1" height="1" />;
@@ -608,6 +608,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         fill="#22c55e" // green-500
                       />
                     </g>
+                  )}
+                </g>
               );
             }
             return null;

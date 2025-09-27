@@ -220,15 +220,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         return;
       }
 
-      // If shift is not held, other actions can be performed.
-      // The spellInput will be cleared on Shift keyup.
-
+      // Handle 'M' key press to toggle map modal
       if (event.key.toLowerCase() === 'm') {
         event.preventDefault();
         setIsMapModalOpen(prev => !prev);
-        return;
+        return; // Return after handling 'M' key
       }
 
+      // If the map modal is open, and it wasn't the 'M' key that was pressed,
+      // then prevent other game actions.
       if (isMapModalOpen) return;
 
       switch (event.key.toLowerCase()) {

@@ -54,3 +54,28 @@ export const staticItemSpriteMap: { [key: string]: string } = {
   "Hidden Spring": hiddenSpringSprite,
   "Mysterious Box": mysteriousBoxSprite, // Add the new sprite here
 };
+
+/**
+ * Gets the emoji for a given game element name.
+ * Handles prefixed items like "Rusty Blade of the Labyrinth".
+ * @param elementName The name of the element.
+ * @returns The corresponding emoji string or a question mark if not found.
+ */
+export const getEmojiForElement = (elementName: string | undefined): string => {
+  if (!elementName) return '❓';
+
+  // Direct match first
+  if (emojiMap[elementName]) {
+    return emojiMap[elementName];
+  }
+
+  // Check for prefixed items
+  if (elementName.includes("Blade of the Labyrinth")) {
+    return emojiMap["Blade of the Labyrinth"];
+  }
+  if (elementName.includes("Aegis of the Guardian")) {
+    return emojiMap["Aegis of the Guardian"];
+  }
+
+  return '❓';
+};

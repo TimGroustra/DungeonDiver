@@ -70,11 +70,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef({ x: 0, y: 0 }); // Initialize with default values
 
+  // Use a useRef for the Labyrinth instance to ensure it's only created once per component mount
+  const labyrinthInstanceRef = useRef<Labyrinth | null>(null);
+
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
-    if (gameStarted) { // Only create a new Labyrinth if game is started
+    // Only create a new Labyrinth if gameStarted is true AND we don't have an instance yet for this mount
+    if (gameStarted && !labyrinthInstanceRef.current) {
       try {
         const newLabyrinth = new Labyrinth(hasElectrogem, initialSpells); // Pass the prop here
+        labyrinthInstanceRef.current = newLabyrinth; // Store the instance in the ref
 
         // DEV MODE: Grant all spells
         if (import.meta.env.DEV) {
@@ -99,7 +104,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           newLabyrinth.addMessage("[DEV MODE] All spells granted!");
         }
         
-        setLabyrinth(newLabyrinth);
+        setLabyrinth(newLabyrinth); // Update global store with the new instance
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());
         setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
@@ -111,91 +116,20 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         console.error("Error initializing Labyrinth:", error);
         toast.error("Failed to start game: " + (error as Error).message);
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
+        labyrinthInstanceRef.current = null; // Clear ref on error
       }
     }
-  }, [gameStarted, hasElectrogem, initialSpells]); // Depend on gameStarted and hasElectrogem for initial setup
 
-  // Effect to smoothly animate player's visual position when game state position changes
-  useEffect(() => {
-    if (!labyrinth) return; // Ensure labyrinth is initialized
-
-    const newLogicalPos = labyrinth.getPlayerLocation();
-    const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
-
-    // Only animate if the logical position has actually changed from the last settled position
-    if (newLogicalPos.x !== lastSettledLogicalPositionRef.current.x || newLogicalPos.y !== lastSettledLogicalPositionRef.current.y) {
-      setIsAnimatingMovement(true); // Block input during animation
-
-      const startX = lastSettledLogicalPositionRef.current.x;
-      const startY = lastSettledLogicalPositionRef.current.y;
-      const endX = newLogicalPos.x;
-      const endY = newLogicalPos.y;
-      const startTime = Date.now();
-
-      const distance = Math.round(Math.max(Math.abs(endX - startX), Math.abs(endY - startY)));
-      const wasJump = labyrinth.lastActionType === 'jump';
-
-      let animationDuration = 150; // Default move duration
-      let peakHeight = 0; // Default no vertical offset
-
-      if (wasJump) {
-        switch (distance) {
-          case 3:
-            animationDuration = 650;
-            peakHeight = -0.8;
-            break;
-          case 2:
-            animationDuration = 450;
-            peakHeight = -0.6;
-            break;
-          case 1:
-            animationDuration = 250;
-            peakHeight = -0.3;
-            break;
-          default:
-            animationDuration = 150;
-            peakHeight = 0;
-        }
+    // Cleanup function: When LabyrinthGame unmounts (e.g., game ends, gameKey changes),
+    // clear the global labyrinth state.
+    return () => {
+      if (labyrinthInstanceRef.current) {
+        labyrinthInstanceRef.current = null; // Clear the ref
+        setLabyrinth(null); // Clear global store
       }
-
-      const animate = () => {
-        const now = Date.now();
-        const elapsed = now - startTime;
-        const progress = Math.min(1, elapsed / animationDuration);
-
-        const easedProgress = progress; // Linear progress for all movement
-
-        const currentX = startX + (endX - startX) * easedProgress;
-        const currentY = startY + (endY - startY) * easedProgress;
-
-        setAnimatedPlayerPosition({ x: currentX, y: currentY });
-
-        if (peakHeight !== 0) { // Only calculate vertical offset if it's a jump
-          const distProgress = Math.max(0, Math.min(1, easedProgress));
-          // A simple sine-based arc for all jumps
-          const verticalOffset = peakHeight * Math.sin(distProgress * Math.PI);
-          setVerticalJumpOffset(verticalOffset);
-        }
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        } else {
-          // Animation finished
-          setIsAnimatingMovement(false);
-          setAnimatedPlayerPosition(newLogicalPos); // Ensure it snaps to final logical position
-          lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
-          setVerticalJumpOffset(0);
-
-          // NEW: Clear jump-defeated enemy after animation
-          if (labyrinth.lastJumpDefeatedEnemyId) {
-            labyrinth.clearJumpDefeatedEnemy();
-            incrementGameVersion(); // Trigger re-render to remove enemy
-          }
-        }
-      };
-      requestAnimationFrame(animate);
-    }
-  }, [labyrinth?.getPlayerLocation().x, labyrinth?.getPlayerLocation().y, labyrinth?.getCurrentFloor()]); // Depend on actual game state player location and floor
+    };
+  }, [gameStarted]); // Dependencies: Only gameStarted. hasElectrogem and initialSpells are captured once.
+  // The key={gameKey} on LabyrinthGame in Index.tsx ensures this useEffect runs on new game.
 
   useEffect(() => {
     if (gameResult !== null || !labyrinth) return; // Do not process game logic if game is over or labyrinth not initialized

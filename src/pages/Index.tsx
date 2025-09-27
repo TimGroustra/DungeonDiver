@@ -55,48 +55,18 @@ const Index: React.FC = () => {
   // Supabase Auth Listener for profile management
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && address) {
-        // User is authenticated via Supabase and wallet is connected
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, wallet_address')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError && profileError.code === 'PGRST116') { // No rows found
-          // Create profile if it doesn't exist
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({ id: session.user.id, wallet_address: address });
-          if (insertError) {
-            console.error("Error creating profile:", insertError);
-            toast.error("Failed to create player profile.");
-          } else {
-            toast.success("Player profile created!");
-          }
-        } else if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          toast.error("Failed to load player profile.");
-        } else if (profile && profile.wallet_address !== address) {
-          // Update wallet address if it changed
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ wallet_address: address })
-            .eq('id', session.user.id);
-          if (updateError) {
-            console.error("Error updating profile wallet address:", updateError);
-            toast.error("Failed to update wallet address in profile.");
-          } else {
-            toast.success("Wallet address updated in profile!");
-          }
-        }
+      if (event === 'SIGNED_OUT') {
+        // Clear wallet state if Supabase session is signed out
+        queryClient.invalidateQueries({ queryKey: ["learnedSpells"] });
+        queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       }
+      // Profile creation/update is now handled by the Edge Function during wallet connection
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [address]); // Re-run if wallet address changes
+  }, [queryClient]); // Depend on queryClient
 
   // Fetch initial learned spells using react-query
   const { data: learnedSpellsData, isLoading: isLoadingLearnedSpells, error: learnedSpellsError } = useQuery<string[]>({
@@ -176,10 +146,10 @@ const Index: React.FC = () => {
   });
 
   const saveLearnedSpellsMutation = useMutation({
-    mutationFn: async (spellsToSave: { user_id: string; spell_id: string }[]) => {
+    mutationFn: async (spellsToSave: { user_id: string; spell_id: string; wallet_address: string | null }[]) => {
       const { error } = await supabase
         .from('player_spells')
-        .insert(spellsToSave, { onConflict: 'user_id,spell_id' }); // Upsert to avoid duplicates
+        .upsert(spellsToSave, { onConflict: 'user_id,spell_id' }); // Upsert to avoid duplicates
       if (error) throw error;
     },
     onSuccess: () => {
@@ -222,7 +192,8 @@ const Index: React.FC = () => {
       const userId = sessionData.session?.user?.id;
 
       if (userId) {
-        const spellsToSave: { user_id: string; spell_id: string }[] = [];
+        const spellsToSave: { user_id: string; spell_id: string; wallet_address: string | null }[] = [];
+        // Filter out the default "Lightning Strike" spell as it's not "learned" in the same way
         const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
 
         // Fetch existing spells for the user
@@ -238,7 +209,7 @@ const Index: React.FC = () => {
           const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
           for (const spellId of currentLearnedSpells) {
             if (!existingSpellIds.has(spellId)) {
-              spellsToSave.push({ user_id: userId, spell_id: spellId });
+              spellsToSave.push({ user_id: userId, spell_id: spellId, wallet_address: address });
             }
           }
 

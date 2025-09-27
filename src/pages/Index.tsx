@@ -14,6 +14,7 @@ import { Loader2, Skull } from "lucide-react";
 import { GameResult } from "@/lib/game";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/WalletConnect";
+import { useWalletStore } from "@/stores/walletStore"; // Import the wallet store
 
 interface LeaderboardEntry {
   id: number;
@@ -39,6 +40,9 @@ const Index: React.FC = () => {
   const [gameKey, setGameKey] = useState<number>(0);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { balance } = useWalletStore(); // Get balance from the wallet store
+
+  const hasElectrogem = balance !== null && balance > 0;
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -218,6 +222,7 @@ const Index: React.FC = () => {
           onGameRestart={handleGameRestart}
           gameResult={gameResult}
           onRevive={handleRevive}
+          hasElectrogem={hasElectrogem}
         />
       )}
     </div>

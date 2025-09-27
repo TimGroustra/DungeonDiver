@@ -9,6 +9,7 @@ import ancientRepairBenchSprite from "@/assets/sprites/static-items/ancient-repa
 import ancientMechanismSprite from "@/assets/sprites/static-items/ancient-mechanism.svg";
 import hiddenSpringSprite from "@/assets/sprites/static-items/hidden-spring.svg";
 import mysteriousBoxSprite from "@/assets/sprites/static-items/mysterious-box.svg"; // New import
+import lightningStrikeSprite from "@/assets/sprites/spells/lightning-strike.svg"; // New import
 
 // Emoji map for various game elements
 export const emojiMap: { [key: string]: string } = {
@@ -35,6 +36,7 @@ export const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Triggered Trap": "☠️",
   "Instant Death Trap": "💀",
+  "Lightning Strike": "⚡", // New entry
 };
 
 // Map for enemy sprites
@@ -51,11 +53,4 @@ export const staticItemSpriteMap: { [key: string]: string } = {
   "Ancient Mechanism": ancientMechanismSprite,
   "Hidden Spring": hiddenSpringSprite,
   "Mysterious Box": mysteriousBoxSprite, // Add the new sprite here
-};
-
-// Helper function to get emoji for an element, handling prefixes
-export const getEmojiForElement = (elementName: string): string => {
-  // Ensure the elementName is a string before calling replace and trim
-  const cleanedName = typeof elementName === 'string' ? elementName.replace(/^(Rusty|Iron|Steel|Mithril|Ancient)\s/, "").trim() : '';
-  return emojiMap[cleanedName] || "❓";
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Labyrinth, LogicalRoom, Item, GameResult } from "@/lib/game"; // Import GameResult
+import { Labyrinth, LogicalRoom, Item, GameResult, Coordinate } from "@/lib/game"; // Import GameResult & Coordinate
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +34,7 @@ import AdventurerNorthSwordShield from "@/assets/sprites/adventurer/adventurer-n
 import AdventurerSouthSwordShield from "@/assets/sprites/adventurer/adventurer-south-sword-shield.svg";
 import AdventurerEastSwordShield from "@/assets/sprites/adventurer/adventurer-east-sword-shield.svg";
 import AdventurerWestSwordShield from "@/assets/sprites/adventurer/adventurer-west-sword-shield.svg";
+import lightningStrikeSprite from "@/assets/sprites/spells/lightning-strike.svg";
 
 
 interface LabyrinthGameProps {
@@ -45,12 +46,13 @@ interface LabyrinthGameProps {
   onGameRestart: () => void;
   gameResult: GameResult | null; // New prop for game result
   onRevive: () => void; // New prop for revive action from Index
+  hasElectrogem: boolean; // New prop for NFT ownership
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
   const { labyrinth, setLabyrinth, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
@@ -58,6 +60,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState({ x: 0, y: 0 }); // Initialize with default values
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
+  const [lightningStrike, setLightningStrike] = useState<{ position: Coordinate; key: number } | null>(null); // New state for lightning effect
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -67,7 +70,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   useEffect(() => {
     if (gameStarted) { // Only create a new Labyrinth if game is started
       try {
-        const newLabyrinth = new Labyrinth();
+        const newLabyrinth = new Labyrinth(hasElectrogem); // Pass the prop here
         setLabyrinth(newLabyrinth);
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());
@@ -82,7 +85,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
       }
     }
-  }, [gameStarted]); // Depend only on gameStarted for initial setup
+  }, [gameStarted, hasElectrogem]); // Depend on gameStarted and hasElectrogem for initial setup
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
@@ -302,6 +305,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleCastSpell = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
     labyrinth.castSpell(playerName, elapsedTime);
+    // Check for a spell effect to visualize
+    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.position) {
+      setLightningStrike({ position: labyrinth.lastSpellEffect.position, key: Date.now() });
+      setTimeout(() => {
+        setLightningStrike(null);
+      }, 300); // Duration of the animation
+    }
     incrementGameVersion();
   };
 
@@ -611,6 +621,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             flashingEntityId === 'player' && 'is-flashing'
           )}
         />
+        {/* Lightning Strike Effect */}
+        {lightningStrike && (
+          <image
+            key={lightningStrike.key}
+            href={lightningStrikeSprite}
+            x={lightningStrike.position.x}
+            y={lightningStrike.position.y}
+            width="1"
+            height="1"
+            className="is-lightning-striking"
+          />
+        )}
       </svg>
     );
   };

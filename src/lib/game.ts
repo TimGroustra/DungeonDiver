@@ -188,6 +188,7 @@ export class Labyrinth {
   private learnedSpells: Set<string>;
   private spellCooldown: number;
   public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
+  public lastSpellEffect: { type: string; position: Coordinate } | null = null; // New: For visual effects
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -232,7 +233,7 @@ export class Labyrinth {
 
   private gameResult: GameResult | null = null; // New: Stores game result
 
-  constructor() {
+  constructor(hasElectrogem: boolean = false) {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
     this.currentFloor = 0; // Start on floor 0
@@ -270,6 +271,7 @@ export class Labyrinth {
     this.learnedSpells = new Set<string>();
     this.spellCooldown = 0;
     this.frozenTiles = new Map();
+    this.lastSpellEffect = null;
 
     // Initialize new objective states
     this.journalFound = false;
@@ -306,6 +308,15 @@ export class Labyrinth {
     // Reveal all static items by default
     for (const coordStr of this.staticItemLocations.keys()) {
       this.revealedStaticItems.add(coordStr);
+    }
+
+    // Grant starting spell if player has an Electrogem
+    if (hasElectrogem) {
+      const lightningSpellbook = new Item("spellbook-lightning", "Lightning Strike", "A tome crackling with electrical energy. Allows you to call down a bolt of lightning on a nearby foe.", false, 'spellbook');
+      this.items.set(lightningSpellbook.id, lightningSpellbook);
+      this.equippedSpellbook = lightningSpellbook;
+      this.learnedSpells.add(lightningSpellbook.id);
+      this.addMessage("Your Electrogem resonates with the Labyrinth's energy, granting you the 'Lightning Strike' spell!");
     }
 
     this.addMessage(`Welcome, brave adventurer, to the Labyrinth of Whispers! You are on Floor ${this.currentFloor + 1}.`);
@@ -2148,6 +2159,7 @@ export class Labyrinth {
   }
 
   public castSpell(playerName: string, time: number) {
+    this.lastSpellEffect = null; // Reset spell effect at the start
     if (this.gameOver) {
       this.addMessage("The game is over.");
       return;
@@ -2206,6 +2218,40 @@ export class Labyrinth {
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown
+    } else if (this.equippedSpellbook.id === "spellbook-lightning") {
+      const radius = 5;
+      let closestEnemy: { enemy: Enemy; coord: Coordinate; dist: number; id: string; coordStr: string } | null = null;
+
+      // Find the closest enemy within the radius
+      for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
+        const [x, y, f] = coordStr.split(',').map(Number);
+        if (f === this.currentFloor) {
+          const dist = Math.max(Math.abs(x - this.playerLocation.x), Math.abs(y - this.playerLocation.y));
+          if (dist <= radius) {
+            const enemy = this.enemies.get(enemyId);
+            if (enemy && !enemy.defeated) {
+              if (!closestEnemy || dist < closestEnemy.dist) {
+                closestEnemy = { enemy, coord: { x, y }, dist, id: enemyId, coordStr };
+              }
+            }
+          }
+        }
+      }
+
+      if (closestEnemy) {
+        const damage = 50;
+        this.addMessage(`A bolt of lightning arcs from your hands and strikes the ${closestEnemy.enemy.name}!`);
+        closestEnemy.enemy.takeDamage(damage);
+        this.lastHitEntityId = closestEnemy.id;
+        this.lastSpellEffect = { type: 'lightning', position: closestEnemy.coord };
+        this.addMessage(`The lightning deals ${damage} damage! Its health is now ${closestEnemy.enemy.health}.`);
+        if (closestEnemy.enemy.defeated) {
+          this._handleEnemyDefeat(closestEnemy.enemy, closestEnemy.coordStr);
+        }
+        this.spellCooldown = 10; // 10 turn cooldown
+      } else {
+        this.addMessage("You call upon the storm, but there are no enemies nearby to strike.");
+      }
     }
   }
 

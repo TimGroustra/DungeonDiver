@@ -47,13 +47,14 @@ interface LabyrinthGameProps {
   gameResult: GameResult | null; // New prop for game result
   onRevive: () => void; // New prop for revive action from Index
   hasElectrogem: boolean; // New prop for NFT ownership
+  initialSpells: string[];
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [3600, 2700, 1800, 900]; // Regular enemy speeds (sped up by 10%)
 const BOSS_MOVE_SPEED_MS = 336; // Watcher's speed (halved again)
 
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem, initialSpells }) => {
   const { labyrinth, setLabyrinth, currentFloor, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
@@ -72,7 +73,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   useEffect(() => {
     if (gameStarted) { // Only create a new Labyrinth if game is started
       try {
-        const newLabyrinth = new Labyrinth(hasElectrogem); // Pass the prop here
+        const newLabyrinth = new Labyrinth(hasElectrogem, initialSpells); // Pass the prop here
         setLabyrinth(newLabyrinth);
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());
@@ -87,7 +88,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
       }
     }
-  }, [gameStarted, hasElectrogem]); // Depend on gameStarted and hasElectrogem for initial setup
+  }, [gameStarted, hasElectrogem, initialSpells]); // Depend on gameStarted and hasElectrogem for initial setup
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {

@@ -143,6 +143,7 @@ export interface GameResult {
   time: number;
   causeOfDeath?: string; // Optional cause of death for defeat
   deaths?: number; // New: Number of deaths for defeat
+  learnedSpells?: string[];
 }
 
 export class Labyrinth {
@@ -237,7 +238,7 @@ export class Labyrinth {
 
   private gameResult: GameResult | null = null; // New: Stores game result
 
-  constructor(hasElectrogem: boolean = false) {
+  constructor(hasElectrogem: boolean = false, initialSpells: string[] = []) {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
     this.currentFloor = 0; // Start on floor 0
@@ -273,7 +274,7 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
-    this.learnedSpells = new Set<string>();
+    this.learnedSpells = new Set<string>(initialSpells);
     this.spellCooldown = 0;
     this.gemSpellCooldown = 0;
     this.frozenTiles = new Map();
@@ -1122,11 +1123,12 @@ export class Labyrinth {
 
   private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, causeOfDeath?: string) {
     this.gameOver = true;
+    const finalSpells = Array.from(this.learnedSpells);
     if (type === 'defeat') {
       this.playerDeaths++;
-      this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths };
+      this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths, learnedSpells: finalSpells };
     } else { // victory
-      this.gameResult = { type, name: playerName, time, deaths: this.playerDeaths };
+      this.gameResult = { type, name: playerName, time, deaths: this.playerDeaths, learnedSpells: finalSpells };
     }
   }
 

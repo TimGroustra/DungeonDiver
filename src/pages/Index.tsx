@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import LabyrinthGame from "@/components/LabyrinthGame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +86,11 @@ const Index: React.FC = () => {
     },
     enabled: !!address, // Only run if wallet is connected
   });
+
+  // Memoize the initialLearnedSpells to ensure referential stability
+  const initialLearnedSpellsForGame = useMemo(() => {
+    return learnedSpellsData || [];
+  }, [learnedSpellsData]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -363,8 +368,8 @@ const Index: React.FC = () => {
           gameResult={gameResult}
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
-          initialLearnedSpells={learnedSpellsData || []} // Pass initial learned spells from query
-          isAnyModalOpen={isAnyModalOpen} // Pass the new prop
+          initialLearnedSpells={initialLearnedSpellsForGame}
+          isAnyModalOpen={isAnyModalOpen}
         />
       )}
       

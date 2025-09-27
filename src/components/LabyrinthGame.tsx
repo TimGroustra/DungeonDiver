@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull } from "lucide-react"; // Added Skull icon
+import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull, Zap } from "lucide-react"; // Added Skull icon
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
@@ -224,6 +224,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         case "control": event.preventDefault(); handleInteract(); break;
         case "e": event.preventDefault(); handleShieldBash(); break; // 'e' for Shield Bash
         case "f": event.preventDefault(); handleCastSpell(); break;
+        case "r": event.preventDefault(); handleCastGemSpell(); break;
       }
     };
 
@@ -305,12 +306,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleCastSpell = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
     labyrinth.castSpell(playerName, elapsedTime);
-    // Check for a spell effect to visualize
     if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.position) {
       setLightningStrike({ position: labyrinth.lastSpellEffect.position, key: Date.now() });
       setTimeout(() => {
         setLightningStrike(null);
-      }, 300); // Duration of the animation
+      }, 300);
+    }
+    incrementGameVersion();
+  };
+
+  const handleCastGemSpell = () => {
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { return; }
+    labyrinth.castGemSpell(playerName, elapsedTime);
+    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.position) {
+      setLightningStrike({ position: labyrinth.lastSpellEffect.position, key: Date.now() });
+      setTimeout(() => setLightningStrike(null), 300);
     }
     incrementGameVersion();
   };
@@ -645,21 +655,23 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const equippedAmulet = labyrinth.getEquippedAmulet();
     const equippedCompass = labyrinth.getEquippedCompass();
     const equippedSpellbook = labyrinth.getEquippedSpellbook();
+    const equippedGemSpell = labyrinth.getEquippedGemSpell();
     const inventoryItems = labyrinth.getInventoryItems();
     const currentObjective = labyrinth.getCurrentFloorObjective();
     const spellCooldown = labyrinth.getSpellCooldown();
+    const gemSpellCooldown = labyrinth.getGemSpellCooldown();
 
-    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number) => {
+    const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number, isUnequippable: boolean = false) => {
       const itemIcon = item?.name === 'Freeze' ? '🧊' : getEmojiForElement(item?.name || '');
 
       return (
         <Tooltip>
           <TooltipTrigger asChild>
             <div
-              onDoubleClick={item ? () => handleUseItem(item.id) : undefined}
+              onDoubleClick={item && !isUnequippable ? () => handleUseItem(item.id) : undefined}
               className={cn(
                 "relative flex items-center justify-center w-12 h-12 bg-black/20 rounded border border-amber-700 aspect-square",
-                item && "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600"
+                item && !isUnequippable && "cursor-pointer hover:bg-amber-900/50 hover:border-amber-600"
               )}
             >
               {item ? <span className="text-2xl">{itemIcon}</span> : placeholderIcon}
@@ -673,7 +685,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           <TooltipContent>
             <p className="font-bold">{item ? item.name : slotName}</p>
             {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
-            {item && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
+            {item && !isUnequippable && <p className="text-xs text-amber-300 italic mt-1">Double-click to unequip.</p>}
           </TooltipContent>
         </Tooltip>
       );
@@ -700,6 +712,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             {renderEquippedItemSlot(equippedAmulet, <Gem className="w-6 h-6 text-stone-600" />, "Amulet Slot")}
             {renderEquippedItemSlot(equippedCompass, <Compass className="w-6 h-6 text-stone-600" />, "Compass Slot")}
             {renderEquippedItemSlot(equippedSpellbook, <BookOpen className="w-6 h-6 text-stone-600" />, "Spellbook Slot", spellCooldown)}
+            {renderEquippedItemSlot(equippedGemSpell, <Zap className="w-6 h-6 text-stone-600" />, "Gem Spell Slot", gemSpellCooldown, true)}
           </div>
 
           <Separator className="my-4 bg-amber-800/60" />
@@ -766,6 +779,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const renderHud = () => {
     if (!labyrinth) return null; // Ensure labyrinth is initialized
     const spellCooldown = labyrinth.getSpellCooldown();
+    const gemSpellCooldown = labyrinth.getGemSpellCooldown();
 
     return (
       <>
@@ -804,6 +818,15 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 </div>
               </>
             )}
+            {gemSpellCooldown > 0 && (
+              <>
+                <Separator orientation="vertical" className="h-3 bg-amber-800" />
+                <div className="flex items-center gap-1" title="Gem Spell Cooldown">
+                  <Zap className="text-yellow-400" size={10} />
+                  <span className="font-bold">{gemSpellCooldown}</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         {/* NEW: Player Stunned Status */}
@@ -837,7 +860,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           {renderMap()}
           <div className="absolute bottom-2 left-2 right-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Spell: <span className="font-bold text-amber-200">F</span> | Map: <span className="font-bold text-amber-200">M</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Spell: <span className="font-bold text-amber-200">F</span> | Gem Spell: <span className="font-bold text-amber-200">R</span> | Map: <span className="font-bold text-amber-200">M</span></p>
           </div>
           {renderHud()}
 

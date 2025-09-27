@@ -156,6 +156,7 @@ export class Labyrinth {
   private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
   private equippedCompass: Item | undefined; // New: For True Compass
   private equippedSpellbook: Item | undefined;
+  private equippedGemSpell: Item | undefined;
   private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
@@ -187,6 +188,7 @@ export class Labyrinth {
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
   private learnedSpells: Set<string>;
   private spellCooldown: number;
+  private gemSpellCooldown: number;
   public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
   public lastSpellEffect: { type: string; position: Coordinate } | null = null; // New: For visual effects
 
@@ -246,6 +248,7 @@ export class Labyrinth {
     this.equippedAmulet = undefined; // Initialize new equipped slot
     this.equippedCompass = undefined; // Initialize new equipped slot
     this.equippedSpellbook = undefined;
+    this.equippedGemSpell = undefined;
     this.inventory = new Map(); // Initialize as a Map
     this.messages = [];
     this.gameOver = false;
@@ -270,6 +273,7 @@ export class Labyrinth {
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
     this.learnedSpells = new Set<string>();
     this.spellCooldown = 0;
+    this.gemSpellCooldown = 0;
     this.frozenTiles = new Map();
     this.lastSpellEffect = null;
 
@@ -314,7 +318,7 @@ export class Labyrinth {
     if (hasElectrogem) {
       const lightningSpellbook = new Item("spellbook-lightning", "Lightning Strike", "A tome crackling with electrical energy. Allows you to call down a bolt of lightning on a nearby foe.", false, 'spellbook');
       this.items.set(lightningSpellbook.id, lightningSpellbook);
-      this.equippedSpellbook = lightningSpellbook;
+      this.equippedGemSpell = lightningSpellbook;
       this.learnedSpells.add(lightningSpellbook.id);
       this.addMessage("Your Electrogem resonates with the Labyrinth's energy, granting you the 'Lightning Strike' spell!");
     }
@@ -1046,8 +1050,16 @@ export class Labyrinth {
     return this.equippedSpellbook;
   }
 
+  public getEquippedGemSpell(): Item | undefined {
+    return this.equippedGemSpell;
+  }
+
   public getSpellCooldown(): number {
     return this.spellCooldown;
+  }
+
+  public getGemSpellCooldown(): number {
+    return this.gemSpellCooldown;
   }
 
   public getInventoryItems(): { item: Item, quantity: number }[] {
@@ -2218,7 +2230,30 @@ export class Labyrinth {
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown
-    } else if (this.equippedSpellbook.id === "spellbook-lightning") {
+    }
+  }
+
+  public castGemSpell(playerName: string, time: number) {
+    this.lastSpellEffect = null;
+    if (this.gameOver) {
+      this.addMessage("The game is over.");
+      return;
+    }
+    if (this.playerStunnedTurns > 0) {
+      this.playerStunnedTurns--;
+      this.addMessage("You are paralyzed and cannot cast spells!");
+      return;
+    }
+    if (this.gemSpellCooldown > 0) {
+      this.addMessage(`Your gem spell is on cooldown for ${this.gemSpellCooldown} more turns.`);
+      return;
+    }
+    if (!this.equippedGemSpell) {
+      this.addMessage("You don't have a gem spell equipped.");
+      return;
+    }
+
+    if (this.equippedGemSpell.id === "spellbook-lightning") {
       const radius = 5;
       let closestEnemy: { enemy: Enemy; coord: Coordinate; dist: number; id: string; coordStr: string } | null = null;
 
@@ -2240,7 +2275,7 @@ export class Labyrinth {
 
       if (closestEnemy) {
         const damage = 50;
-        this.addMessage(`A bolt of lightning arcs from your hands and strikes the ${closestEnemy.enemy.name}!`);
+        this.addMessage(`A bolt of lightning arcs from your gem and strikes the ${closestEnemy.enemy.name}!`);
         closestEnemy.enemy.takeDamage(damage);
         this.lastHitEntityId = closestEnemy.id;
         this.lastSpellEffect = { type: 'lightning', position: closestEnemy.coord };
@@ -2248,7 +2283,7 @@ export class Labyrinth {
         if (closestEnemy.enemy.defeated) {
           this._handleEnemyDefeat(closestEnemy.enemy, closestEnemy.coordStr);
         }
-        this.spellCooldown = 10; // 10 turn cooldown
+        this.gemSpellCooldown = 10; // 10 turn cooldown
       } else {
         this.addMessage("You call upon the storm, but there are no enemies nearby to strike.");
       }
@@ -2266,6 +2301,9 @@ export class Labyrinth {
 
     if (this.spellCooldown > 0) {
       this.spellCooldown--;
+    }
+    if (this.gemSpellCooldown > 0) {
+      this.gemSpellCooldown--;
     }
 
     // NEW: Update frozen tiles duration

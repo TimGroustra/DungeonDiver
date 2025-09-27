@@ -46,7 +46,6 @@ const Index: React.FC = () => {
   const [gameKey, setGameKey] = useState<number>(0);
   const [displayDate, setDisplayDate] = useState(new Date());
   const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
-  const [initialLearnedSpells, setInitialLearnedSpells] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { balance, address } = useWalletStore();
@@ -99,9 +98,10 @@ const Index: React.FC = () => {
     };
   }, [address]); // Re-run if wallet address changes
 
-  // Fetch initial learned spells when wallet connects or auth state changes
-  useEffect(() => {
-    const fetchLearnedSpells = async () => {
+  // Fetch initial learned spells using react-query
+  const { data: learnedSpellsData, isLoading: isLoadingLearnedSpells, error: learnedSpellsError } = useQuery<string[]>({
+    queryKey: ["learnedSpells", address], // Depend on address to refetch if user changes
+    queryFn: async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user?.id;
 
@@ -113,18 +113,14 @@ const Index: React.FC = () => {
 
         if (error) {
           console.error("Error fetching learned spells:", error);
-          toast.error("Failed to load your learned spells.");
-          setInitialLearnedSpells([]);
-        } else {
-          setInitialLearnedSpells(data.map(s => s.spell_id));
+          throw error;
         }
-      } else {
-        setInitialLearnedSpells([]);
+        return data.map(s => s.spell_id);
       }
-    };
-
-    fetchLearnedSpells();
-  }, [address]); // Re-fetch when wallet address changes (implies potential user change)
+      return [];
+    },
+    enabled: !!address, // Only run if wallet is connected
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -410,7 +406,7 @@ const Index: React.FC = () => {
           gameResult={gameResult}
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
-          initialLearnedSpells={initialLearnedSpells} // Pass initial learned spells
+          initialLearnedSpells={learnedSpellsData || []} // Pass initial learned spells from query
         />
       )}
       

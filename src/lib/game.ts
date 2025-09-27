@@ -1995,7 +1995,7 @@ export class Labyrinth {
 
       switch (this.lastMoveDirection) {
         case "north": targetY--; break;
-        case "south": targetY--; break;
+        case "south": targetY++; break; // Corrected: should be targetY++ for south
         case "east":  targetX++; break;
         case "west":  targetX--; break;
       }

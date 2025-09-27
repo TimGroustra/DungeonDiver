@@ -960,7 +960,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
         </aside>
       </div>
-      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModal(false)} />
+      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModalOpen(false)} />
     </div>
   );
 };

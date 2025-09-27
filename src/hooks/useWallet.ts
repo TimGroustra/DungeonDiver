@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ethers } from 'ethers';
-import { useWalletStore } from '@/stores/walletStore';
+import { useWalletStore, NftToken } from '@/stores/walletStore';
 import { toast } from 'sonner';
 
 // Contract and Network Configuration
@@ -33,6 +33,7 @@ export const useWallet = () => {
     setIsLoading,
     setError,
     reset,
+    setTokens,
   } = useWalletStore();
 
   const handleAccountsChanged = (accounts: string[]) => {
@@ -104,6 +105,7 @@ export const useWallet = () => {
   const connectWallet = async () => {
     setIsLoading(true);
     setError(null);
+    setTokens([]);
 
     const provider = getProvider();
     if (!provider) {
@@ -136,6 +138,60 @@ export const useWallet = () => {
       // 4. Update store
       setConnection(true, address);
       setBalance(balance);
+
+      // 5. If balance > 0, fetch all token details
+      if (balance > 0) {
+        toast.info(`Found ${balance} ElectroGem(s). Loading...`);
+        try {
+          const tokenPromises = Array.from({ length: balance }, (_, i) =>
+            (async (): Promise<NftToken | null> => {
+              try {
+                const tokenId = await contract.tokenOfOwnerByIndex(address, i);
+                const tokenURI = await contract.tokenURI(tokenId);
+
+                let metadataUrl = tokenURI;
+                if (metadataUrl.startsWith('ipfs://')) {
+                  metadataUrl = `https://ipfs.io/ipfs/${metadataUrl.substring(7)}`;
+                }
+
+                const metadataResponse = await fetch(metadataUrl);
+                if (!metadataResponse.ok) {
+                  console.error(`Failed to fetch metadata for token ${tokenId} from ${metadataUrl}`);
+                  return null;
+                }
+                const metadata = await metadataResponse.json();
+
+                let imageUrl = metadata.image;
+                if (imageUrl.startsWith('ipfs://')) {
+                  imageUrl = `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+                }
+
+                return {
+                  id: tokenId.toString(),
+                  name: metadata.name,
+                  description: metadata.description,
+                  image: imageUrl,
+                };
+              } catch (e) {
+                console.error(`Error processing token at index ${i}:`, e);
+                return null;
+              }
+            })(),
+          );
+
+          const tokens = (await Promise.all(tokenPromises)).filter((t): t is NftToken => t !== null);
+          setTokens(tokens);
+          if (tokens.length > 0) {
+            toast.success(`Successfully loaded ${tokens.length} ElectroGem(s).`);
+          } else if (balance > 0) {
+            toast.error("Could not load your ElectroGems metadata.");
+          }
+        } catch (tokenError) {
+          console.error("Error fetching token details:", tokenError);
+          toast.error("Could not load your ElectroGems.");
+        }
+      }
+
       toast.success('Wallet connected successfully!');
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred during connection.');

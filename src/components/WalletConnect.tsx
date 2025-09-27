@@ -2,7 +2,7 @@ import React from 'react';
 import { useWalletStore } from '@/stores/walletStore';
 import { useWallet } from '@/hooks/useWallet';
 import { Button } from '@/components/ui/button';
-import { Loader2, Wallet } from 'lucide-react';
+import { Loader2, Wallet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 // Helper to truncate wallet address
@@ -12,8 +12,16 @@ const truncateAddress = (address: string) => {
 };
 
 export const WalletConnect: React.FC = () => {
-  const { isConnected, address, balance, isLoading, error } = useWalletStore();
+  const { isConnected, address, balance, isLoading, error, tokens, selectedTokenIndex, setSelectedTokenIndex } = useWalletStore();
   const { connectWallet, disconnectWallet } = useWallet();
+
+  const handlePrevToken = () => {
+    setSelectedTokenIndex((selectedTokenIndex - 1 + tokens.length) % tokens.length);
+  };
+
+  const handleNextToken = () => {
+    setSelectedTokenIndex((selectedTokenIndex + 1) % tokens.length);
+  };
 
   return (
     <div className="w-full space-y-2 text-center">
@@ -32,6 +40,25 @@ export const WalletConnect: React.FC = () => {
               ElectroGems: <span className="font-bold">{balance ?? '...'}</span>
             </p>
           </div>
+
+          {tokens.length > 0 && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              {tokens.length > 1 && (
+                <Button onClick={handlePrevToken} size="icon" variant="outline" className="bg-stone-700 border-amber-700 hover:bg-stone-600">
+                  <ChevronLeft className="h-4 w-4 text-amber-300" />
+                </Button>
+              )}
+              <div className="w-24 h-24 rounded-md overflow-hidden border-2 border-amber-500 flex-shrink-0">
+                <img src={tokens[selectedTokenIndex].image} alt={tokens[selectedTokenIndex].name} className="w-full h-full object-cover" />
+              </div>
+              {tokens.length > 1 && (
+                <Button onClick={handleNextToken} size="icon" variant="outline" className="bg-stone-700 border-amber-700 hover:bg-stone-600">
+                  <ChevronRight className="h-4 w-4 text-amber-300" />
+                </Button>
+              )}
+            </div>
+          )}
+
           <Button onClick={disconnectWallet} variant="destructive" className="w-full font-bold">
             Disconnect
           </Button>

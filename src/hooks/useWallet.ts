@@ -39,8 +39,7 @@ export const useWallet = () => {
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length === 0) {
       // MetaMask is locked or the user has disconnected all accounts
-      disconnectWallet();
-      toast.info('Wallet disconnected. Please connect again.');
+      disconnectWallet(); // This will show the "Wallet disconnected" toast
     } else {
       // User switched accounts, let's reconnect with the new one
       connectWallet();
@@ -139,9 +138,11 @@ export const useWallet = () => {
       setConnection(true, address);
       setBalance(balance);
 
+      let successMessage = 'Wallet connected successfully!';
+      let tokenLoadError = false;
+
       // 5. If balance > 0, fetch all token details
       if (balance > 0) {
-        toast.info(`Found ${balance} ElectroGem(s). Loading...`);
         try {
           const tokenPromises = Array.from({ length: balance }, (_, i) =>
             (async (): Promise<NftToken | null> => {
@@ -182,17 +183,23 @@ export const useWallet = () => {
           const tokens = (await Promise.all(tokenPromises)).filter((t): t is NftToken => t !== null);
           setTokens(tokens);
           if (tokens.length > 0) {
-            toast.success(`Successfully loaded ${tokens.length} ElectroGem(s).`);
+            successMessage += ` Found ${tokens.length} ElectroGem(s).`;
           } else if (balance > 0) {
-            toast.error("Could not load your ElectroGems metadata.");
+            tokenLoadError = true;
+            successMessage += " (Failed to load ElectroGem metadata.)";
           }
         } catch (tokenError) {
           console.error("Error fetching token details:", tokenError);
-          toast.error("Could not load your ElectroGems.");
+          tokenLoadError = true;
+          successMessage += " (Failed to load ElectroGem details.)";
         }
       }
 
-      toast.success('Wallet connected successfully!');
+      if (tokenLoadError) {
+        toast.error(successMessage); // Show as error if token loading failed
+      } else {
+        toast.success(successMessage);
+      }
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred during connection.');
       toast.error(err.message || 'Failed to connect wallet.');

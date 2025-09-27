@@ -724,14 +724,14 @@ export class Labyrinth {
     }
 
     // Add generic enemies (scaled)
-    const numGenericEnemies = 10; // Increased number of generic enemies
+    const numGenericEnemies = 20; // Increased number of generic enemies
     for (let i = 0; i < numGenericEnemies; i++) {
       const goblin = new Enemy(`goblin-${floor}-${i}`, "Grumbling Goblin", "A small, green-skinned creature with a rusty dagger and a mischievous glint in its eye.", Math.floor(30 * enemyHealthMultiplier), Math.floor(15 * enemyDamageMultiplier)); // Adjusted base health and damage
       this.enemies.set(goblin.id, goblin);
       this.placeElementRandomly(goblin.id, this.enemyLocations, floor, true);
 
       const skeleton = new Enemy(`skeleton-${floor}-${i}`, "Rattling Skeleton", "An animated skeleton warrior, its bones clattering as it raises a chipped sword.", Math.floor(35 * enemyHealthMultiplier), Math.floor(18 * enemyDamageMultiplier)); // Adjusted base health and damage
-      this.items.set(skeleton.id, skeleton);
+      this.enemies.set(skeleton.id, skeleton);
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
       const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(40 * enemyHealthMultiplier), Math.floor(20 * enemyDamageMultiplier)); // Adjusted base health and damage

@@ -54,7 +54,7 @@ const BOSS_MOVE_SPEED_MS = 84; // Watcher's speed (was ~167, now ~2x faster)
 
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
-  const { labyrinth, setLabyrinth, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
+  const { labyrinth, setLabyrinth, currentFloor, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
@@ -274,7 +274,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (!gameStarted || gameResult !== null || !labyrinth) return;
 
     // --- MINION MOVEMENT ---
-    const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
     const minionIntervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
@@ -302,7 +301,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         clearInterval(bossIntervalId);
       }
     };
-  }, [gameStarted, labyrinth, playerName, startTime, gameResult]);
+  }, [gameStarted, labyrinth, playerName, startTime, gameResult, currentFloor]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }

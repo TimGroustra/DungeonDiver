@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMapData } from '@/hooks/useMapData';
 import { useActiveQuest } from '@/hooks/useActiveQuest';
@@ -22,6 +22,24 @@ const FullMapModal: React.FC<FullMapModalProps> = ({ isOpen, onClose }) => {
   const equippedCompass = labyrinth?.getEquippedCompass();
 
   const svgRef = useRef<SVGSVGElement>(null);
+
+  // Effect to listen for 'M' key press to close the modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isOpen && event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   // The viewBox is now static to always show the full map.
   const viewBox = mapBounds

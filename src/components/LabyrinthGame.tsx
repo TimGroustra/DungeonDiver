@@ -48,13 +48,14 @@ interface LabyrinthGameProps {
   onRevive: () => void; // New prop for revive action from Index
   hasElectrogem: boolean; // New prop for NFT ownership
   initialLearnedSpells: string[]; // New prop for initial learned spells
+  isAnyModalOpen: boolean; // NEW: Prop to indicate if any modal is open
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [3600, 2700, 1800, 900]; // Regular enemy speeds (sped up by 10%)
 const BOSS_MOVE_SPEED_MS = 336; // Watcher's speed (halved again)
 
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem, initialLearnedSpells }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem, initialLearnedSpells, isAnyModalOpen }) => {
   const { labyrinth, setLabyrinth, currentFloor, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
@@ -199,7 +200,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   // Effect for keyboard listeners on the game container (for game actions and opening map)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
+      // NEW: Prevent game actions if any modal is open
+      if (isAnyModalOpen || !gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
 
       // Spell casting logic with Shift key
       if (event.shiftKey) {
@@ -257,14 +259,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const gameElement = gameContainerRef.current;
     if (gameElement) {
       gameElement.addEventListener("keydown", handleKeyDown);
-      gameElement.focus(); // Ensure focus is maintained
+      // Only focus if no modal is open
+      if (!isAnyModalOpen) {
+        gameElement.focus(); // Ensure focus is maintained
+      }
     }
     return () => {
       if (gameElement) {
         gameElement.removeEventListener("keydown", handleKeyDown);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput, isAnyModalOpen]); // Add isAnyModalOpen to dependencies
 
   // Effect for keyboard listener on the document (for closing map on 'M' keyup)
   useEffect(() => {
@@ -862,8 +867,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                 </li>
               ))}
             </ul>
-            <p className={cn("text-sm font-semibold mt-4", currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
-              Status: {currentObjective.isCompleted() ? "Completed" : "In Progress"}
+            <p className="text-sm font-semibold mt-4 text-stone-300">
+              Status: <span className={cn(currentObjective.isCompleted() ? "text-green-400" : "text-red-400")}>
+                {currentObjective.isCompleted() ? "Completed" : "In Progress"}
+              </span>
             </p>
           </div>
         </div>
@@ -942,7 +949,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   return (
     <div 
       ref={gameContainerRef}
-      tabIndex={0}
+      tabIndex={isAnyModalOpen ? -1 : 0} // Set tabIndex to -1 if any modal is open
       className="flex items-center justify-center h-full p-4 focus:outline-none"
     >
       <div className="relative w-full max-w-screen-2xl mx-auto h-[calc(100vh-2rem)] bg-black/50 backdrop-blur-sm border-2 border-amber-900/50 shadow-2xl shadow-black/50 rounded-lg p-4 flex flex-col md:flex-row gap-4">

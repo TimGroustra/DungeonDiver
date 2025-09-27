@@ -260,6 +260,9 @@ const Index: React.FC = () => {
     return nextMonth > new Date();
   };
 
+  // Determine if any modal is open to pass to LabyrinthGame
+  const isAnyModalOpen = showLeaderboard || showUserGuide || (gameStarted && gameResult !== null);
+
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       {!gameStarted && !showLeaderboard && !gameResult && (
@@ -373,6 +376,7 @@ const Index: React.FC = () => {
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
           initialLearnedSpells={learnedSpellsData || []} // Pass initial learned spells from query
+          isAnyModalOpen={isAnyModalOpen} // Pass the new prop
         />
       )}
       

@@ -181,7 +181,7 @@ export class Labyrinth {
   }>; // New: Objectives per floor, now an array of strings
   public floorExitStaircases: Map<number, Coordinate>; // New: Location of the staircase to the next floor
   public lastMoveDirection: "north" | "south" | "east" | "west" = "south"; // New: Track last move direction
-  public lastHitEntityId: string | null = null; // For flash effect
+  public lastHitEntityId: string[] | null = null; // For flash effect
   private playerDeaths: number; // New: Track player deaths
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
@@ -190,7 +190,7 @@ export class Labyrinth {
   private spellCooldown: number;
   private gemSpellCooldown: number;
   public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
-  public lastSpellEffect: { type: string; position: Coordinate } | null = null; // New: For visual effects
+  public lastSpellEffect: { type: string; positions: Coordinate[] } | null = null; // New: For visual effects
 
   // New state for objective tracking
   private journalFound: boolean;
@@ -1306,7 +1306,7 @@ export class Labyrinth {
 
     if (this.trapsLocations.has(targetCoordStr) && !this.triggeredTraps.has(targetCoordStr)) {
         this.playerHealth -= 10;
-        this.lastHitEntityId = 'player';
+        this.lastHitEntityId = ['player'];
         this.triggeredTraps.add(targetCoordStr);
         this.revealedTraps.add(targetCoordStr); // Also mark as revealed
         this.addMessage("SNAP! You triggered a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
@@ -1373,7 +1373,7 @@ export class Labyrinth {
       if (enemy && !enemy.defeated) {
         const damageDealt = this.getCurrentAttackDamage();
         enemy.takeDamage(damageDealt);
-        this.lastHitEntityId = enemy.id;
+        this.lastHitEntityId = [enemy.id];
         this.addMessage(`You attack the ${enemy.name}, dealing ${damageDealt} damage! Its health is now ${enemy.health}.`);
         if (enemy.defeated) {
           this._handleEnemyDefeat(enemy, targetCoordStr);
@@ -1485,7 +1485,7 @@ export class Labyrinth {
     // Check for traps at destination
     if (this.trapsLocations.has(targetCoordStr) && !this.triggeredTraps.has(targetCoordStr)) {
       this.playerHealth -= 10;
-      this.lastHitEntityId = 'player';
+      this.lastHitEntityId = ['player'];
       this.triggeredTraps.add(targetCoordStr);
       this.revealedTraps.add(targetCoordStr); // Also mark as revealed
       this.addMessage("SNAP! You landed on a hidden pressure plate! A sharp pain shoots through your leg. You take 10 damage!");
@@ -1626,7 +1626,7 @@ export class Labyrinth {
     } else {
       const bashDamage = 20; // Damage for hitting an obstacle
       enemy.takeDamage(bashDamage);
-      this.lastHitEntityId = enemy.id;
+      this.lastHitEntityId = [enemy.id];
       this.addMessage(`You bash the ${enemy.name} into an obstacle! It takes ${bashDamage} damage! Its health is now ${enemy.health}.`);
       if (enemy.defeated) {
         this._handleEnemyDefeat(enemy, frontCoordStr);
@@ -2235,6 +2235,7 @@ export class Labyrinth {
 
   public castGemSpell(playerName: string, time: number) {
     this.lastSpellEffect = null;
+    this.lastHitEntityId = null; // Clear previous hits
     if (this.gameOver) {
       this.addMessage("The game is over.");
       return;
@@ -2254,10 +2255,10 @@ export class Labyrinth {
     }
 
     if (this.equippedGemSpell.id === "spellbook-lightning") {
-      const radius = 5;
-      let closestEnemy: { enemy: Enemy; coord: Coordinate; dist: number; id: string; coordStr: string } | null = null;
+      const radius = 4; // User requested 4 block radius
+      const hitEnemies: { enemy: Enemy; coord: Coordinate; id: string; coordStr: string }[] = [];
 
-      // Find the closest enemy within the radius
+      // Find ALL enemies within the radius
       for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
         const [x, y, f] = coordStr.split(',').map(Number);
         if (f === this.currentFloor) {
@@ -2265,24 +2266,31 @@ export class Labyrinth {
           if (dist <= radius) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated) {
-              if (!closestEnemy || dist < closestEnemy.dist) {
-                closestEnemy = { enemy, coord: { x, y }, dist, id: enemyId, coordStr };
-              }
+              hitEnemies.push({ enemy, coord: { x, y }, id: enemyId, coordStr });
             }
           }
         }
       }
 
-      if (closestEnemy) {
+      if (hitEnemies.length > 0) {
         const damage = 50;
-        this.addMessage(`A bolt of lightning arcs from your gem and strikes the ${closestEnemy.enemy.name}!`);
-        closestEnemy.enemy.takeDamage(damage);
-        this.lastHitEntityId = closestEnemy.id;
-        this.lastSpellEffect = { type: 'lightning', position: closestEnemy.coord };
-        this.addMessage(`The lightning deals ${damage} damage! Its health is now ${closestEnemy.enemy.health}.`);
-        if (closestEnemy.enemy.defeated) {
-          this._handleEnemyDefeat(closestEnemy.enemy, closestEnemy.coordStr);
+        const hitEnemyIds: string[] = [];
+        const hitPositions: Coordinate[] = [];
+
+        this.addMessage(`A storm of lightning erupts around you, striking ${hitEnemies.length} enemies!`);
+
+        for (const hit of hitEnemies) {
+            hit.enemy.takeDamage(damage);
+            hitEnemyIds.push(hit.id);
+            hitPositions.push(hit.coord);
+            this.addMessage(`The ${hit.enemy.name} is struck for ${damage} damage! Its health is now ${hit.enemy.health}.`);
+            if (hit.enemy.defeated) {
+                this._handleEnemyDefeat(hit.enemy, hit.coordStr);
+            }
         }
+
+        this.lastHitEntityId = hitEnemyIds;
+        this.lastSpellEffect = { type: 'lightning', positions: hitPositions };
         this.gemSpellCooldown = 10; // 10 turn cooldown
       } else {
         this.addMessage("You call upon the storm, but there are no enemies nearby to strike.");
@@ -2415,7 +2423,7 @@ export class Labyrinth {
             if (move.x === playerX && move.y === playerY) {
                 const damageDealt = Math.max(0, enemy.attackDamage - this.getCurrentDefense());
                 this.playerHealth -= damageDealt;
-                this.lastHitEntityId = 'player';
+                this.lastHitEntityId = ['player'];
                 this.addMessage(`The ${enemy.name} lunges at you, dealing ${damageDealt} damage! Your health is now ${this.playerHealth}.`);
                 if (this.playerHealth <= 0) {
                     if (!this._tryActivateWellBlessing(playerName, time, `${enemy.name}'s Attack`)) {

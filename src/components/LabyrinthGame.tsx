@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sword, Heart, Shield, Target, Goal, BookOpen, Backpack, Scroll, Gem, Compass, Skull, Zap } from "lucide-react"; // Added Skull icon
-import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { generateSvgPaths } from "@/lib/map-renderer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Keep Tabs for now, but won't use for inventory/objective
 import GameOverScreen from "./GameOverScreen"; // Import GameOverScreen
@@ -55,12 +55,12 @@ const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500];
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
   const { labyrinth, setLabyrinth, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
-  const [flashingEntityId, setFlashingEntityId] = useState<string | null>(null);
+  const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
   const [verticalJumpOffset, setVerticalJumpOffset] = useState(0);
   const [animatedPlayerPosition, setAnimatedPlayerPosition] = useState({ x: 0, y: 0 }); // Initialize with default values
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
-  const [lightningStrike, setLightningStrike] = useState<{ position: Coordinate; key: number } | null>(null); // New state for lightning effect
+  const [lightningStrikes, setLightningStrikes] = useState<{ position: Coordinate; key: number }[]>([]); // New state for lightning effect
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
@@ -183,11 +183,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setHasGameOverBeenDispatched(true);
       }
     }
-    const hitId = labyrinth.lastHitEntityId;
-    if (hitId) {
-      setFlashingEntityId(hitId);
+    const hitIds = labyrinth.lastHitEntityId;
+    if (hitIds && hitIds.length > 0) {
+      setFlashingEntityId(hitIds);
       setTimeout(() => {
-        setFlashingEntityId(null);
+        setFlashingEntityId([]);
       }, 200);
       labyrinth.clearLastHit();
     }
@@ -306,10 +306,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleCastSpell = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
     labyrinth.castSpell(playerName, elapsedTime);
-    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.position) {
-      setLightningStrike({ position: labyrinth.lastSpellEffect.position, key: Date.now() });
+    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
+      const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
+        position: pos,
+        key: Date.now() + Math.random()
+      }));
+      setLightningStrikes(newStrikes);
       setTimeout(() => {
-        setLightningStrike(null);
+        setLightningStrikes([]);
       }, 300);
     }
     incrementGameVersion();
@@ -318,9 +322,13 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const handleCastGemSpell = () => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { return; }
     labyrinth.castGemSpell(playerName, elapsedTime);
-    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.position) {
-      setLightningStrike({ position: labyrinth.lastSpellEffect.position, key: Date.now() });
-      setTimeout(() => setLightningStrike(null), 300);
+    if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
+      const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
+        position: pos,
+        key: Date.now() + Math.random()
+      }));
+      setLightningStrikes(newStrikes);
+      setTimeout(() => setLightningStrikes([]), 300);
     }
     incrementGameVersion();
   };
@@ -534,7 +542,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                   y={y}
                   width="1"
                   height="1"
-                  className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId === enemy.id && 'is-flashing')}
+                  className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId.includes(enemy.id) && 'is-flashing')}
                 />
               );
             }
@@ -628,21 +636,21 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           width="1.6"
           height="1.6"
           className={cn(
-            flashingEntityId === 'player' && 'is-flashing'
+            flashingEntityId.includes('player') && 'is-flashing'
           )}
         />
-        {/* Lightning Strike Effect */}
-        {lightningStrike && (
+        {/* Lightning Strike Effects */}
+        {lightningStrikes.map(strike => (
           <image
-            key={lightningStrike.key}
+            key={strike.key}
             href={lightningStrikeSprite}
-            x={lightningStrike.position.x}
-            y={lightningStrike.position.y}
+            x={strike.position.x}
+            y={strike.position.y}
             width="1"
             height="1"
             className="is-lightning-striking"
           />
-        )}
+        ))}
       </svg>
     );
   };

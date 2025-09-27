@@ -73,6 +73,7 @@ export class Enemy {
   name: string;
   description: string;
   health: number;
+  maxHealth: number;
   defeated: boolean;
   isAggro: boolean;
   attackDamage: number;
@@ -84,6 +85,7 @@ export class Enemy {
     this.name = name;
     this.description = description;
     this.health = health;
+    this.maxHealth = health;
     this.defeated = false;
     this.isAggro = false;
     this.attackDamage = attackDamage;

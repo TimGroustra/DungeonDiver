@@ -534,16 +534,40 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             if (!enemy || (enemy.defeated && enemy.id !== labyrinth.lastJumpDefeatedEnemyId)) return null;
             const enemySprite = enemySpriteMap[enemy.name];
             if (enemySprite) {
+              const healthPercentage = enemy.health > 0 ? enemy.health / enemy.maxHealth : 0;
+              const showHealthBar = enemy.health < enemy.maxHealth;
+
               return (
-                <image
-                  key={`enemy-${enemyId}`}
-                  href={enemySprite}
-                  x={x}
-                  y={y}
-                  width="1"
-                  height="1"
-                  className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId.includes(enemy.id) && 'is-flashing')}
-                />
+                <g key={`enemy-group-${enemyId}`}>
+                  <image
+                    href={enemySprite}
+                    x={x}
+                    y={y}
+                    width="1"
+                    height="1"
+                    className={cn(enemy.id.includes('watcher') && 'animate-pulse', flashingEntityId.includes(enemy.id) && 'is-flashing')}
+                  />
+                  {showHealthBar && (
+                    <g>
+                      <rect
+                        x={x + 0.1}
+                        y={y - 0.15}
+                        width={0.8}
+                        height={0.1}
+                        fill="#b91c1c" // red-700
+                        stroke="#450a0a" // red-950
+                        strokeWidth={0.02}
+                      />
+                      <rect
+                        x={x + 0.1}
+                        y={y - 0.15}
+                        width={0.8 * healthPercentage}
+                        height={0.1}
+                        fill="#22c55e" // green-500
+                      />
+                    </g>
+                  )}
+                </g>
               );
             }
             return null;

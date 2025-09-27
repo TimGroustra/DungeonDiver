@@ -79,7 +79,8 @@ const Index: React.FC = () => {
           console.error("Error fetching learned spells:", error);
           throw error;
         }
-        return data.map(s => s.spell_id);
+        // Filter out "spellbook-lightning" when fetching from the database
+        return data.map(s => s.spell_id).filter(spellId => spellId !== "spellbook-lightning");
       }
       return [];
     },

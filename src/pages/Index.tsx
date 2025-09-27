@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Skull } from "lucide-react";
+import { Loader2, Skull, ChevronLeft, ChevronRight } from "lucide-react";
 import { GameResult } from "@/lib/game";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/WalletConnect";
@@ -39,9 +39,10 @@ const Index: React.FC = () => {
   const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameKey, setGameKey] = useState<number>(0);
+  const [displayDate, setDisplayDate] = useState(new Date());
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { balance, address } = useWalletStore(); // Get address from the wallet store
+  const { balance, address } = useWalletStore();
 
   const hasElectrogem = balance !== null && balance > 0;
 
@@ -56,11 +57,18 @@ const Index: React.FC = () => {
   }, [gameStarted, startTime, gameResult]);
 
   const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["leaderboard"],
+    queryKey: ["leaderboard", displayDate.getFullYear(), displayDate.getMonth()],
     queryFn: async () => {
+      const year = displayDate.getFullYear();
+      const month = displayDate.getMonth();
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 1);
+
       const { data, error } = await supabase
         .from("leaderboard")
         .select("id, player_name, score_time, deaths, wallet_address")
+        .gte('created_at', startDate.toISOString())
+        .lt('created_at', endDate.toISOString())
         .order("deaths", { ascending: true })
         .order("score_time", { ascending: true })
         .limit(10);
@@ -135,6 +143,28 @@ const Index: React.FC = () => {
     setStartTime(Date.now() - (elapsedTime * 1000));
   };
 
+  const handlePrevMonth = () => {
+    setDisplayDate(currentDate => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setDisplayDate(currentDate => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate > new Date() ? currentDate : newDate;
+    });
+  };
+
+  const isNextMonthDisabled = () => {
+    const nextMonth = new Date(displayDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return nextMonth > new Date();
+  };
+
   return (
     <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       {!gameStarted && !showLeaderboard && !gameResult && (
@@ -183,7 +213,17 @@ const Index: React.FC = () => {
         <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-amber-300">Leaderboard</CardTitle>
-            <CardDescription className="text-stone-400">Top adventurers who escaped the Labyrinth.</CardDescription>
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <CardDescription className="text-stone-400 text-center">
+                {displayDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </CardDescription>
+              <Button variant="ghost" size="icon" onClick={handleNextMonth} disabled={isNextMonthDisabled()}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingLeaderboard ? (
@@ -211,7 +251,7 @@ const Index: React.FC = () => {
                     </div>
                   </li>
                 ))}
-                {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet. Be the first!</p>}
+                {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet for this month. Be the first!</p>}
               </ul>
             )}
             <Separator className="my-4 bg-amber-800" />

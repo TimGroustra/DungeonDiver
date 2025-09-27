@@ -75,6 +75,30 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (gameStarted) { // Only create a new Labyrinth if game is started
       try {
         const newLabyrinth = new Labyrinth(hasElectrogem, initialSpells); // Pass the prop here
+
+        // DEV MODE: Grant all spells
+        if (import.meta.env.DEV) {
+          const allSpells = Array.from(newLabyrinth.items.values()).filter(item => item.type === 'spellbook');
+          const gemSpell = newLabyrinth.items.get("spellbook-lightning");
+
+          if (gemSpell) {
+            newLabyrinth.equippedGemSpell = gemSpell;
+            newLabyrinth.learnedSpells.add(gemSpell.id);
+          }
+
+          const regularSpells = allSpells.filter(s => s.id !== "spellbook-lightning");
+          if (regularSpells.length > 0) {
+            newLabyrinth.equippedSpellbook = regularSpells[0];
+            newLabyrinth.learnedSpells.add(regularSpells[0].id);
+            for (let i = 1; i < regularSpells.length; i++) {
+              const spell = regularSpells[i];
+              newLabyrinth.inventory.set(spell.id, { item: spell, quantity: 1 });
+              newLabyrinth.learnedSpells.add(spell.id);
+            }
+          }
+          newLabyrinth.addMessage("[DEV MODE] All spells granted!");
+        }
+        
         setLabyrinth(newLabyrinth);
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());

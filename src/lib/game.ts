@@ -158,9 +158,9 @@ export class Labyrinth {
   private equippedShield: Item | undefined;
   private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
   private equippedCompass: Item | undefined; // New: For True Compass
-  private equippedSpellbook: Item | undefined;
-  private equippedGemSpell: Item | undefined;
-  private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
+  public equippedSpellbook: Item | undefined;
+  public equippedGemSpell: Item | undefined;
+  public inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
   private visitedCells: Map<number, Set<string>>; // Stores "x,y" strings of visited cells per floor
@@ -189,7 +189,7 @@ export class Labyrinth {
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
-  private learnedSpells: Set<string>;
+  public learnedSpells: Set<string>;
   private spellCooldown: number;
   private gemSpellCooldown: number;
   public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
@@ -993,7 +993,7 @@ export class Labyrinth {
     }
   }
 
-  private addMessage(message: string) {
+  public addMessage(message: string) {
     this.messages.push(message);
   }
 

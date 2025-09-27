@@ -88,7 +88,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
       }
     }
-  }, [gameStarted, hasElectrogem, initialLearnedSpells]); // Depend on gameStarted, hasElectrogem, and initialLearnedSpells for initial setup
+  }, [gameStarted, hasElectrogem, setLabyrinth, setCurrentFloor, setPlayerPosition, incrementGameVersion]); // Removed initialLearnedSpells from dependencies
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {

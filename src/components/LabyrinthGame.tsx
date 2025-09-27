@@ -220,15 +220,14 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         return;
       }
 
-      // Handle 'M' key press to toggle map modal
+      // Handle 'M' key press to display map modal while held down
       if (event.key.toLowerCase() === 'm') {
         event.preventDefault();
-        setIsMapModalOpen(prev => !prev);
+        setIsMapModalOpen(true); // Open the modal
         return; // Return after handling 'M' key
       }
 
-      // If the map modal is open, and it wasn't the 'M' key that was pressed,
-      // then prevent other game actions.
+      // If the map modal is open, prevent other game actions.
       if (isMapModalOpen) return;
 
       switch (event.key.toLowerCase()) {
@@ -254,6 +253,12 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key === 'Shift') {
         setSpellInput(''); // Reset spell input when shift is released
+      }
+      // Handle 'M' key release to close the map modal
+      if (event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        setIsMapModalOpen(false); // Close the modal
+        return;
       }
     };
 

@@ -297,7 +297,7 @@ export class Labyrinth {
     this.heartOfLabyrinthObtained = false;
     this.heartSacrificed = false;
 
-    this.baseSearchRadius = 2; // Initial base search radius
+    this.baseSearchRadius = 6; // Initial base search radius increased to 6
     this.lastEnemyMoveTimestamp = 0;
 
     // Watcher of the Core Boss specific initializations

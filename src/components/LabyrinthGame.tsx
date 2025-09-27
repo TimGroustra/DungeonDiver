@@ -63,6 +63,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const [lightningStrikes, setLightningStrikes] = useState<{ position: Coordinate; key: number }[]>([]); // New state for lightning effect
+  const [fireballExplosions, setFireballExplosions] = useState<{ position: Coordinate; key: number }[]>([]);
   const [spellInput, setSpellInput] = useState("");
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
@@ -194,6 +195,16 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       }, 200);
       labyrinth.clearLastHit();
     }
+    if (labyrinth.lastSpellEffect?.type === 'fireball' && labyrinth.lastSpellEffect.positions) {
+      const newExplosions = labyrinth.lastSpellEffect.positions.map(pos => ({
+          position: pos,
+          key: Date.now() + Math.random()
+      }));
+      setFireballExplosions(newExplosions);
+      setTimeout(() => {
+          setFireballExplosions([]);
+      }, 400);
+    }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, gameResult]); // Add gameResult to dependencies
 
   useEffect(() => {
@@ -214,6 +225,9 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           } else if (newSpellInput.endsWith('ICE')) {
             handleCastSpell();
             setSpellInput(''); // Reset after successful cast
+          } else if (newSpellInput.endsWith('FIRE')) {
+            handleCastSpell();
+            setSpellInput('');
           }
         }
         // Do not process any other actions while shift is held down.
@@ -560,6 +574,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
             <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
           </pattern>
+          <radialGradient id="fireball-gradient">
+            <stop offset="0%" stopColor="#ffdd00" stopOpacity="0.9" />
+            <stop offset="50%" stopColor="#ff8800" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
+          </radialGradient>
         </defs>
         <g>
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
@@ -715,6 +734,17 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             width="1"
             height="1"
             className="is-lightning-striking"
+          />
+        ))}
+        {/* Fireball Explosion Effects */}
+        {fireballExplosions.map(explosion => (
+          <circle
+              key={explosion.key}
+              cx={explosion.position.x + 0.5}
+              cy={explosion.position.y + 0.5}
+              r={1.5}
+              fill="url(#fireball-gradient)"
+              className="is-exploding"
           />
         ))}
       </svg>

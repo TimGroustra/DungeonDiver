@@ -678,6 +678,10 @@ export class Labyrinth {
       this.items.set(repairBench.id, repairBench);
       this.placeElementRandomly(repairBench.id, this.staticItemLocations, floor);
 
+      const fireballSpellbook = new Item("spellbook-fire-f2", "Tome of Embers", "A warm tome that smells of ash. Allows you to cast a powerful fireball spell.", false, 'spellbook');
+      this.items.set(fireballSpellbook.id, fireballSpellbook);
+      this.placeElementRandomly(fireballSpellbook.id, this.staticItemLocations, floor);
+
       this.floorObjectives.set(floor, {
         title: "The Broken Compass's Secret",
         steps: [
@@ -1853,7 +1857,11 @@ export class Labyrinth {
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
-        if (staticItem.id === "spellbook-freeze-f0") {
+        if (staticItem.id === "spellbook-fire-f2") {
+          this.addMessage("You find a warm, ash-covered book. It's the Tome of Embers!");
+          this._handleFoundItem(staticItem, currentCoord);
+          interacted = true;
+        } else if (staticItem.id === "spellbook-freeze-f0") {
           this.addMessage("You reach into the shadows and retrieve the Tome of Hoarfrost!");
           this._handleFoundItem(staticItem, currentCoord);
           interacted = true;
@@ -2244,6 +2252,93 @@ export class Labyrinth {
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown
+    } else if (this.equippedSpellbook.id === "spellbook-fire-f2") {
+      this.addMessage("You chant the words of power and a ball of fire erupts from your hands!");
+      const range = 7;
+      let dx = 0;
+      let dy = 0;
+      switch (this.lastMoveDirection) {
+          case "north": dy = -1; break;
+          case "south": dy = 1; break;
+          case "east": dx = 1; break;
+          case "west": dx = -1; break;
+      }
+  
+      let explosionCoord: Coordinate | null = null;
+  
+      // Find where the fireball explodes
+      for (let i = 1; i <= range; i++) {
+          const currentX = this.playerLocation.x + dx * i;
+          const currentY = this.playerLocation.y + dy * i;
+          const currentCoordStr = `${currentX},${currentY},${this.currentFloor}`;
+          const currentMap = this.floors.get(this.currentFloor)!;
+  
+          if (currentX < 0 || currentX >= this.MAP_WIDTH || currentY < 0 || currentY >= this.MAP_HEIGHT || currentMap[currentY][currentX] === 'wall') {
+              // Hit a wall, explode at the tile before the wall
+              explosionCoord = { x: currentX - dx, y: currentY - dy };
+              this.addMessage("The fireball slams into a wall and explodes!");
+              break;
+          }
+  
+          const enemyId = this.enemyLocations.get(currentCoordStr);
+          if (enemyId) {
+              const enemy = this.enemies.get(enemyId);
+              if (enemy && !enemy.defeated) {
+                  explosionCoord = { x: currentX, y: currentY };
+                  this.addMessage(`The fireball hits the ${enemy.name} and explodes!`);
+                  break;
+              }
+          }
+          
+          // If it reaches max range without hitting anything
+          if (i === range) {
+              explosionCoord = { x: currentX, y: currentY };
+              this.addMessage("The fireball reaches its maximum range and dissipates in a fiery blast!");
+          }
+      }
+  
+      if (explosionCoord) {
+          const explosionRadius = 1; // 3x3 area (center +/- 1)
+          const damage = 40;
+          const hitEnemies: { enemy: Enemy; coordStr: string }[] = [];
+          const explosionPositions: Coordinate[] = [];
+  
+          for (let ex = explosionCoord.x - explosionRadius; ex <= explosionCoord.x + explosionRadius; ex++) {
+              for (let ey = explosionCoord.y - explosionRadius; ey <= explosionCoord.y + explosionRadius; ey++) {
+                  const explosionCoordStr = `${ex},${ey},${this.currentFloor}`;
+                  const currentMap = this.floors.get(this.currentFloor)!;
+                  if (ex >= 0 && ex < this.MAP_WIDTH && ey >= 0 && ey < this.MAP_HEIGHT && currentMap[ey][ex] !== 'wall') {
+                      explosionPositions.push({ x: ex, y: ey });
+                      const enemyId = this.enemyLocations.get(explosionCoordStr);
+                      if (enemyId) {
+                          const enemy = this.enemies.get(enemyId);
+                          if (enemy && !enemy.defeated) {
+                              hitEnemies.push({ enemy, coordStr: explosionCoordStr });
+                          }
+                      }
+                  }
+              }
+          }
+          
+          if (hitEnemies.length > 0) {
+              const uniqueHitEnemies = [...new Map(hitEnemies.map(item => [item.enemy.id, item])).values()];
+              const hitEnemyIds: string[] = [];
+              for (const { enemy, coordStr } of uniqueHitEnemies) {
+                  enemy.takeDamage(damage);
+                  hitEnemyIds.push(enemy.id);
+                  this.addMessage(`The ${enemy.name} is caught in the blast and takes ${damage} damage! Its health is now ${enemy.health}.`);
+                  if (enemy.defeated) {
+                      this._handleEnemyDefeat(enemy, coordStr);
+                  }
+              }
+              this.lastHitEntityId = hitEnemyIds;
+          }
+          
+          this.lastSpellEffect = { type: 'fireball', positions: explosionPositions };
+          this.spellCooldown = 15;
+      } else {
+          this.addMessage("The spell fizzles, unable to find a path.");
+      }
     }
   }
 

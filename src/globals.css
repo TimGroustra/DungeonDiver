@@ -150,4 +150,19 @@
   .is-lightning-striking {
     animation: lightning-strike-effect 300ms ease-out forwards;
   }
+
+  @keyframes fireball-explosion-effect {
+    0% {
+        opacity: 1;
+        transform: scale(0.2);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.5);
+    }
+  }
+
+  .is-exploding {
+      animation: fireball-explosion-effect 400ms ease-out forwards;
+  }
 }

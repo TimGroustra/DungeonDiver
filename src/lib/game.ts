@@ -2304,29 +2304,31 @@ export class Labyrinth {
     return x >= 0 && x < this.MAP_WIDTH && y >= 0 && y < this.MAP_HEIGHT && currentFloorMap[y][x] !== 'wall';
   }
 
-  public processEnemyMovement(playerName: string, time: number) {
+  public processEnemyMovement(playerName: string, time: number, enemyType: 'boss' | 'minion' = 'minion') {
     if (this.gameOver) {
         return;
     }
 
-    if (this.spellCooldown > 0) {
-      this.spellCooldown--;
-    }
-    if (this.gemSpellCooldown > 0) {
-      this.gemSpellCooldown--;
+    if (enemyType === 'minion') {
+      if (this.spellCooldown > 0) {
+        this.spellCooldown--;
+      }
+      if (this.gemSpellCooldown > 0) {
+        this.gemSpellCooldown--;
+      }
+
+      // NEW: Update frozen tiles duration
+      const newFrozenTiles = new Map<string, { duration: number; source: 'player' | 'watcher' }>();
+      for (const [coordStr, tile] of this.frozenTiles.entries()) {
+          if (tile.duration - 1 > 0) {
+              newFrozenTiles.set(coordStr, { duration: tile.duration - 1, source: tile.source });
+          }
+      }
+      this.frozenTiles = newFrozenTiles;
     }
 
-    // NEW: Update frozen tiles duration
-    const newFrozenTiles = new Map<string, { duration: number; source: 'player' | 'watcher' }>();
-    for (const [coordStr, tile] of this.frozenTiles.entries()) {
-        if (tile.duration - 1 > 0) {
-            newFrozenTiles.set(coordStr, { duration: tile.duration - 1, source: tile.source });
-        }
-    }
-    this.frozenTiles = newFrozenTiles;
-
-    // NEW: Decrement Watcher cooldown
-    if (this.watcherCooldown > 0) {
+    // NEW: Decrement Watcher cooldown (only happens on boss turn)
+    if (enemyType === 'boss' && this.watcherCooldown > 0) {
         this.watcherCooldown--;
     }
 
@@ -2361,7 +2363,10 @@ export class Labyrinth {
         if (coordStr.endsWith(`,${this.currentFloor}`)) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated && enemy.isAggro) {
-                enemiesToMove.push({ id: enemyId, coordStr, enemy });
+                const isBoss = enemy.id === this.watcherOfTheCore?.id;
+                if ((enemyType === 'boss' && isBoss) || (enemyType === 'minion' && !isBoss)) {
+                    enemiesToMove.push({ id: enemyId, coordStr, enemy });
+                }
             }
         }
     }

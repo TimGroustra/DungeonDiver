@@ -49,7 +49,8 @@ interface LabyrinthGameProps {
   hasElectrogem: boolean; // New prop for NFT ownership
 }
 
-const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 167]; // Watcher's floor speed tripled
+const ENEMY_MOVE_SPEEDS_MS = [2000, 1500, 1000, 500]; // Regular enemy speeds
+const BOSS_MOVE_SPEED_MS = 84; // Watcher's speed (was ~167, now ~2x faster)
 
 
 const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
@@ -270,18 +271,38 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
 
   useEffect(() => {
-    if (!gameStarted || gameResult !== null || !labyrinth) return; // Do not process enemy movement if game is over
+    if (!gameStarted || gameResult !== null || !labyrinth) return;
+
+    // --- MINION MOVEMENT ---
     const currentFloor = labyrinth.getCurrentFloor();
     const moveSpeed = ENEMY_MOVE_SPEEDS_MS[currentFloor] || 2000;
-    const intervalId = setInterval(() => {
+    const minionIntervalId = setInterval(() => {
       const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-      labyrinth.processEnemyMovement(playerName, currentElapsedTime);
-      setCurrentFloor(labyrinth.getCurrentFloor()); // Update current floor in store
-      setPlayerPosition(labyrinth.getPlayerLocation()); // Update player position in store
-      incrementGameVersion(); // Trigger a game version update
+      labyrinth.processEnemyMovement(playerName, currentElapsedTime, 'minion');
+      setCurrentFloor(labyrinth.getCurrentFloor());
+      setPlayerPosition(labyrinth.getPlayerLocation());
+      incrementGameVersion();
     }, moveSpeed);
-    return () => clearInterval(intervalId);
-  }, [gameStarted, labyrinth, playerName, startTime, gameResult]); // Add gameResult to dependencies
+
+    // --- BOSS MOVEMENT ---
+    let bossIntervalId: NodeJS.Timeout | undefined;
+    if (currentFloor === labyrinth.NUM_FLOORS - 1) {
+      bossIntervalId = setInterval(() => {
+        const currentElapsedTime = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+        labyrinth.processEnemyMovement(playerName, currentElapsedTime, 'boss');
+        setCurrentFloor(labyrinth.getCurrentFloor());
+        setPlayerPosition(labyrinth.getPlayerLocation());
+        incrementGameVersion();
+      }, BOSS_MOVE_SPEED_MS);
+    }
+
+    return () => {
+      clearInterval(minionIntervalId);
+      if (bossIntervalId) {
+        clearInterval(bossIntervalId);
+      }
+    };
+  }, [gameStarted, labyrinth, playerName, startTime, gameResult]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }

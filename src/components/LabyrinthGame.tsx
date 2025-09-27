@@ -499,7 +499,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </pattern>
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#5a4d5c" />
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
           </pattern>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">
@@ -608,8 +608,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         fill="#22c55e" // green-500
                       />
                     </g>
-                  )}
-                </g>
               );
             }
             return null;

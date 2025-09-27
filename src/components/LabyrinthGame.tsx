@@ -775,7 +775,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               )}
             </div>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent className="bg-black/70 text-gray-200">
             <p className="font-bold">{item ? item.name : slotName}</p>
             {item && <p className="text-xs text-stone-400 mt-1">{item.description}</p>}
             {keybind && item && <p className="text-xs text-amber-300 italic mt-1">Hold Shift and type '{keybind}' to cast.</p>}
@@ -840,7 +840,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
                         )}
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipContent className="bg-black/70 text-gray-200">
                       <p className="font-bold">{item.name}</p>
                       <p className="text-xs text-stone-400 mt-1">{item.description}</p>
                       {isUsable && <p className="text-xs text-amber-300 italic mt-1">Double-click to {isEquippable ? 'equip' : 'use'}.</p>}

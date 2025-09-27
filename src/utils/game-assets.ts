@@ -37,7 +37,9 @@ export const emojiMap: { [key: string]: string } = {
   "Mysterious Staircase": "🪜",
   "Triggered Trap": "☠️",
   "Instant Death Trap": "💀",
-  "Lightning Strike": "⚡", // New entry
+  "Lightning Strike": "⚡",
+  "Tome of Embers": "🔥", // Added fire emoji
+  "Tome of Hoarfrost": "❄️", // Added ice emoji
 };
 
 // Map for enemy sprites

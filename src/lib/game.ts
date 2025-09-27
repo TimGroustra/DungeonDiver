@@ -737,7 +737,7 @@ export class Labyrinth {
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
       const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(40 * enemyHealthMultiplier), Math.floor(20 * enemyDamageMultiplier)); // Adjusted base health and damage
-      this.enemies.set(shadowBeast.id, shadowBeast);
+      this.enemies.set(shadowBease.id, shadowBeast);
       this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor, true);
     }
 
@@ -2280,7 +2280,7 @@ export class Labyrinth {
       }
 
       if (hitEnemies.length > 0) {
-        const damage = 50;
+        const damage = 100; // Doubled damage from 50 to 100
         const hitEnemyIds: string[] = [];
         const hitPositions: Coordinate[] = [];
 

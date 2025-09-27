@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/WalletConnect";
 import { useWalletStore } from "@/stores/walletStore";
 import { truncateAddress } from "@/lib/utils";
+import UserGuideModal from "@/components/UserGuideModal";
 
 interface LeaderboardEntry {
   id: number;
@@ -40,6 +41,7 @@ const Index: React.FC = () => {
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
   const [gameKey, setGameKey] = useState<number>(0);
   const [displayDate, setDisplayDate] = useState(new Date());
+  const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { balance, address } = useWalletStore();
@@ -204,6 +206,9 @@ const Index: React.FC = () => {
               <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
                 View Leaderboard
               </Button>
+              <Button onClick={() => setShowUserGuide(true)} variant="outline" className="w-full bg-transparent border-amber-600 text-amber-200 hover:bg-amber-900/50 hover:text-amber-100 font-bold">
+                User Guide
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -276,6 +281,8 @@ const Index: React.FC = () => {
           hasElectrogem={hasElectrogem}
         />
       )}
+      
+      {showUserGuide && <UserGuideModal isOpen={showUserGuide} onClose={() => setShowUserGuide(false)} />}
     </div>
   );
 };

@@ -735,7 +735,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     const gemSpellCooldown = labyrinth.getGemSpellCooldown();
 
     const renderEquippedItemSlot = (item: Item | undefined, placeholderIcon: React.ReactNode, slotName: string, cooldown?: number, isUnequippable: boolean = false, keybind?: string) => {
-      const itemIcon = item?.name === 'Freeze' ? '🧊' : getEmojiForElement(item?.name || '');
+      // Use getEmojiForElement for all item icons
+      const itemIcon = getEmojiForElement(item?.name || '');
 
       return (
         <Tooltip>
@@ -799,7 +800,8 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               {unequippedInventory.map(({ item, quantity }) => {
                 const isEquippable = ['weapon', 'shield', 'accessory', 'spellbook'].includes(item.type);
                 const isUsable = item.type === 'consumable' || isEquippable;
-                const itemIcon = item.name === 'Freeze' ? '🧊' : getEmojiForElement(item.name);
+                // Use getEmojiForElement for all item icons
+                const itemIcon = getEmojiForElement(item.name);
 
                 return (
                   <Tooltip key={item.id}>
@@ -957,7 +959,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </div>
         </aside>
       </div>
-      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModalOpen(false)} />
+      <FullMapModal isOpen={isMapModalOpen} onClose={() => setIsMapModal(false)} />
     </div>
   );
 };

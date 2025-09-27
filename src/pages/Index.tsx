@@ -44,8 +44,7 @@ const Index: React.FC = () => {
   const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { balance, address, tokens, selectedTokenIndex } = useWalletStore();
-  const selectedToken = tokens?.[selectedTokenIndex];
+  const { balance, address } = useWalletStore();
 
   const hasElectrogem = balance !== null && balance > 0;
 
@@ -81,20 +80,6 @@ const Index: React.FC = () => {
     enabled: showLeaderboard,
   });
 
-  const { data: existingSpells } = useQuery<string[]>({
-    queryKey: ['gemSpells', selectedToken?.id],
-    queryFn: async () => {
-      if (!selectedToken?.id) return [];
-      const { data, error } = await supabase
-        .from('gem_spells')
-        .select('spell_id')
-        .eq('token_id', selectedToken.id);
-      if (error) throw error;
-      return data.map(s => s.spell_id);
-    },
-    enabled: !!selectedToken?.id,
-  });
-
   const addLeaderboardEntryMutation = useMutation({
     mutationFn: async (entry: { player_name: string; score_time: number; deaths: number; wallet_address: string | null }) => {
       const { data, error } = await supabase
@@ -113,31 +98,6 @@ const Index: React.FC = () => {
       } else {
         toast.error(`Failed to submit score: ${error.message}`);
       }
-    },
-  });
-
-  const saveSpellsMutation = useMutation({
-    mutationFn: async (vars: { tokenId: string; spells: string[]; walletAddress: string }) => {
-      const entries = vars.spells.map(spellId => ({
-        token_id: vars.tokenId,
-        spell_id: spellId,
-        wallet_address: vars.walletAddress,
-      }));
-      const { data, error } = await supabase
-        .from('gem_spells')
-        .upsert(entries, { onConflict: 'token_id,spell_id', ignoreDuplicates: true })
-        .select();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      if (data && data.length > 0) {
-        toast.success(`${data.length} new spell(s) have been permanently saved to your ElectroGem!`);
-        queryClient.invalidateQueries({ queryKey: ['gemSpells', selectedToken?.id] });
-      }
-    },
-    onError: (error) => {
-      toast.error(`Failed to save new spells: ${error.message}`);
     },
   });
 
@@ -165,23 +125,11 @@ const Index: React.FC = () => {
         deaths: result.deaths || 0,
         wallet_address: address
       });
-
-      const allSpellsFromGame = result.learnedSpells || [];
-      if (address && selectedToken && allSpellsFromGame.length > 0) {
-        const newSpells = allSpellsFromGame.filter(spell => !(existingSpells || []).includes(spell));
-        if (newSpells.length > 0) {
-          saveSpellsMutation.mutate({
-            tokenId: selectedToken.id,
-            spells: newSpells,
-            walletAddress: address,
-          });
-        }
-      }
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
     setShowLeaderboard(false);
-  }, [addLeaderboardEntryMutation, address, selectedToken, existingSpells, saveSpellsMutation, queryClient]);
+  }, [addLeaderboardEntryMutation, address]);
 
   const handleGameRestart = () => {
     setGameStarted(true);
@@ -331,7 +279,6 @@ const Index: React.FC = () => {
           gameResult={gameResult}
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
-          initialSpells={existingSpells || []}
         />
       )}
       

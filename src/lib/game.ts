@@ -143,7 +143,6 @@ export interface GameResult {
   time: number;
   causeOfDeath?: string; // Optional cause of death for defeat
   deaths?: number; // New: Number of deaths for defeat
-  learnedSpells?: string[];
 }
 
 export class Labyrinth {
@@ -158,9 +157,9 @@ export class Labyrinth {
   private equippedShield: Item | undefined;
   private equippedAmulet: Item | undefined; // New: For Scholar's Amulet
   private equippedCompass: Item | undefined; // New: For True Compass
-  public equippedSpellbook: Item | undefined;
-  public equippedGemSpell: Item | undefined;
-  public inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
+  private equippedSpellbook: Item | undefined;
+  private equippedGemSpell: Item | undefined;
+  private inventory: Map<string, { item: Item, quantity: number }>; // Changed to Map for stacking/unique items
   private messages: string[];
   private gameOver: boolean;
   private visitedCells: Map<number, Set<string>>; // Stores "x,y" strings of visited cells per floor
@@ -189,7 +188,7 @@ export class Labyrinth {
   private lastSafePlayerLocation: Coordinate | null; // NEW: Store last safe location for revive
   public lastJumpDefeatedEnemyId: string | null = null; // NEW: Track enemy defeated by jump
   public lastActionType: 'move' | 'jump' | 'shieldBash' | 'attack' = 'move'; // New property, added 'shieldBash' and 'attack'
-  public learnedSpells: Set<string>;
+  private learnedSpells: Set<string>;
   private spellCooldown: number;
   private gemSpellCooldown: number;
   public frozenTiles: Map<string, { duration: number; source: 'player' | 'watcher' }>; // "x,y,floor" -> remaining turns of freeze effect
@@ -238,7 +237,7 @@ export class Labyrinth {
 
   private gameResult: GameResult | null = null; // New: Stores game result
 
-  constructor(hasElectrogem: boolean = false, initialSpells: string[] = []) {
+  constructor(hasElectrogem: boolean = false) {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
     this.currentFloor = 0; // Start on floor 0
@@ -274,7 +273,7 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
-    this.learnedSpells = new Set<string>(initialSpells);
+    this.learnedSpells = new Set<string>();
     this.spellCooldown = 0;
     this.gemSpellCooldown = 0;
     this.frozenTiles = new Map();
@@ -622,10 +621,6 @@ export class Labyrinth {
       this.items.set(ancientMechanism.id, ancientMechanism);
       this.placeElementRandomly(ancientMechanism.id, this.staticItemLocations, floor);
 
-      const freezeSpellbook = new Item("spellbook-freeze-f0", "Tome of Hoarfrost", "An ice-cold tome that allows you to cast a freezing spell, stunning enemies in place. Has a cooldown.", false, 'spellbook');
-      this.items.set(freezeSpellbook.id, freezeSpellbook);
-      this.placeElementRandomly(freezeSpellbook.id, this.staticItemLocations, floor);
-
       this.floorObjectives.set(floor, {
         title: "The Echoes of the Lost Scholar",
         steps: [
@@ -677,10 +672,6 @@ export class Labyrinth {
       const repairBench = new Item("repair-bench-f2", "Ancient Repair Bench", "A sturdy stone bench covered in arcane symbols and faint scorch marks. It looks like a place for crafting.", true, 'static');
       this.items.set(repairBench.id, repairBench);
       this.placeElementRandomly(repairBench.id, this.staticItemLocations, floor);
-
-      const fireballSpellbook = new Item("spellbook-fire-f2", "Tome of Embers", "A warm tome that smells of ash. Allows you to cast a powerful fireball spell.", false, 'spellbook');
-      this.items.set(fireballSpellbook.id, fireballSpellbook);
-      this.placeElementRandomly(fireballSpellbook.id, this.staticItemLocations, floor);
 
       this.floorObjectives.set(floor, {
         title: "The Broken Compass's Secret",
@@ -993,7 +984,7 @@ export class Labyrinth {
     }
   }
 
-  public addMessage(message: string) {
+  private addMessage(message: string) {
     this.messages.push(message);
   }
 
@@ -1131,12 +1122,11 @@ export class Labyrinth {
 
   private setGameOver(type: 'victory' | 'defeat', playerName: string, time: number, causeOfDeath?: string) {
     this.gameOver = true;
-    const finalSpells = Array.from(this.learnedSpells);
     if (type === 'defeat') {
       this.playerDeaths++;
-      this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths, learnedSpells: finalSpells };
+      this.gameResult = { type, name: playerName, time, causeOfDeath, deaths: this.playerDeaths };
     } else { // victory
-      this.gameResult = { type, name: playerName, time, deaths: this.playerDeaths, learnedSpells: finalSpells };
+      this.gameResult = { type, name: playerName, time, deaths: this.playerDeaths };
     }
   }
 
@@ -1339,10 +1329,10 @@ export class Labyrinth {
     }
     if (enemy.id === this.watcherOfTheCore?.id) {
       this.bossDefeated = true;
-      const hasFreezeSpell = this.learnedSpells.has("spellbook-freeze") || this.learnedSpells.has("spellbook-freeze-f0");
-      if (!hasFreezeSpell) {
+      if (!this.learnedSpells.has("spellbook-freeze")) {
         const spellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
         this.items.set(spellbook.id, spellbook);
+        this.learnedSpells.add(spellbook.id);
         this._handleFoundItem(spellbook, coordStr);
         this.addMessage("You have absorbed the Watcher's power and learned Freeze!");
       }
@@ -1695,7 +1685,7 @@ export class Labyrinth {
         this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
       }
     } else if (foundItem.type === 'spellbook') {
-      if (!this.inventory.has(foundItem.id) && this.equippedSpellbook?.id !== foundItem.id && this.equippedGemSpell?.id !== foundItem.id) {
+      if (!this.inventory.has(foundItem.id)) {
         if (!this.equippedSpellbook) {
           this.equippedSpellbook = foundItem;
           this.addMessage(`You found and equipped the ${foundItem.name}!`);
@@ -1703,9 +1693,7 @@ export class Labyrinth {
           this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
           this.addMessage(`You found a ${foundItem.name}! It has been added to your backpack.`);
         }
-        this.learnedSpells.add(foundItem.id);
         this.itemLocations.delete(coordStr);
-        this.staticItemLocations.delete(coordStr);
       }
     } else if (foundItem.type === 'accessory') { // Handle accessories like amulet/compass
       if (!this.inventory.has(foundItem.id)) {
@@ -1857,15 +1845,7 @@ export class Labyrinth {
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
-        if (staticItem.id === "spellbook-fire-f2") {
-          this.addMessage("You find a warm, ash-covered book. It's the Tome of Embers!");
-          this._handleFoundItem(staticItem, currentCoord);
-          interacted = true;
-        } else if (staticItem.id === "spellbook-freeze-f0") {
-          this.addMessage("You reach into the shadows and retrieve the Tome of Hoarfrost!");
-          this._handleFoundItem(staticItem, currentCoord);
-          interacted = true;
-        } else if (staticItem.id.startsWith("ancient-mechanism-")) { // Floor 1 Quest
+        if (staticItem.id.startsWith("ancient-mechanism-")) { // Floor 1 Quest
           const journalEntry = this.inventory.get("journal-f0");
           const crystalEntry = this.inventory.get("charged-crystal-f0");
           if (journalEntry && crystalEntry) {
@@ -2212,7 +2192,7 @@ export class Labyrinth {
       return;
     }
 
-    if (this.equippedSpellbook.id === "spellbook-freeze" || this.equippedSpellbook.id === "spellbook-freeze-f0") {
+    if (this.equippedSpellbook.id === "spellbook-freeze") {
       this.addMessage("You unleash a freezing blast in all directions!");
       let hitEnemy = false;
       const radius = 4;
@@ -2252,93 +2232,6 @@ export class Labyrinth {
       }
 
       this.spellCooldown = 20; // Match watcher's cooldown
-    } else if (this.equippedSpellbook.id === "spellbook-fire-f2") {
-      this.addMessage("You chant the words of power and a ball of fire erupts from your hands!");
-      const range = 7;
-      let dx = 0;
-      let dy = 0;
-      switch (this.lastMoveDirection) {
-          case "north": dy = -1; break;
-          case "south": dy = 1; break;
-          case "east": dx = 1; break;
-          case "west": dx = -1; break;
-      }
-  
-      let explosionCoord: Coordinate | null = null;
-  
-      // Find where the fireball explodes
-      for (let i = 1; i <= range; i++) {
-          const currentX = this.playerLocation.x + dx * i;
-          const currentY = this.playerLocation.y + dy * i;
-          const currentCoordStr = `${currentX},${currentY},${this.currentFloor}`;
-          const currentMap = this.floors.get(this.currentFloor)!;
-  
-          if (currentX < 0 || currentX >= this.MAP_WIDTH || currentY < 0 || currentY >= this.MAP_HEIGHT || currentMap[currentY][currentX] === 'wall') {
-              // Hit a wall, explode at the tile before the wall
-              explosionCoord = { x: currentX - dx, y: currentY - dy };
-              this.addMessage("The fireball slams into a wall and explodes!");
-              break;
-          }
-  
-          const enemyId = this.enemyLocations.get(currentCoordStr);
-          if (enemyId) {
-              const enemy = this.enemies.get(enemyId);
-              if (enemy && !enemy.defeated) {
-                  explosionCoord = { x: currentX, y: currentY };
-                  this.addMessage(`The fireball hits the ${enemy.name} and explodes!`);
-                  break;
-              }
-          }
-          
-          // If it reaches max range without hitting anything
-          if (i === range) {
-              explosionCoord = { x: currentX, y: currentY };
-              this.addMessage("The fireball reaches its maximum range and dissipates in a fiery blast!");
-          }
-      }
-  
-      if (explosionCoord) {
-          const explosionRadius = 1; // 3x3 area (center +/- 1)
-          const damage = 40;
-          const hitEnemies: { enemy: Enemy; coordStr: string }[] = [];
-          const explosionPositions: Coordinate[] = [];
-  
-          for (let ex = explosionCoord.x - explosionRadius; ex <= explosionCoord.x + explosionRadius; ex++) {
-              for (let ey = explosionCoord.y - explosionRadius; ey <= explosionCoord.y + explosionRadius; ey++) {
-                  const explosionCoordStr = `${ex},${ey},${this.currentFloor}`;
-                  const currentMap = this.floors.get(this.currentFloor)!;
-                  if (ex >= 0 && ex < this.MAP_WIDTH && ey >= 0 && ey < this.MAP_HEIGHT && currentMap[ey][ex] !== 'wall') {
-                      explosionPositions.push({ x: ex, y: ey });
-                      const enemyId = this.enemyLocations.get(explosionCoordStr);
-                      if (enemyId) {
-                          const enemy = this.enemies.get(enemyId);
-                          if (enemy && !enemy.defeated) {
-                              hitEnemies.push({ enemy, coordStr: explosionCoordStr });
-                          }
-                      }
-                  }
-              }
-          }
-          
-          if (hitEnemies.length > 0) {
-              const uniqueHitEnemies = [...new Map(hitEnemies.map(item => [item.enemy.id, item])).values()];
-              const hitEnemyIds: string[] = [];
-              for (const { enemy, coordStr } of uniqueHitEnemies) {
-                  enemy.takeDamage(damage);
-                  hitEnemyIds.push(enemy.id);
-                  this.addMessage(`The ${enemy.name} is caught in the blast and takes ${damage} damage! Its health is now ${enemy.health}.`);
-                  if (enemy.defeated) {
-                      this._handleEnemyDefeat(enemy, coordStr);
-                  }
-              }
-              this.lastHitEntityId = hitEnemyIds;
-          }
-          
-          this.lastSpellEffect = { type: 'fireball', positions: explosionPositions };
-          this.spellCooldown = 15;
-      } else {
-          this.addMessage("The spell fizzles, unable to find a path.");
-      }
     }
   }
 

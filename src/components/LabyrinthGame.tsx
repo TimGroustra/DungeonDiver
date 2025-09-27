@@ -47,14 +47,13 @@ interface LabyrinthGameProps {
   gameResult: GameResult | null; // New prop for game result
   onRevive: () => void; // New prop for revive action from Index
   hasElectrogem: boolean; // New prop for NFT ownership
-  initialSpells: string[];
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [3600, 2700, 1800, 900]; // Regular enemy speeds (sped up by 10%)
 const BOSS_MOVE_SPEED_MS = 336; // Watcher's speed (halved again)
 
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem, initialSpells }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
   const { labyrinth, setLabyrinth, currentFloor, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
@@ -63,48 +62,18 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const [isAnimatingMovement, setIsAnimatingMovement] = useState(false); // New state to prevent actions during movement animation
   const [isMapModalOpen, setIsMapModalOpen] = useState(false); // State for the full map modal
   const [lightningStrikes, setLightningStrikes] = useState<{ position: Coordinate; key: number }[]>([]); // New state for lightning effect
-  const [fireballExplosions, setFireballExplosions] = useState<{ position: Coordinate; key: number }[]>([]);
   const [spellInput, setSpellInput] = useState("");
   const gameContainerRef = useRef<HTMLDivElement>(null); // Ref for the game container
 
   // Ref to store the *last fully settled* logical position, used as the start of the next animation
   const lastSettledLogicalPositionRef = useRef({ x: 0, y: 0 }); // Initialize with default values
 
-  // Use a useRef for the Labyrinth instance to ensure it's only created once per component mount
-  const labyrinthInstanceRef = useRef<Labyrinth | null>(null);
-
   // Initialize Labyrinth only when the component mounts or a new game is explicitly started (via key change)
   useEffect(() => {
-    // Only create a new Labyrinth if gameStarted is true AND we don't have an instance yet for this mount
-    if (gameStarted && !labyrinthInstanceRef.current) {
+    if (gameStarted) { // Only create a new Labyrinth if game is started
       try {
-        const newLabyrinth = new Labyrinth(hasElectrogem, initialSpells); // Pass the prop here
-        labyrinthInstanceRef.current = newLabyrinth; // Store the instance in the ref
-
-        // DEV MODE: Grant all spells
-        if (import.meta.env.DEV) {
-          const allSpells = Array.from(newLabyrinth.items.values()).filter(item => item.type === 'spellbook');
-          const gemSpell = newLabyrinth.items.get("spellbook-lightning");
-
-          if (gemSpell) {
-            newLabyrinth.equippedGemSpell = gemSpell;
-            newLabyrinth.learnedSpells.add(gemSpell.id);
-          }
-
-          const regularSpells = allSpells.filter(s => s.id !== "spellbook-lightning");
-          if (regularSpells.length > 0) {
-            newLabyrinth.equippedSpellbook = regularSpells[0];
-            newLabyrinth.learnedSpells.add(regularSpells[0].id);
-            for (let i = 1; i < regularSpells.length; i++) {
-              const spell = regularSpells[i];
-              newLabyrinth.inventory.set(spell.id, { item: spell, quantity: 1 });
-              newLabyrinth.learnedSpells.add(spell.id);
-            }
-          }
-          newLabyrinth.addMessage("[DEV MODE] All spells granted!");
-        }
-        
-        setLabyrinth(newLabyrinth); // Update global store with the new instance
+        const newLabyrinth = new Labyrinth(hasElectrogem); // Pass the prop here
+        setLabyrinth(newLabyrinth);
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());
         setAnimatedPlayerPosition(newLabyrinth.getPlayerLocation()); // Sync animated position
@@ -116,20 +85,91 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         console.error("Error initializing Labyrinth:", error);
         toast.error("Failed to start game: " + (error as Error).message);
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
-        labyrinthInstanceRef.current = null; // Clear ref on error
       }
     }
+  }, [gameStarted, hasElectrogem]); // Depend on gameStarted and hasElectrogem for initial setup
 
-    // Cleanup function: When LabyrinthGame unmounts (e.g., game ends, gameKey changes),
-    // clear the global labyrinth state.
-    return () => {
-      if (labyrinthInstanceRef.current) {
-        labyrinthInstanceRef.current = null; // Clear the ref
-        setLabyrinth(null); // Clear global store
+  // Effect to smoothly animate player's visual position when game state position changes
+  useEffect(() => {
+    if (!labyrinth) return; // Ensure labyrinth is initialized
+
+    const newLogicalPos = labyrinth.getPlayerLocation();
+    const currentFloor = labyrinth.getCurrentFloor(); // Also a dependency for re-triggering animation on floor change
+
+    // Only animate if the logical position has actually changed from the last settled position
+    if (newLogicalPos.x !== lastSettledLogicalPositionRef.current.x || newLogicalPos.y !== lastSettledLogicalPositionRef.current.y) {
+      setIsAnimatingMovement(true); // Block input during animation
+
+      const startX = lastSettledLogicalPositionRef.current.x;
+      const startY = lastSettledLogicalPositionRef.current.y;
+      const endX = newLogicalPos.x;
+      const endY = newLogicalPos.y;
+      const startTime = Date.now();
+
+      const distance = Math.round(Math.max(Math.abs(endX - startX), Math.abs(endY - startY)));
+      const wasJump = labyrinth.lastActionType === 'jump';
+
+      let animationDuration = 150; // Default move duration
+      let peakHeight = 0; // Default no vertical offset
+
+      if (wasJump) {
+        switch (distance) {
+          case 3:
+            animationDuration = 650;
+            peakHeight = -0.8;
+            break;
+          case 2:
+            animationDuration = 450;
+            peakHeight = -0.6;
+            break;
+          case 1:
+            animationDuration = 250;
+            peakHeight = -0.3;
+            break;
+          default:
+            animationDuration = 150;
+            peakHeight = 0;
+        }
       }
-    };
-  }, [gameStarted]); // Dependencies: Only gameStarted. hasElectrogem and initialSpells are captured once.
-  // The key={gameKey} on LabyrinthGame in Index.tsx ensures this useEffect runs on new game.
+
+      const animate = () => {
+        const now = Date.now();
+        const elapsed = now - startTime;
+        const progress = Math.min(1, elapsed / animationDuration);
+
+        const easedProgress = progress; // Linear progress for all movement
+
+        const currentX = startX + (endX - startX) * easedProgress;
+        const currentY = startY + (endY - startY) * easedProgress;
+
+        setAnimatedPlayerPosition({ x: currentX, y: currentY });
+
+        if (peakHeight !== 0) { // Only calculate vertical offset if it's a jump
+          const distProgress = Math.max(0, Math.min(1, easedProgress));
+          // A simple sine-based arc for all jumps
+          const verticalOffset = peakHeight * Math.sin(distProgress * Math.PI);
+          setVerticalJumpOffset(verticalOffset);
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Animation finished
+          setIsAnimatingMovement(false);
+          setAnimatedPlayerPosition(newLogicalPos); // Ensure it snaps to final logical position
+          lastSettledLogicalPositionRef.current = newLogicalPos; // Update ref to the new settled position
+          setVerticalJumpOffset(0);
+
+          // NEW: Clear jump-defeated enemy after animation
+          if (labyrinth.lastJumpDefeatedEnemyId) {
+            labyrinth.clearJumpDefeatedEnemy();
+            incrementGameVersion(); // Trigger re-render to remove enemy
+          }
+        }
+      };
+      requestAnimationFrame(animate);
+    }
+  }, [labyrinth?.getPlayerLocation().x, labyrinth?.getPlayerLocation().y, labyrinth?.getCurrentFloor()]); // Depend on actual game state player location and floor
 
   useEffect(() => {
     if (gameResult !== null || !labyrinth) return; // Do not process game logic if game is over or labyrinth not initialized
@@ -153,21 +193,11 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       }, 200);
       labyrinth.clearLastHit();
     }
-    if (labyrinth.lastSpellEffect?.type === 'fireball' && labyrinth.lastSpellEffect.positions) {
-      const newExplosions = labyrinth.lastSpellEffect.positions.map(pos => ({
-          position: pos,
-          key: Date.now() + Math.random()
-      }));
-      setFireballExplosions(newExplosions);
-      setTimeout(() => {
-          setFireballExplosions([]);
-      }, 400);
-    }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, gameResult]); // Add gameResult to dependencies
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || event.repeat || !labyrinth) return; // Removed isAnimatingMovement
+      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
 
       // Spell casting logic with Shift key
       if (event.shiftKey) {
@@ -183,9 +213,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           } else if (newSpellInput.endsWith('ICE')) {
             handleCastSpell();
             setSpellInput(''); // Reset after successful cast
-          } else if (newSpellInput.endsWith('FIRE')) {
-            handleCastSpell();
-            setSpellInput('');
           }
         }
         // Do not process any other actions while shift is held down.
@@ -241,7 +268,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keyup", handleKeyUp);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isMapModalOpen, spellInput]); // Removed isAnimatingMovement from dependencies
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null || !labyrinth) return;
@@ -277,7 +304,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, startTime, gameResult, currentFloor]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot move right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }
     labyrinth.move(direction, playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -285,7 +312,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleAttack = () => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot attack right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot attack right now."); return; }
     labyrinth.attack(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -293,7 +320,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleJump = () => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot jump right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
@@ -302,7 +329,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleInteract = () => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot interact right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot interact right now."); return; }
     labyrinth.interact(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -310,7 +337,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleShieldBash = () => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; }
     labyrinth.shieldBash(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -318,7 +345,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleCastSpell = () => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot cast spells right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
     labyrinth.castSpell(playerName, elapsedTime);
     if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
       const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
@@ -334,7 +361,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleCastGemSpell = () => {
-    if (gameResult !== null || !labyrinth) { return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { return; }
     labyrinth.castGemSpell(playerName, elapsedTime);
     if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
       const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
@@ -348,7 +375,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null || !labyrinth) { toast.info("Cannot use items right now."); return; } // Removed isAnimatingMovement
+    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot use items right now."); return; }
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -471,7 +498,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </pattern>
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#5a4d5c" />
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
           </pattern>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">
@@ -532,11 +559,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             <path d="M0.5 0.1 L0.6 0.0 L0.7 0.1 Z" fill="#888" />
             <path d="M0.7 0.0 L0.8 -0.2 L0.9 0.0 Z" fill="#888" />
           </pattern>
-          <radialGradient id="fireball-gradient">
-            <stop offset="0%" stopColor="#ffdd00" stopOpacity="0.9" />
-            <stop offset="50%" stopColor="#ff8800" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="#ff0000" stopOpacity="0" />
-          </radialGradient>
         </defs>
         <g>
           <path d={floorPath} className="fill-[url(#floor-pattern)]" />
@@ -692,17 +714,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
             width="1"
             height="1"
             className="is-lightning-striking"
-          />
-        ))}
-        {/* Fireball Explosion Effects */}
-        {fireballExplosions.map(explosion => (
-          <circle
-              key={explosion.key}
-              cx={explosion.position.x + 0.5}
-              cy={explosion.position.y + 0.5}
-              r={1.5}
-              fill="url(#fireball-gradient)"
-              className="is-exploding"
           />
         ))}
       </svg>

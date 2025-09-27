@@ -737,7 +737,7 @@ export class Labyrinth {
       this.placeElementRandomly(skeleton.id, this.enemyLocations, floor, true);
 
       const shadowBeast = new Enemy(`shadow-beast-${floor}-${i}`, "Whispering Shadow", "A formless entity of pure darkness, its presence chills you to the bone.", Math.floor(40 * enemyHealthMultiplier), Math.floor(20 * enemyDamageMultiplier)); // Adjusted base health and damage
-      this.enemies.set(shadowBease.id, shadowBeast);
+      this.enemies.set(shadowBeast.id, shadowBeast); // Corrected typo here
       this.placeElementRandomly(shadowBeast.id, this.enemyLocations, floor, true);
     }
 
@@ -861,7 +861,7 @@ export class Labyrinth {
     }
 
     if (!placed) {
-      console.warn(`Could not place death trap ${id} on floor ${floor} after ${MAX_ATTEMPTS} attempts.`);
+      console.warn(`Could not place death trap ${id} on floor ${floor} after ${MAX_ATTEMPTS} attempts. Map might be too dense or small.`);
     }
   }
 

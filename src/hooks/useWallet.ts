@@ -77,27 +77,20 @@ export const useWallet = () => {
     };
   }, []);
 
-  const switchOrAddNetwork = async (provider: ethers.BrowserProvider) => {
+  const switchOrAddNetwork = async (provider: ethers.BrowserProvider): Promise<{ success: boolean; message?: string; error?: string }> => {
     try {
       await provider.send('wallet_switchEthereumChain', [{ chainId: ELECTRONEUM_NETWORK.chainId }]);
-      toast.success('Switched to Electroneum network.');
-      return true;
+      return { success: true, message: 'Switched to Electroneum network.' };
     } catch (switchError: any) {
-      // This error code indicates that the chain has not been added to MetaMask.
       if (switchError.code === 4902) {
         try {
           await provider.send('wallet_addEthereumChain', [ELECTRONEUM_NETWORK]);
-          toast.success('Electroneum network added and selected.');
-          return true;
-        } catch (addError) {
-          setError('Failed to add Electroneum network.');
-          toast.error('Failed to add Electroneum network.');
-          return false;
+          return { success: true, message: 'Electroneum network added and selected.' };
+        } catch (addError: any) {
+          return { success: false, error: addError.message || 'Failed to add Electroneum network.' };
         }
       }
-      setError('Failed to switch network. Please do it manually in MetaMask.');
-      toast.error('Failed to switch network.');
-      return false;
+      return { success: false, error: switchError.message || 'Failed to switch network.' };
     }
   };
 
@@ -114,6 +107,9 @@ export const useWallet = () => {
       return;
     }
 
+    let finalMessage = 'Wallet connected successfully.';
+    let isError = false;
+
     try {
       // 1. Request account access
       const accounts = await provider.send('eth_requestAccounts', []);
@@ -122,10 +118,14 @@ export const useWallet = () => {
       // 2. Check and switch network if necessary
       const network = await provider.getNetwork();
       if (network.chainId.toString() !== parseInt(ELECTRONEUM_NETWORK.chainId, 16).toString()) {
-        const switched = await switchOrAddNetwork(provider);
-        if (!switched) {
-          setIsLoading(false);
-          return;
+        const networkSwitchResult = await switchOrAddNetwork(provider);
+        if (!networkSwitchResult.success) {
+          isError = true;
+          finalMessage = networkSwitchResult.error || 'Failed to switch network.';
+          return; // Exit early if network switch fails
+        }
+        if (networkSwitchResult.message) {
+          finalMessage += ` ${networkSwitchResult.message}`;
         }
       }
 
@@ -137,9 +137,6 @@ export const useWallet = () => {
       // 4. Update store
       setConnection(true, address);
       setBalance(balance);
-
-      let successMessage = 'Wallet connected successfully!';
-      let tokenLoadError = false;
 
       // 5. If balance > 0, fetch all token details
       if (balance > 0) {
@@ -183,29 +180,29 @@ export const useWallet = () => {
           const tokens = (await Promise.all(tokenPromises)).filter((t): t is NftToken => t !== null);
           setTokens(tokens);
           if (tokens.length > 0) {
-            successMessage += ` Found ${tokens.length} ElectroGem(s).`;
+            finalMessage += ` Found ${tokens.length} ElectroGem(s).`;
           } else if (balance > 0) {
-            tokenLoadError = true;
-            successMessage += " (Failed to load ElectroGem metadata.)";
+            isError = true;
+            finalMessage += " (Failed to load ElectroGem metadata.)";
           }
-        } catch (tokenError) {
+        } catch (tokenError: any) {
           console.error("Error fetching token details:", tokenError);
-          tokenLoadError = true;
-          successMessage += " (Failed to load ElectroGem details.)";
+          isError = true;
+          finalMessage += ` (Failed to load ElectroGem details: ${tokenError.message})`;
         }
       }
-
-      if (tokenLoadError) {
-        toast.error(successMessage); // Show as error if token loading failed
-      } else {
-        toast.success(successMessage);
-      }
     } catch (err: any) {
-      setError(err.message || 'An unknown error occurred during connection.');
-      toast.error(err.message || 'Failed to connect wallet.');
+      isError = true;
+      finalMessage = err.message || 'An unknown error occurred during connection.';
+      setError(finalMessage);
       reset();
     } finally {
       setIsLoading(false);
+      if (isError) {
+        toast.error(finalMessage);
+      } else {
+        toast.success(finalMessage);
+      }
     }
   };
 

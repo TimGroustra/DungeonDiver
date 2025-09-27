@@ -622,6 +622,10 @@ export class Labyrinth {
       this.items.set(ancientMechanism.id, ancientMechanism);
       this.placeElementRandomly(ancientMechanism.id, this.staticItemLocations, floor);
 
+      const freezeSpellbook = new Item("spellbook-freeze-f0", "Tome of Hoarfrost", "An ice-cold tome that allows you to cast a freezing spell, stunning enemies in place. Has a cooldown.", false, 'spellbook');
+      this.items.set(freezeSpellbook.id, freezeSpellbook);
+      this.placeElementRandomly(freezeSpellbook.id, this.staticItemLocations, floor);
+
       this.floorObjectives.set(floor, {
         title: "The Echoes of the Lost Scholar",
         steps: [
@@ -1331,10 +1335,10 @@ export class Labyrinth {
     }
     if (enemy.id === this.watcherOfTheCore?.id) {
       this.bossDefeated = true;
-      if (!this.learnedSpells.has("spellbook-freeze")) {
+      const hasFreezeSpell = this.learnedSpells.has("spellbook-freeze") || this.learnedSpells.has("spellbook-freeze-f0");
+      if (!hasFreezeSpell) {
         const spellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
         this.items.set(spellbook.id, spellbook);
-        this.learnedSpells.add(spellbook.id);
         this._handleFoundItem(spellbook, coordStr);
         this.addMessage("You have absorbed the Watcher's power and learned Freeze!");
       }
@@ -1687,7 +1691,7 @@ export class Labyrinth {
         this.addMessage(`You found a ${foundItem.name}, but your current shield is stronger.`);
       }
     } else if (foundItem.type === 'spellbook') {
-      if (!this.inventory.has(foundItem.id)) {
+      if (!this.inventory.has(foundItem.id) && this.equippedSpellbook?.id !== foundItem.id && this.equippedGemSpell?.id !== foundItem.id) {
         if (!this.equippedSpellbook) {
           this.equippedSpellbook = foundItem;
           this.addMessage(`You found and equipped the ${foundItem.name}!`);
@@ -1695,7 +1699,9 @@ export class Labyrinth {
           this.inventory.set(foundItem.id, { item: foundItem, quantity: 1 });
           this.addMessage(`You found a ${foundItem.name}! It has been added to your backpack.`);
         }
+        this.learnedSpells.add(foundItem.id);
         this.itemLocations.delete(coordStr);
+        this.staticItemLocations.delete(coordStr);
       }
     } else if (foundItem.type === 'accessory') { // Handle accessories like amulet/compass
       if (!this.inventory.has(foundItem.id)) {
@@ -1847,7 +1853,11 @@ export class Labyrinth {
     if (staticItemId) {
       const staticItem = this.items.get(staticItemId);
       if (staticItem) {
-        if (staticItem.id.startsWith("ancient-mechanism-")) { // Floor 1 Quest
+        if (staticItem.id === "spellbook-freeze-f0") {
+          this.addMessage("You reach into the shadows and retrieve the Tome of Hoarfrost!");
+          this._handleFoundItem(staticItem, currentCoord);
+          interacted = true;
+        } else if (staticItem.id.startsWith("ancient-mechanism-")) { // Floor 1 Quest
           const journalEntry = this.inventory.get("journal-f0");
           const crystalEntry = this.inventory.get("charged-crystal-f0");
           if (journalEntry && crystalEntry) {
@@ -2194,7 +2204,7 @@ export class Labyrinth {
       return;
     }
 
-    if (this.equippedSpellbook.id === "spellbook-freeze") {
+    if (this.equippedSpellbook.id === "spellbook-freeze" || this.equippedSpellbook.id === "spellbook-freeze-f0") {
       this.addMessage("You unleash a freezing blast in all directions!");
       let hitEnemy = false;
       const radius = 4;

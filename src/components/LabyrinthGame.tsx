@@ -167,7 +167,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
+      if (!gameStarted || gameResult !== null || event.repeat || !labyrinth) return; // Removed isAnimatingMovement
 
       // Spell casting logic with Shift key
       if (event.shiftKey) {
@@ -241,7 +241,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         gameElement.removeEventListener("keyup", handleKeyUp);
       }
     };
-  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
+  }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isMapModalOpen, spellInput]); // Removed isAnimatingMovement from dependencies
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null || !labyrinth) return;
@@ -277,7 +277,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   }, [gameStarted, labyrinth, playerName, startTime, gameResult, currentFloor]);
 
   const handleMove = (direction: "north" | "south" | "east" | "west") => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot move right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot move right now."); return; } // Removed isAnimatingMovement
     labyrinth.move(direction, playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -285,7 +285,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleAttack = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot attack right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot attack right now."); return; } // Removed isAnimatingMovement
     labyrinth.attack(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -293,7 +293,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleJump = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot jump right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot jump right now."); return; } // Removed isAnimatingMovement
     
     labyrinth.jump(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
@@ -302,7 +302,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleInteract = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot interact right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot interact right now."); return; } // Removed isAnimatingMovement
     labyrinth.interact(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -310,7 +310,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleShieldBash = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot perform Shield Bash right now."); return; } // Removed isAnimatingMovement
     labyrinth.shieldBash(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -318,7 +318,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleCastSpell = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot cast spells right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot cast spells right now."); return; } // Removed isAnimatingMovement
     labyrinth.castSpell(playerName, elapsedTime);
     if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
       const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
@@ -334,7 +334,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleCastGemSpell = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { return; }
+    if (gameResult !== null || !labyrinth) { return; } // Removed isAnimatingMovement
     labyrinth.castGemSpell(playerName, elapsedTime);
     if (labyrinth.lastSpellEffect?.type === 'lightning' && labyrinth.lastSpellEffect.positions) {
       const newStrikes = labyrinth.lastSpellEffect.positions.map(pos => ({
@@ -348,7 +348,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   };
 
   const handleUseItem = (itemId: string) => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot use items right now."); return; }
+    if (gameResult !== null || !labyrinth) { toast.info("Cannot use items right now."); return; } // Removed isAnimatingMovement
     labyrinth.useItem(itemId, playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
@@ -471,7 +471,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           </pattern>
           <pattern id="wall-pattern" patternUnits="userSpaceOnUse" width="1" height="1">
             <rect width="1" height="1" fill="#5a4d5c" />
-            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" stroke-width="0.1" />
+            <path d="M 0 0.2 L 1 0.2 M 0 0.8 L 1 0.8 M 0.2 0 L 0.2 1 M 0.8 0 L 0.8 1" stroke="#6a5d6c" strokeWidth="0.1" />
           </pattern>
           {/* Decorative Elements - Only Torches */}
           <symbol id="torch_unlit" viewBox="0 0 1 1">

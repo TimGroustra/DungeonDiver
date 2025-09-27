@@ -52,34 +52,28 @@ const Index: React.FC = () => {
 
   const hasElectrogem = balance !== null && balance > 0;
 
-  // Supabase Auth Listener for profile management
-  useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        // Clear wallet state if Supabase session is signed out
-        queryClient.invalidateQueries({ queryKey: ["learnedSpells"] });
-        queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
-      }
-      // Profile creation/update is now handled by the Edge Function during wallet connection
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [queryClient]); // Depend on queryClient
+  // Removed: Supabase Auth Listener
+  // useEffect(() => {
+  //   const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+  //     if (event === 'SIGNED_OUT') {
+  //       queryClient.invalidateQueries({ queryKey: ["learnedSpells"] });
+  //       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+  //     }
+  //   });
+  //   return () => {
+  //     authListener.subscription.unsubscribe();
+  //   };
+  // }, [queryClient]);
 
   // Fetch initial learned spells using react-query
   const { data: learnedSpellsData, isLoading: isLoadingLearnedSpells, error: learnedSpellsError } = useQuery<string[]>({
     queryKey: ["learnedSpells", address], // Depend on address to refetch if user changes
     queryFn: async () => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user?.id;
-
-      if (userId) {
+      if (address) {
         const { data, error } = await supabase
           .from('player_spells')
           .select('spell_id')
-          .eq('user_id', userId);
+          .eq('wallet_address', address); // Use wallet_address directly
 
         if (error) {
           console.error("Error fetching learned spells:", error);
@@ -146,10 +140,10 @@ const Index: React.FC = () => {
   });
 
   const saveLearnedSpellsMutation = useMutation({
-    mutationFn: async (spellsToSave: { user_id: string; spell_id: string; wallet_address: string | null }[]) => {
+    mutationFn: async (spellsToSave: { wallet_address: string; spell_id: string }[]) => { // Removed user_id
       const { error } = await supabase
         .from('player_spells')
-        .upsert(spellsToSave, { onConflict: 'user_id,spell_id' }); // Upsert to avoid duplicates
+        .upsert(spellsToSave, { onConflict: 'wallet_address,spell_id' }); // Use wallet_address for onConflict
       if (error) throw error;
     },
     onSuccess: () => {
@@ -188,11 +182,8 @@ const Index: React.FC = () => {
       });
 
       // Save learned spells if wallet is connected
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user?.id;
-
-      if (userId) {
-        const spellsToSave: { user_id: string; spell_id: string; wallet_address: string | null }[] = [];
+      if (address) { // Use address directly
+        const spellsToSave: { wallet_address: string; spell_id: string }[] = [];
         // Filter out the default "Lightning Strike" spell as it's not "learned" in the same way
         const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
 
@@ -200,7 +191,7 @@ const Index: React.FC = () => {
         const { data: existingSpells, error: fetchError } = await supabase
           .from('player_spells')
           .select('spell_id')
-          .eq('user_id', userId);
+          .eq('wallet_address', address); // Use wallet_address
 
         if (fetchError) {
           console.error("Error fetching existing spells:", fetchError);
@@ -209,7 +200,7 @@ const Index: React.FC = () => {
           const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
           for (const spellId of currentLearnedSpells) {
             if (!existingSpellIds.has(spellId)) {
-              spellsToSave.push({ user_id: userId, spell_id: spellId, wallet_address: address });
+              spellsToSave.push({ wallet_address: address, spell_id: spellId });
             }
           }
 

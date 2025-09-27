@@ -220,7 +220,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
           event.preventDefault(); handleMove("east"); break;
         case "q": event.preventDefault(); handleAttack(); break; // 'Q' for attack
         case " ": event.preventDefault(); handleJump(); break; // Space bar for jump
-        case "shift": event.preventDefault(); handleSearch(); break;
         case "control": event.preventDefault(); handleInteract(); break;
         case "e": event.preventDefault(); handleShieldBash(); break; // 'e' for Shield Bash
         case "1": event.preventDefault(); handleCastGemSpell(); break;
@@ -274,14 +273,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot jump right now."); return; }
     
     labyrinth.jump(playerName, elapsedTime);
-    setCurrentFloor(labyrinth.getCurrentFloor());
-    setPlayerPosition(labyrinth.getPlayerLocation());
-    incrementGameVersion();
-  };
-
-  const handleSearch = () => {
-    if (gameResult !== null || isAnimatingMovement || !labyrinth) { toast.info("Cannot search right now."); return; }
-    labyrinth.search();
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
     incrementGameVersion();
@@ -882,7 +873,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         <main className="flex-grow h-1/2 md:h-full relative bg-black rounded-md overflow-hidden border border-amber-900/50">
           {renderMap()}
           <div className="absolute bottom-2 left-2 right-2 text-center text-stone-300 text-xs z-10 bg-black/50 p-1 px-2 rounded">
-            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Search: <span className="font-bold text-amber-200">Shift</span> | Interact: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Gem Spell: <span className="font-bold text-amber-200">1</span> | Spell: <span className="font-bold text-amber-200">2</span> | Map: <span className="font-bold text-amber-200">M</span></p>
+            <p>Move: <span className="font-bold text-amber-200">Arrows/WASD</span> | Attack: <span className="font-bold text-amber-200">Q</span> | Jump: <span className="font-bold text-amber-200">Space</span> | Interact/Search: <span className="font-bold text-amber-200">Ctrl</span> | Shield Bash: <span className="font-bold text-amber-200">E</span> | Gem Spell: <span className="font-bold text-amber-200">1</span> | Spell: <span className="font-bold text-amber-200">2</span> | Map: <span className="font-bold text-amber-200">M</span></p>
           </div>
           {renderHud()}
 

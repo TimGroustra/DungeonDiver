@@ -2015,7 +2015,7 @@ export class Labyrinth {
     }
 
     if (!interacted) {
-      this.addMessage("There's nothing here that responds to your touch.");
+      this.search(); // If no direct interaction, perform a search instead.
     }
   }
 

@@ -1,153 +1,126 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import LabyrinthGame from "@/components/LabyrinthGame";
-import StartGameModal from "@/components/StartGameModal";
-import LeaderboardModal from "@/components/LeaderboardModal";
-import UserGuideModal from "@/components/UserGuideModal";
 import { Button } from "@/components/ui/button";
-import { BookOpen, Crown, Info, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2, Skull, ChevronLeft, ChevronRight } from "lucide-react";
+import { GameResult } from "@/lib/game";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/WalletConnect";
 import { useWalletStore } from "@/stores/walletStore";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { NftToken } from "@/stores/walletStore"; // Import NftToken type
+import { truncateAddress } from "@/lib/utils";
+import UserGuideModal from "@/components/UserGuideModal";
 
 interface LeaderboardEntry {
+  id: number;
   player_name: string;
   score_time: number;
   deaths: number;
+  wallet_address: string | null;
 }
 
-interface GameResult {
-  type: 'victory' | 'defeat';
-  name: string;
-  time: number;
-  causeOfDeath?: string;
-  deaths?: number;
+interface PlayerSpell {
+  spell_id: string;
 }
+
+const formatTime = (seconds: number) => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
 
 const Index: React.FC = () => {
-  const [gameStarted, setGameStarted] = useState(false);
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState<string>("");
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [isStartModalOpen, setIsStartModalOpen] = useState(true);
-  const [isLeaderboardModalOpen, setIsLeaderboardModalOpen] = useState(false);
-  const [isUserGuideModalOpen, setIsUserGuideModalOpen] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [highlightedPlayer, setHighlightedPlayer] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [showLeaderboard, setShowLeaderboard] = useState<boolean>(false);
   const [gameResult, setGameResult] = useState<GameResult | null>(null);
-  const [initialLearnedSpells, setInitialLearnedSpells] = useState<string[]>([]);
+  const [gameKey, setGameKey] = useState<number>(0);
+  const [displayDate, setDisplayDate] = useState(new Date());
+  const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
+  const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
+  const { balance, address } = useWalletStore();
 
-  const { isConnected, address, tokens, selectedTokenIndex } = useWalletStore();
+  const hasElectrogem = balance !== null && balance > 0;
 
-  // Fetch leaderboard data
-  const fetchLeaderboard = async () => {
-    const { data, error } = await supabase
-      .from("leaderboard")
-      .select("player_name, score_time, deaths")
-      .order("score_time", { ascending: true })
-      .limit(10);
-
-    if (error) {
-      console.error("Error fetching leaderboard:", error);
-      toast.error("Failed to load leaderboard.");
-    } else {
-      setLeaderboard(data || []);
-    }
-  };
-
-  // Save score to leaderboard
-  const saveScore = async (result: GameResult) => {
-    if (result.type === 'victory') {
-      const { error } = await supabase.from("leaderboard").insert({
-        player_name: result.name,
-        score_time: result.time,
-        deaths: result.deaths || 0,
-        wallet_address: isConnected && address ? address : null,
-      });
-
-      if (error) {
-        console.error("Error saving score:", error);
-        toast.error("Failed to save score to leaderboard.");
-      } else {
-        toast.success("Score saved to leaderboard!");
-        fetchLeaderboard(); // Refresh leaderboard after saving
-        setHighlightedPlayer(result.name); // Highlight the player's name
-      }
-    }
-  };
-
-  // Fetch player spells
-  const fetchPlayerSpells = async (identifier: string, isWallet: boolean) => {
-    let query = supabase.from("player_spells").select("spell_id");
-    if (isWallet) {
-      query = query.eq("wallet_address", identifier);
-    } else {
-      query = query.eq("player_name", identifier);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching player spells:", error);
-      toast.error("Failed to load player spells.");
-      return [];
-    } else {
-      return data.map((entry) => entry.spell_id);
-    }
-  };
-
-  // Save player spells
-  const savePlayerSpells = async (spells: Set<string>) => {
-    const identifier = isConnected && address ? address : playerName;
-    const isWallet = isConnected && address !== null;
-
-    if (!identifier) {
-      console.warn("Cannot save spells: No player name or wallet address.");
-      return;
-    }
-
-    // First, delete existing spells for this identifier
-    let deleteQuery = supabase.from("player_spells").delete();
-    if (isWallet) {
-      deleteQuery = deleteQuery.eq("wallet_address", identifier);
-    } else {
-      deleteQuery = deleteQuery.eq("player_name", identifier);
-    }
-    const { error: deleteError } = await deleteQuery;
-
-    if (deleteError) {
-      console.error("Error deleting old spells:", deleteError);
-      toast.error("Failed to clear old spell data.");
-      return;
-    }
-
-    // Then, insert new spells
-    const spellsToInsert = Array.from(spells).map((spellId) => ({
-      spell_id: spellId,
-      wallet_address: isWallet ? identifier : null,
-      player_name: !isWallet ? identifier : null,
-    }));
-
-    if (spellsToInsert.length > 0) {
-      const { error: insertError } = await supabase.from("player_spells").insert(spellsToInsert);
-
-      if (insertError) {
-        console.error("Error saving new spells:", insertError);
-        toast.error("Failed to save new spell data.");
-      } else {
-        toast.success("Player spells saved!");
-      }
-    } else {
-      toast.info("No spells to save.");
-    }
-  };
-
+  // Supabase Auth Listener for profile management
   useEffect(() => {
-    fetchLeaderboard();
-  }, []);
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && address) {
+        // User is authenticated via Supabase and wallet is connected
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, wallet_address')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError && profileError.code === 'PGRST116') { // No rows found
+          // Create profile if it doesn't exist
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: session.user.id, wallet_address: address });
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            toast.error("Failed to create player profile.");
+          } else {
+            toast.success("Player profile created!");
+          }
+        } else if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          toast.error("Failed to load player profile.");
+        } else if (profile && profile.wallet_address !== address) {
+          // Update wallet address if it changed
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ wallet_address: address })
+            .eq('id', session.user.id);
+          if (updateError) {
+            console.error("Error updating profile wallet address:", updateError);
+            toast.error("Failed to update wallet address in profile.");
+          } else {
+            toast.success("Wallet address updated in profile!");
+          }
+        }
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [address]); // Re-run if wallet address changes
+
+  // Fetch initial learned spells using react-query
+  const { data: learnedSpellsData, isLoading: isLoadingLearnedSpells, error: learnedSpellsError } = useQuery<string[]>({
+    queryKey: ["learnedSpells", address], // Depend on address to refetch if user changes
+    queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (userId) {
+        const { data, error } = await supabase
+          .from('player_spells')
+          .select('spell_id')
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error("Error fetching learned spells:", error);
+          throw error;
+        }
+        return data.map(s => s.spell_id);
+      }
+      return [];
+    },
+    enabled: !!address, // Only run if wallet is connected
+  });
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -155,109 +128,275 @@ const Index: React.FC = () => {
       interval = setInterval(() => {
         setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
       }, 1000);
-    } else if (!gameStarted || gameResult !== null) {
-      setElapsedTime(0);
     }
     return () => clearInterval(interval);
   }, [gameStarted, startTime, gameResult]);
 
-  // Load spells when wallet connects or player name is set
-  useEffect(() => {
-    const loadSpells = async () => {
-      let spells: string[] = [];
-      if (isConnected && address) {
-        spells = await fetchPlayerSpells(address, true);
-      } else if (playerName) {
-        spells = await fetchPlayerSpells(playerName, false);
+  const { data: leaderboard, isLoading: isLoadingLeaderboard, error: leaderboardError } = useQuery<LeaderboardEntry[]>({
+    queryKey: ["leaderboard", displayDate.getFullYear(), displayDate.getMonth()],
+    queryFn: async () => {
+      const year = displayDate.getFullYear();
+      const month = displayDate.getMonth();
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 1);
+
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("id, player_name, score_time, deaths, wallet_address")
+        .gte('created_at', startDate.toISOString())
+        .lt('created_at', endDate.toISOString())
+        .order("deaths", { ascending: true })
+        .order("score_time", { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: showLeaderboard,
+  });
+
+  const addLeaderboardEntryMutation = useMutation({
+    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number; wallet_address: string | null }) => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .insert([entry]);
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      toast.success("Score submitted to leaderboard!");
+    },
+    onError: (error) => {
+      if (error.message.includes("duplicate key value violates unique constraint")) {
+        toast.info("This exact score has already been recorded on the leaderboard.");
+      } else {
+        toast.error(`Failed to submit score: ${error.message}`);
       }
-      setInitialLearnedSpells(spells);
-    };
+    },
+  });
 
-    if ((isConnected && address) || playerName) {
-      loadSpells();
+  const saveLearnedSpellsMutation = useMutation({
+    mutationFn: async (spellsToSave: { user_id: string; spell_id: string }[]) => {
+      const { error } = await supabase
+        .from('player_spells')
+        .insert(spellsToSave, { onConflict: 'user_id,spell_id' }); // Upsert to avoid duplicates
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Learned spells saved!");
+      queryClient.invalidateQueries({ queryKey: ["learnedSpells"] }); // Invalidate to refetch next game
+    },
+    onError: (error) => {
+      console.error("Error saving learned spells:", error);
+      toast.error("Failed to save learned spells.");
+    },
+  });
+
+  const handleStartGame = () => {
+    if (playerName.trim()) {
+      setGameStarted(true);
+      setStartTime(Date.now());
+      setShowLeaderboard(false);
+      setGameResult(null);
+      setElapsedTime(0);
+      setGameKey(prev => prev + 1);
     } else {
-      setInitialLearnedSpells([]); // Clear spells if no identifier
+      toast.error("Please enter your player name.");
     }
-  }, [isConnected, address, playerName]);
-
-  const handleStartGame = (name: string) => {
-    setPlayerName(name);
-    setGameStarted(true);
-    setStartTime(Date.now());
-    setIsStartModalOpen(false);
-    setGameResult(null); // Clear previous game result
-    setHighlightedPlayer(null); // Clear highlighted player
   };
 
-  const handleGameOver = (result: GameResult, learnedSpells: Set<string>) => {
-    setGameStarted(false);
+  const handleGameOver = useCallback(async (result: GameResult, learnedSpells: Set<string>) => {
+    setStartTime(null);
     setGameResult(result);
-    saveScore(result); // Save score only for victory
-    savePlayerSpells(learnedSpells); // Save learned spells
-  };
+    if (result.type === 'victory') {
+      toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
+      addLeaderboardEntryMutation.mutate({
+        player_name: result.name,
+        score_time: result.time,
+        deaths: result.deaths || 0,
+        wallet_address: address
+      });
+
+      // Save learned spells if wallet is connected
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (userId) {
+        const spellsToSave: { user_id: string; spell_id: string }[] = [];
+        const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
+
+        // Fetch existing spells for the user
+        const { data: existingSpells, error: fetchError } = await supabase
+          .from('player_spells')
+          .select('spell_id')
+          .eq('user_id', userId);
+
+        if (fetchError) {
+          console.error("Error fetching existing spells:", fetchError);
+          toast.error("Failed to check existing spells for saving.");
+        } else {
+          const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
+          for (const spellId of currentLearnedSpells) {
+            if (!existingSpellIds.has(spellId)) {
+              spellsToSave.push({ user_id: userId, spell_id: spellId });
+            }
+          }
+
+          if (spellsToSave.length > 0) {
+            saveLearnedSpellsMutation.mutate(spellsToSave);
+          } else {
+            toast.info("No new spells to save.");
+          }
+        }
+      } else {
+        toast.info("Connect your wallet to save your learned spells!");
+      }
+
+    } else {
+      toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
+    }
+    setShowLeaderboard(false);
+  }, [addLeaderboardEntryMutation, saveLearnedSpellsMutation, address]);
 
   const handleGameRestart = () => {
-    setGameStarted(false);
-    setPlayerName("");
-    setStartTime(null);
+    setGameStarted(true);
+    setStartTime(Date.now());
     setElapsedTime(0);
-    setIsStartModalOpen(true);
+    setShowLeaderboard(false);
     setGameResult(null);
-    setHighlightedPlayer(null);
-    setInitialLearnedSpells([]); // Clear spells on full restart
+    setGameKey(prev => prev + 1);
   };
 
   const handleRevive = () => {
-    setGameResult(null); // Clear game over state
-    setGameStarted(true); // Resume game
-    setStartTime(Date.now() - elapsedTime * 1000); // Adjust start time to keep elapsed time
+    setGameResult(null); 
+    setStartTime(Date.now() - (elapsedTime * 1000));
   };
 
-  const hasElectrogem = isConnected && tokens.length > 0;
+  const handlePrevMonth = () => {
+    setDisplayDate(currentDate => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setDisplayDate(currentDate => {
+      const newDate = new Date(currentDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate > new Date() ? currentDate : newDate;
+    });
+  };
+
+  const isNextMonthDisabled = () => {
+    const nextMonth = new Date(displayDate);
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return nextMonth > new Date();
+  };
 
   return (
-    <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center p-4 font-cinzel text-white"
-      style={{
-        backgroundImage: "url('/background.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
-      {!gameStarted && gameResult === null && (
-        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4">
-          <h1 className="text-6xl font-extrabold text-amber-400 drop-shadow-lg mb-8 animate-pulse-slow">
+    <div className="relative h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center" style={{ backgroundImage: "url('/Eldoria.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      {!gameStarted && !showLeaderboard && !gameResult && (
+        <div className="flex flex-col items-center text-center">
+          <h1
+            className="font-cinzel text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-6"
+            style={{ textShadow: "2px 2px 8px rgba(0,0,0,0.7)", transform: "translateY(-2cm)" }}
+          >
             Labyrinth of Eldoria
           </h1>
-          <div className="flex flex-col space-y-4 w-full max-w-xs">
-            <Button
-              onClick={() => setIsStartModalOpen(true)}
-              className="w-full bg-green-600 hover:bg-green-700 text-white text-lg py-6 shadow-lg"
-            >
-              <BookOpen className="mr-2 h-6 w-6" /> Start New Adventure
-            </Button>
-            <Button
-              onClick={() => {
-                fetchLeaderboard();
-                setIsLeaderboardModalOpen(true);
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 shadow-lg"
-            >
-              <Crown className="mr-2 h-6 w-6" /> View Leaderboard
-            </Button>
-            <Button
-              onClick={() => setIsUserGuideModalOpen(true)}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white text-lg py-6 shadow-lg"
-            >
-              <Info className="mr-2 h-6 w-6" /> How to Play
-            </Button>
-            <WalletConnect />
-          </div>
+          <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-amber-300">Enter the Labyrinth</CardTitle>
+              <CardDescription className="text-stone-400">Unravel the mysteries and escape with your life.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isMobile ? (
+                <p className="text-red-400 text-center font-bold text-lg">To play this game, visit this site from your desktop browser.</p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="playerName" className="text-amber-100">Player Name</Label>
+                    <Input
+                      id="playerName"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="Your adventurer name"
+                      className="bg-stone-800 border-amber-600 text-amber-50 placeholder:text-stone-500 focus:ring-amber-500"
+                    />
+                  </div>
+                  <WalletConnect />
+                  <Button onClick={handleStartGame} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+                    Start New Game
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => setShowLeaderboard(true)} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold">
+                View Leaderboard
+              </Button>
+              <Button onClick={() => setShowUserGuide(true)} variant="outline" className="w-full bg-transparent border-amber-600 text-amber-200 hover:bg-amber-900/50 hover:text-amber-100 font-bold">
+                User Guide
+              </Button>
+            </CardContent>
+          </Card>
         </div>
+      )}
+
+      {showLeaderboard && !gameStarted && !gameResult && (
+        <Card className="w-full max-w-md bg-stone-900/80 backdrop-blur-sm border-amber-700 text-amber-50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-amber-300">Leaderboard</CardTitle>
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <CardDescription className="text-stone-400 text-center">
+                {displayDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              </CardDescription>
+              <Button variant="ghost" size="icon" onClick={handleNextMonth} disabled={isNextMonthDisabled()}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoadingLeaderboard ? (
+              <div className="flex justify-center items-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-amber-400" />
+              </div>
+            ) : leaderboardError ? (
+              <p className="text-red-400 text-center">Error loading leaderboard: {leaderboardError.message}</p>
+            ) : (
+              <ul className="space-y-2">
+                {leaderboard?.map((entry, index) => (
+                  <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
+                      {entry.wallet_address && (
+                        <span className="text-xs font-mono text-stone-400">{truncateAddress(entry.wallet_address)}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 text-stone-300">
+                      <div className="flex items-center" title="Deaths">
+                        <Skull className="h-4 w-4 mr-1 text-gray-400" />
+                        <span>{entry.deaths}</span>
+                      </div>
+                      <span>{formatTime(entry.score_time)}</span>
+                    </div>
+                  </li>
+                ))}
+                {leaderboard?.length === 0 && <p className="text-stone-400 text-center italic">No scores yet for this month. Be the first!</p>}
+              </ul>
+            )}
+            <Separator className="my-4 bg-amber-800" />
+            <Button onClick={() => setShowLeaderboard(false)} className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold">
+              Back to Main Menu
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {gameStarted && (
         <LabyrinthGame
+          key={gameKey}
           playerName={playerName}
           gameStarted={gameStarted}
           startTime={startTime}
@@ -267,27 +406,11 @@ const Index: React.FC = () => {
           gameResult={gameResult}
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
-          initialLearnedSpells={initialLearnedSpells}
+          initialLearnedSpells={learnedSpellsData || []} // Pass initial learned spells from query
         />
       )}
-
-      <StartGameModal
-        isOpen={isStartModalOpen && !gameStarted && gameResult === null}
-        onStartGame={handleStartGame}
-        onClose={() => setIsStartModalOpen(false)}
-      />
-
-      <LeaderboardModal
-        isOpen={isLeaderboardModalOpen}
-        onClose={() => setIsLeaderboardModalOpen(false)}
-        leaderboard={leaderboard}
-        highlightName={highlightedPlayer}
-      />
-
-      <UserGuideModal
-        isOpen={isUserGuideModalOpen}
-        onClose={() => setIsUserGuideModalOpen(false)}
-      />
+      
+      {showUserGuide && <UserGuideModal isOpen={showUserGuide} onClose={() => setShowUserGuide(false)} />}
     </div>
   );
 };

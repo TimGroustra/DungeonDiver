@@ -189,30 +189,17 @@ const Index: React.FC = () => {
         const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
         console.log("[Index] Learned spells from game (excluding Lightning Strike):", currentLearnedSpells); // LOG
 
-        // Fetch existing spells for the user
-        const { data: existingSpells, error: fetchError } = await supabase
-          .from('player_spells')
-          .select('spell_id')
-          .eq('wallet_address', address); // Use wallet_address
+        // Always attempt to upsert all learned spells from the current game session
+        const allSpellsToUpsert = currentLearnedSpells.map(spellId => ({
+          wallet_address: address,
+          spell_id: spellId
+        }));
+        console.log("[Index] Spells to upsert:", allSpellsToUpsert); // LOG
 
-        if (fetchError) {
-          console.error("Error fetching existing spells:", fetchError);
-          toast.error("Failed to check existing spells for saving.");
+        if (allSpellsToUpsert.length > 0) {
+          saveLearnedSpellsMutation.mutate(allSpellsToUpsert);
         } else {
-          const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
-          console.log("[Index] Existing spells in DB:", Array.from(existingSpellIds)); // LOG
-          for (const spellId of currentLearnedSpells) {
-            if (!existingSpellIds.has(spellId)) {
-              spellsToSave.push({ wallet_address: address, spell_id: spellId });
-            }
-          }
-          console.log("[Index] Spells to save (new spells only):", spellsToSave); // LOG
-
-          if (spellsToSave.length > 0) {
-            saveLearnedSpellsMutation.mutate(spellsToSave);
-          } else {
-            toast.info("No new spells to save.");
-          }
+          toast.info("No spells to save.");
         }
       } else {
         toast.info("Connect your wallet to save your learned spells!");

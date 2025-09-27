@@ -73,7 +73,7 @@ const Index: React.FC = () => {
         const { data, error } = await supabase
           .from('player_spells')
           .select('spell_id')
-          .eq('wallet_address', address); // Use wallet_address directly
+          .eq('wallet_address', address.toLowerCase()); // Query using lowercase address
 
         if (error) {
           console.error("Error fetching learned spells:", error);
@@ -148,9 +148,14 @@ const Index: React.FC = () => {
   const saveLearnedSpellsMutation = useMutation({
     mutationFn: async (spellsToSave: { wallet_address: string; spell_id: string }[]) => { // Removed user_id
       console.log("[Index] Attempting to save spells:", spellsToSave); // LOG
+      // Convert wallet_address to lowercase for consistent storage and case-insensitive upsert
+      const formattedSpellsToSave = spellsToSave.map(spell => ({
+        ...spell,
+        wallet_address: spell.wallet_address.toLowerCase()
+      }));
       const { error } = await supabase
         .from('player_spells')
-        .upsert(spellsToSave, { onConflict: 'wallet_address,spell_id' }); // Use wallet_address for onConflict
+        .upsert(formattedSpellsToSave, { onConflict: 'wallet_address,spell_id' }); // Use wallet_address for onConflict
       if (error) throw error;
     },
     onSuccess: () => {

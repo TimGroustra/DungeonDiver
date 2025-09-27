@@ -1337,6 +1337,7 @@ export class Labyrinth {
         const spellbook = new Item("spellbook-freeze", "Freeze", "An ice-cold tome that allows you to cast the Watcher's stunning gaze, freezing enemies in place. Has a cooldown.", false, 'spellbook');
         this.items.set(spellbook.id, spellbook);
         this.learnedSpells.add(spellbook.id);
+        console.log(`[Labyrinth] 'spellbook-freeze' added to learnedSpells. Current learnedSpells:`, Array.from(this.learnedSpells)); // LOG
         this._handleFoundItem(spellbook, coordStr);
         this.addMessage("You have absorbed the Watcher's power and learned Freeze!");
       }

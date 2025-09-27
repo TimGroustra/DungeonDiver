@@ -141,6 +141,7 @@ const Index: React.FC = () => {
 
   const saveLearnedSpellsMutation = useMutation({
     mutationFn: async (spellsToSave: { wallet_address: string; spell_id: string }[]) => { // Removed user_id
+      console.log("[Index] Attempting to save spells:", spellsToSave); // LOG
       const { error } = await supabase
         .from('player_spells')
         .upsert(spellsToSave, { onConflict: 'wallet_address,spell_id' }); // Use wallet_address for onConflict
@@ -186,6 +187,7 @@ const Index: React.FC = () => {
         const spellsToSave: { wallet_address: string; spell_id: string }[] = [];
         // Filter out the default "Lightning Strike" spell as it's not "learned" in the same way
         const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
+        console.log("[Index] Learned spells from game (excluding Lightning Strike):", currentLearnedSpells); // LOG
 
         // Fetch existing spells for the user
         const { data: existingSpells, error: fetchError } = await supabase
@@ -198,11 +200,13 @@ const Index: React.FC = () => {
           toast.error("Failed to check existing spells for saving.");
         } else {
           const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
+          console.log("[Index] Existing spells in DB:", Array.from(existingSpellIds)); // LOG
           for (const spellId of currentLearnedSpells) {
             if (!existingSpellIds.has(spellId)) {
               spellsToSave.push({ wallet_address: address, spell_id: spellId });
             }
           }
+          console.log("[Index] Spells to save (new spells only):", spellsToSave); // LOG
 
           if (spellsToSave.length > 0) {
             saveLearnedSpellsMutation.mutate(spellsToSave);

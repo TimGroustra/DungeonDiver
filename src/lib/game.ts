@@ -237,7 +237,7 @@ export class Labyrinth {
 
   private gameResult: GameResult | null = null; // New: Stores game result
 
-  constructor(hasElectrogem: boolean = false) {
+  constructor(hasElectrogem: boolean = false, initialLearnedSpells: string[] = []) {
     this.floors = new Map();
     this.playerLocation = { x: 0, y: 0 };
     this.currentFloor = 0; // Start on floor 0
@@ -273,7 +273,7 @@ export class Labyrinth {
     this.playerDeaths = 0; // Initialize player deaths
     this.lastSafePlayerLocation = null; // NEW: Initialize last safe location
     this.lastJumpDefeatedEnemyId = null; // Initialize new property
-    this.learnedSpells = new Set<string>();
+    this.learnedSpells = new Set<string>(initialLearnedSpells); // Initialize with provided spells
     this.spellCooldown = 0;
     this.gemSpellCooldown = 0;
     this.frozenTiles = new Map();
@@ -1068,6 +1068,10 @@ export class Labyrinth {
     return Array.from(this.inventory.values());
   }
 
+  public getLearnedSpells(): Set<string> {
+    return this.learnedSpells;
+  }
+
   public getCurrentLogicalRoom(): LogicalRoom | undefined {
     const currentMap = this.floors.get(this.currentFloor);
     if (!currentMap) return undefined;
@@ -1694,6 +1698,7 @@ export class Labyrinth {
           this.addMessage(`You found a ${foundItem.name}! It has been added to your backpack.`);
         }
         this.itemLocations.delete(coordStr);
+        this.learnedSpells.add(foundItem.id); // Add to learned spells
       }
     } else if (foundItem.type === 'accessory') { // Handle accessories like amulet/compass
       if (!this.inventory.has(foundItem.id)) {

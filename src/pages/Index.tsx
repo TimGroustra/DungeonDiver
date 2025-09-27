@@ -26,6 +26,10 @@ interface LeaderboardEntry {
   wallet_address: string | null;
 }
 
+interface PlayerSpell {
+  spell_id: string;
+}
+
 const formatTime = (seconds: number) => {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
@@ -42,11 +46,85 @@ const Index: React.FC = () => {
   const [gameKey, setGameKey] = useState<number>(0);
   const [displayDate, setDisplayDate] = useState(new Date());
   const [showUserGuide, setShowUserGuide] = useState<boolean>(false);
+  const [initialLearnedSpells, setInitialLearnedSpells] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { balance, address } = useWalletStore();
 
   const hasElectrogem = balance !== null && balance > 0;
+
+  // Supabase Auth Listener for profile management
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && address) {
+        // User is authenticated via Supabase and wallet is connected
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, wallet_address')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError && profileError.code === 'PGRST116') { // No rows found
+          // Create profile if it doesn't exist
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({ id: session.user.id, wallet_address: address });
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            toast.error("Failed to create player profile.");
+          } else {
+            toast.success("Player profile created!");
+          }
+        } else if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          toast.error("Failed to load player profile.");
+        } else if (profile && profile.wallet_address !== address) {
+          // Update wallet address if it changed
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ wallet_address: address })
+            .eq('id', session.user.id);
+          if (updateError) {
+            console.error("Error updating profile wallet address:", updateError);
+            toast.error("Failed to update wallet address in profile.");
+          } else {
+            toast.success("Wallet address updated in profile!");
+          }
+        }
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [address]); // Re-run if wallet address changes
+
+  // Fetch initial learned spells when wallet connects or auth state changes
+  useEffect(() => {
+    const fetchLearnedSpells = async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (userId) {
+        const { data, error } = await supabase
+          .from('player_spells')
+          .select('spell_id')
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error("Error fetching learned spells:", error);
+          toast.error("Failed to load your learned spells.");
+          setInitialLearnedSpells([]);
+        } else {
+          setInitialLearnedSpells(data.map(s => s.spell_id));
+        }
+      } else {
+        setInitialLearnedSpells([]);
+      }
+    };
+
+    fetchLearnedSpells();
+  }, [address]); // Re-fetch when wallet address changes (implies potential user change)
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -101,6 +179,23 @@ const Index: React.FC = () => {
     },
   });
 
+  const saveLearnedSpellsMutation = useMutation({
+    mutationFn: async (spellsToSave: { user_id: string; spell_id: string }[]) => {
+      const { error } = await supabase
+        .from('player_spells')
+        .insert(spellsToSave, { onConflict: 'user_id,spell_id' }); // Upsert to avoid duplicates
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Learned spells saved!");
+      queryClient.invalidateQueries({ queryKey: ["learnedSpells"] }); // Invalidate to refetch next game
+    },
+    onError: (error) => {
+      console.error("Error saving learned spells:", error);
+      toast.error("Failed to save learned spells.");
+    },
+  });
+
   const handleStartGame = () => {
     if (playerName.trim()) {
       setGameStarted(true);
@@ -114,7 +209,7 @@ const Index: React.FC = () => {
     }
   };
 
-  const handleGameOver = useCallback((result: GameResult) => {
+  const handleGameOver = useCallback(async (result: GameResult, learnedSpells: Set<string>) => {
     setStartTime(null);
     setGameResult(result);
     if (result.type === 'victory') {
@@ -125,11 +220,47 @@ const Index: React.FC = () => {
         deaths: result.deaths || 0,
         wallet_address: address
       });
+
+      // Save learned spells if wallet is connected
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user?.id;
+
+      if (userId) {
+        const spellsToSave: { user_id: string; spell_id: string }[] = [];
+        const currentLearnedSpells = Array.from(learnedSpells).filter(spellId => spellId !== "spellbook-lightning");
+
+        // Fetch existing spells for the user
+        const { data: existingSpells, error: fetchError } = await supabase
+          .from('player_spells')
+          .select('spell_id')
+          .eq('user_id', userId);
+
+        if (fetchError) {
+          console.error("Error fetching existing spells:", fetchError);
+          toast.error("Failed to check existing spells for saving.");
+        } else {
+          const existingSpellIds = new Set(existingSpells.map(s => s.spell_id));
+          for (const spellId of currentLearnedSpells) {
+            if (!existingSpellIds.has(spellId)) {
+              spellsToSave.push({ user_id: userId, spell_id: spellId });
+            }
+          }
+
+          if (spellsToSave.length > 0) {
+            saveLearnedSpellsMutation.mutate(spellsToSave);
+          } else {
+            toast.info("No new spells to save.");
+          }
+        }
+      } else {
+        toast.info("Connect your wallet to save your learned spells!");
+      }
+
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
     setShowLeaderboard(false);
-  }, [addLeaderboardEntryMutation, address]);
+  }, [addLeaderboardEntryMutation, saveLearnedSpellsMutation, address]);
 
   const handleGameRestart = () => {
     setGameStarted(true);
@@ -279,6 +410,7 @@ const Index: React.FC = () => {
           gameResult={gameResult}
           onRevive={handleRevive}
           hasElectrogem={hasElectrogem}
+          initialLearnedSpells={initialLearnedSpells} // Pass initial learned spells
         />
       )}
       

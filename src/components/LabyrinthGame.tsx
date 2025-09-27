@@ -42,18 +42,19 @@ interface LabyrinthGameProps {
   gameStarted: boolean;
   startTime: number | null;
   elapsedTime: number;
-  onGameOver: (result: GameResult) => void; // Use GameResult interface
+  onGameOver: (result: GameResult, learnedSpells: Set<string>) => void; // Updated to pass learnedSpells
   onGameRestart: () => void;
   gameResult: GameResult | null; // New prop for game result
   onRevive: () => void; // New prop for revive action from Index
   hasElectrogem: boolean; // New prop for NFT ownership
+  initialLearnedSpells: string[]; // New prop for initial learned spells
 }
 
 const ENEMY_MOVE_SPEEDS_MS = [3600, 2700, 1800, 900]; // Regular enemy speeds (sped up by 10%)
 const BOSS_MOVE_SPEED_MS = 336; // Watcher's speed (halved again)
 
 
-const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem }) => {
+const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, startTime, elapsedTime, onGameOver, onGameRestart, gameResult, onRevive, hasElectrogem, initialLearnedSpells }) => {
   const { labyrinth, setLabyrinth, currentFloor, setCurrentFloor, setPlayerPosition, incrementGameVersion, gameVersion } = useGameStore();
   const [hasGameOverBeenDispatched, setHasGameOverBeenDispatched] = useState(false);
   const [flashingEntityId, setFlashingEntityId] = useState<string[]>([]);
@@ -72,7 +73,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   useEffect(() => {
     if (gameStarted) { // Only create a new Labyrinth if game is started
       try {
-        const newLabyrinth = new Labyrinth(hasElectrogem); // Pass the prop here
+        const newLabyrinth = new Labyrinth(hasElectrogem, initialLearnedSpells); // Pass initialLearnedSpells here
         setLabyrinth(newLabyrinth);
         setCurrentFloor(newLabyrinth.getCurrentFloor());
         setPlayerPosition(newLabyrinth.getPlayerLocation());
@@ -87,7 +88,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
         setLabyrinth(null); // Ensure labyrinth is null if initialization fails
       }
     }
-  }, [gameStarted, hasElectrogem]); // Depend on gameStarted and hasElectrogem for initial setup
+  }, [gameStarted, hasElectrogem, initialLearnedSpells]); // Depend on gameStarted, hasElectrogem, and initialLearnedSpells for initial setup
 
   // Effect to smoothly animate player's visual position when game state position changes
   useEffect(() => {
@@ -181,7 +182,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (labyrinth.isGameOver() && !hasGameOverBeenDispatched) {
       const result = labyrinth.getGameResult();
       if (result) {
-        onGameOver(result);
+        onGameOver(result, labyrinth.getLearnedSpells()); // Pass learned spells here
         setHasGameOverBeenDispatched(true);
       }
     }
@@ -407,7 +408,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     if (labyrinth.isGameOver()) {
       const result = labyrinth.getGameResult();
       if (result) {
-        onGameOver(result);
+        onGameOver(result, labyrinth.getLearnedSpells()); // Pass learned spells here
         setHasGameOverBeenDispatched(true);
       }
     }

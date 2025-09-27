@@ -690,7 +690,7 @@ export class Labyrinth {
       this.items.set(labyrinthKey.id, labyrinthKey);
 
       // Place The Watcher of the Core (Boss) randomly, with the Labyrinth Key as a reward
-      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that roams the final labyrinth floor, its gaze distorts reality. Defeat it to clear the path to the altar.", 200, 25, labyrinthKey); // Health doubled
+      this.watcherOfTheCore = new Enemy("watcher-of-the-core-f3", "The Watcher of the Core", "A colossal, multi-eyed entity that roams the final labyrinth floor, its gaze distorts reality. Defeat it to clear the path to the altar.", 200, 15, labyrinthKey); // Health doubled, damage reduced
       this.enemies.set(this.watcherOfTheCore.id, this.watcherOfTheCore);
       this.placeElementRandomly(this.watcherOfTheCore.id, this.enemyLocations, floor, true);
       // Find the actual placed location for the watcher

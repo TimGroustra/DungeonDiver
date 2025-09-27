@@ -810,8 +810,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
 
   const renderHud = () => {
     if (!labyrinth) return null; // Ensure labyrinth is initialized
-    const spellCooldown = labyrinth.getSpellCooldown();
-    const gemSpellCooldown = labyrinth.getGemSpellCooldown();
 
     return (
       <>
@@ -831,34 +829,6 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
               <Shield className="text-blue-400" size={10} />
               <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
             </div>
-            <Separator orientation="vertical" className="h-3 bg-amber-800" />
-            <div className="flex items-center gap-1" title="Search Radius">
-              <Target className="text-purple-400" size={10} />
-              <span className="font-bold">{labyrinth.getSearchRadius()}</span>
-            </div>
-            <Separator orientation="vertical" className="h-3 bg-amber-800" />
-            <div className="flex items-center gap-1" title="Deaths">
-              <Skull className="text-gray-400" size={10} />
-              <span className="font-bold">{labyrinth.getPlayerDeaths()}</span>
-            </div>
-            {spellCooldown > 0 && (
-              <>
-                <Separator orientation="vertical" className="h-3 bg-amber-800" />
-                <div className="flex items-center gap-1" title="Spell Cooldown">
-                  <BookOpen className="text-cyan-400" size={10} />
-                  <span className="font-bold">{spellCooldown}</span>
-                </div>
-              </>
-            )}
-            {gemSpellCooldown > 0 && (
-              <>
-                <Separator orientation="vertical" className="h-3 bg-amber-800" />
-                <div className="flex items-center gap-1" title="Gem Spell Cooldown">
-                  <Zap className="text-yellow-400" size={10} />
-                  <span className="font-bold">{gemSpellCooldown}</span>
-                </div>
-              </>
-            )}
           </div>
         </div>
         {/* NEW: Player Stunned Status */}

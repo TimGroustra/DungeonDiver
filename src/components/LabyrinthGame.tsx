@@ -811,29 +811,48 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
   const renderHud = () => {
     if (!labyrinth) return null; // Ensure labyrinth is initialized
 
+    const healthPercentage = (labyrinth.getPlayerHealth() / labyrinth.getPlayerMaxHealth()) * 100;
+
     return (
       <>
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-1 px-3 shadow-2xl shadow-black/50">
-          <div className="flex justify-center items-center gap-x-3 gap-y-1 text-amber-50 flex-wrap text-xs">
-            <div className="flex items-center gap-1" title="Health">
-              <Heart className="text-red-500" size={10} />
-              <span className="font-bold">{labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}</span>
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-auto bg-stone-900/80 backdrop-blur-sm border-b-2 border-amber-700/70 rounded-b-lg p-2 px-4 shadow-2xl shadow-black/50">
+          <div className="flex justify-center items-center gap-x-4 gap-y-2 text-amber-50 flex-wrap text-sm">
+            {/* Health Bar */}
+            <div className="flex items-center gap-2" title="Health">
+              <Heart className="text-red-500" size={16} />
+              <div className="relative w-32 h-5">
+                <div className="absolute inset-0 w-full h-full bg-red-900/70 rounded-full overflow-hidden border border-red-700">
+                  <div
+                    className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-300"
+                    style={{ width: `${healthPercentage}%` }}
+                  />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-bold text-xs text-white" style={{ textShadow: '1px 1px 2px black' }}>
+                    {labyrinth.getPlayerHealth()} / {labyrinth.getPlayerMaxHealth()}
+                  </span>
+                </div>
+              </div>
             </div>
-            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+
+            <Separator orientation="vertical" className="h-4 bg-amber-800" />
+            
             <div className="flex items-center gap-1" title="Attack">
-              <Sword className="text-orange-400" size={10} />
+              <Sword className="text-orange-400" size={12} />
               <span className="font-bold">{labyrinth.getCurrentAttackDamage()}</span>
             </div>
-            <Separator orientation="vertical" className="h-3 bg-amber-800" />
+            
+            <Separator orientation="vertical" className="h-4 bg-amber-800" />
+
             <div className="flex items-center gap-1" title="Defense">
-              <Shield className="text-blue-400" size={10} />
+              <Shield className="text-blue-400" size={12} />
               <span className="font-bold">{labyrinth.getCurrentDefense()}</span>
             </div>
           </div>
         </div>
         {/* NEW: Player Stunned Status */}
         {labyrinth.getPlayerStunnedTurns() > 0 && (
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 bg-blue-800/80 text-white text-sm px-3 py-1 rounded-md animate-pulse-fast">
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 bg-blue-800/80 text-white text-sm px-3 py-1 rounded-md animate-pulse-fast">
             Stunned! ({labyrinth.getPlayerStunnedTurns()} turns left)
           </div>
         )}

@@ -196,6 +196,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     }
   }, [gameVersion, labyrinth, onGameOver, hasGameOverBeenDispatched, gameResult]); // Add gameResult to dependencies
 
+  // Effect for keyboard listeners on the game container (for game actions and opening map)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!gameStarted || gameResult !== null || isAnimatingMovement || event.repeat || !labyrinth) return;
@@ -223,7 +224,10 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       // Handle 'M' key press to display map modal while held down
       if (event.key.toLowerCase() === 'm') {
         event.preventDefault();
-        setIsMapModalOpen(true); // Open the modal
+        // Only open if not already open
+        if (!isMapModalOpen) {
+          setIsMapModalOpen(true);
+        }
         return; // Return after handling 'M' key
       }
 
@@ -250,31 +254,40 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
       }
     };
 
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'Shift') {
-        setSpellInput(''); // Reset spell input when shift is released
-      }
-      // Handle 'M' key release to close the map modal
-      if (event.key.toLowerCase() === 'm') {
-        event.preventDefault();
-        setIsMapModalOpen(false); // Close the modal
-        return;
-      }
-    };
-
     const gameElement = gameContainerRef.current;
     if (gameElement) {
       gameElement.addEventListener("keydown", handleKeyDown);
-      gameElement.addEventListener("keyup", handleKeyUp);
-      gameElement.focus();
+      gameElement.focus(); // Ensure focus is maintained
     }
     return () => {
       if (gameElement) {
         gameElement.removeEventListener("keydown", handleKeyDown);
-        gameElement.removeEventListener("keyup", handleKeyUp);
       }
     };
   }, [gameStarted, labyrinth, playerName, elapsedTime, gameResult, isAnimatingMovement, isMapModalOpen, spellInput]);
+
+  // Effect for keyboard listener on the document (for closing map on 'M' keyup)
+  useEffect(() => {
+    const handleDocumentKeyUp = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'm') {
+        event.preventDefault();
+        // Use functional update to ensure we get the latest state
+        setIsMapModalOpen(prev => {
+          if (prev) {
+            return false;
+          }
+          return prev; // If it was already false, keep it false
+        });
+      }
+    };
+
+    // Attach to document to catch keyup even if focus shifts
+    document.addEventListener('keyup', handleDocumentKeyUp);
+
+    return () => {
+      document.removeEventListener('keyup', handleDocumentKeyUp);
+    };
+  }, []); // Empty dependency array ensures this listener is only set up once
 
   useEffect(() => {
     if (!gameStarted || gameResult !== null || !labyrinth) return;
@@ -322,7 +335,7 @@ const LabyrinthGame: React.FC<LabyrinthGameProps> = ({ playerName, gameStarted, 
     labyrinth.attack(playerName, elapsedTime);
     setCurrentFloor(labyrinth.getCurrentFloor());
     setPlayerPosition(labyrinth.getPlayerLocation());
-    incrementGameVersion();
+    gameVersion;
   };
 
   const handleJump = () => {

@@ -2263,8 +2263,9 @@ export class Labyrinth {
 
     if (this.equippedGemSpell.id === "spellbook-lightning") {
       const radius = 4;
-      const totalDamage = 500; // Total damage to be split
-      const hitEnemies: { enemy: Enemy; coord: Coordinate; id: string; coordStr: string }[] = [];
+      const totalDamage = 250; // Changed total damage to 250
+      const maxTargets = 5; // Maximum 5 targets
+      const potentialTargets: { enemy: Enemy; coord: Coordinate; id: string; coordStr: string }[] = [];
 
       // Find ALL enemies within the radius
       for (const [coordStr, enemyId] of this.enemyLocations.entries()) {
@@ -2274,13 +2275,23 @@ export class Labyrinth {
           if (dist <= radius) {
             const enemy = this.enemies.get(enemyId);
             if (enemy && !enemy.defeated) {
-              hitEnemies.push({ enemy, coord: { x, y }, id: enemyId, coordStr });
+              potentialTargets.push({ enemy, coord: { x, y }, id: enemyId, coordStr });
             }
           }
         }
       }
 
-      if (hitEnemies.length > 0) {
+      let hitEnemies: { enemy: Enemy; coord: Coordinate; id: string; coordStr: string }[] = [];
+
+      if (potentialTargets.length > 0) {
+        if (potentialTargets.length <= maxTargets) {
+          hitEnemies = potentialTargets;
+        } else {
+          // Randomly select maxTargets enemies
+          const shuffled = potentialTargets.sort(() => 0.5 - Math.random());
+          hitEnemies = shuffled.slice(0, maxTargets);
+        }
+
         const damagePerEnemy = totalDamage / hitEnemies.length;
         const hitEnemyIds: string[] = [];
         const hitPositions: Coordinate[] = [];
@@ -2454,7 +2465,7 @@ export class Labyrinth {
             // Enemies are only affected by ice created by the player
             if (frozenTile && frozenTile.source === 'player' && enemy.id !== this.watcherOfTheCore?.id) {
                 enemy.stunnedTurns = 1; // Stunned for this turn
-                this.addMessage(`The ${enemy.name} is stuck in the ice and cannot move!`);
+                this.addMessage(`The ${enemy.name} is stuck in the ice and cannot move.`);
                 moved = true; // Treat as a "move" to prevent trying other directions
                 break;
             }

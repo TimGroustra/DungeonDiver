@@ -14,14 +14,15 @@ import { Loader2, Skull } from "lucide-react";
 import { GameResult } from "@/lib/game";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { WalletConnect } from "@/components/WalletConnect";
-import { useWalletStore } from "@/stores/walletStore"; // Import the wallet store
+import { useWalletStore } from "@/stores/walletStore";
+import { truncateAddress } from "@/lib/utils";
 
 interface LeaderboardEntry {
   id: number;
   player_name: string;
   score_time: number;
   deaths: number;
-  created_at: string;
+  wallet_address: string | null;
 }
 
 const formatTime = (seconds: number) => {
@@ -40,7 +41,7 @@ const Index: React.FC = () => {
   const [gameKey, setGameKey] = useState<number>(0);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { balance } = useWalletStore(); // Get balance from the wallet store
+  const { balance, address } = useWalletStore(); // Get address from the wallet store
 
   const hasElectrogem = balance !== null && balance > 0;
 
@@ -59,7 +60,7 @@ const Index: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("id, player_name, score_time, deaths")
+        .select("id, player_name, score_time, deaths, wallet_address")
         .order("deaths", { ascending: true })
         .order("score_time", { ascending: true })
         .limit(10);
@@ -70,7 +71,7 @@ const Index: React.FC = () => {
   });
 
   const addLeaderboardEntryMutation = useMutation({
-    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number }) => {
+    mutationFn: async (entry: { player_name: string; score_time: number; deaths: number; wallet_address: string | null }) => {
       const { data, error } = await supabase
         .from("leaderboard")
         .insert([entry]);
@@ -108,12 +109,17 @@ const Index: React.FC = () => {
     setGameResult(result);
     if (result.type === 'victory') {
       toast.success(`Congratulations, ${result.name}! You escaped the Labyrinth in ${formatTime(result.time)}!`);
-      addLeaderboardEntryMutation.mutate({ player_name: result.name, score_time: result.time, deaths: result.deaths || 0 });
+      addLeaderboardEntryMutation.mutate({
+        player_name: result.name,
+        score_time: result.time,
+        deaths: result.deaths || 0,
+        wallet_address: address
+      });
     } else {
       toast.error(`Game Over, ${result.name}. You were defeated in the Labyrinth.`);
     }
     setShowLeaderboard(false);
-  }, [addLeaderboardEntryMutation]);
+  }, [addLeaderboardEntryMutation, address]);
 
   const handleGameRestart = () => {
     setGameStarted(true);
@@ -190,7 +196,12 @@ const Index: React.FC = () => {
               <ul className="space-y-2">
                 {leaderboard?.map((entry, index) => (
                   <li key={entry.id} className="flex justify-between items-center p-2 bg-stone-800 rounded">
-                    <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
+                    <div className="flex flex-col items-start">
+                      <span className="font-semibold text-amber-200">{index + 1}. {entry.player_name}</span>
+                      {entry.wallet_address && (
+                        <span className="text-xs font-mono text-stone-400">{truncateAddress(entry.wallet_address)}</span>
+                      )}
+                    </div>
                     <div className="flex items-center space-x-2 text-stone-300">
                       <div className="flex items-center" title="Deaths">
                         <Skull className="h-4 w-4 mr-1 text-gray-400" />
